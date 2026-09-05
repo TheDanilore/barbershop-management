@@ -1,344 +1,1232 @@
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content below * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * Delete the template below * * * * * * * * * -->
-<!-- * * * * * * * to get started with your project! * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- BarberTrack Main Application Template (Reactive Forms & Supabase Sync) -->
 
-<style>
-  :host {
-    --bright-blue: oklch(51.01% 0.274 263.83);
-    --electric-violet: oklch(53.18% 0.28 296.97);
-    --french-violet: oklch(47.66% 0.246 305.88);
-    --vivid-pink: oklch(69.02% 0.277 332.77);
-    --hot-red: oklch(61.42% 0.238 15.34);
-    --orange-red: oklch(63.32% 0.24 31.68);
-
-    --gray-900: oklch(19.37% 0.006 300.98);
-    --gray-700: oklch(36.98% 0.014 302.71);
-    --gray-400: oklch(70.9% 0.015 304.04);
-
-    --red-to-pink-to-purple-vertical-gradient: linear-gradient(
-      180deg,
-      var(--orange-red) 0%,
-      var(--vivid-pink) 50%,
-      var(--electric-violet) 100%
-    );
-
-    --red-to-pink-to-purple-horizontal-gradient: linear-gradient(
-      90deg,
-      var(--orange-red) 0%,
-      var(--vivid-pink) 50%,
-      var(--electric-violet) 100%
-    );
-
-    --pill-accent: var(--bright-blue);
-
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-      "Segoe UI Symbol";
-    box-sizing: border-box;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    display: block;
-    height: 100dvh;
-  }
-
-  h1 {
-    font-size: 3.125rem;
-    color: var(--gray-900);
-    font-weight: 500;
-    line-height: 100%;
-    letter-spacing: -0.125rem;
-    margin: 0;
-    font-family: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-      "Segoe UI Symbol";
-  }
-
-  p {
-    margin: 0;
-    color: var(--gray-700);
-  }
-
-  main {
-    width: 100%;
-    min-height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    box-sizing: inherit;
-    position: relative;
-  }
-
-  .angular-logo {
-    max-width: 9.2rem;
-  }
-
-  .content {
-    display: flex;
-    justify-content: space-around;
-    width: 100%;
-    max-width: 700px;
-    margin-bottom: 3rem;
-  }
-
-  .content h1 {
-    margin-top: 1.75rem;
-  }
-
-  .content p {
-    margin-top: 1.5rem;
-  }
-
-  .divider {
-    width: 1px;
-    background: var(--red-to-pink-to-purple-vertical-gradient);
-    margin-inline: 0.5rem;
-  }
-
-  .pill-group {
-    display: flex;
-    flex-direction: column;
-    align-items: start;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-  }
-
-  .pill {
-    display: flex;
-    align-items: center;
-    --pill-accent: var(--bright-blue);
-    background: color-mix(in srgb, var(--pill-accent) 5%, transparent);
-    color: var(--pill-accent);
-    padding-inline: 0.75rem;
-    padding-block: 0.375rem;
-    border-radius: 2.75rem;
-    border: 0;
-    transition: background 0.3s ease;
-    font-family: var(--inter-font);
-    font-size: 0.875rem;
-    font-style: normal;
-    font-weight: 500;
-    line-height: 1.4rem;
-    letter-spacing: -0.00875rem;
-    text-decoration: none;
-    white-space: nowrap;
-  }
-
-  .pill:hover {
-    background: color-mix(in srgb, var(--pill-accent) 15%, transparent);
-  }
-
-  .pill-group .pill:nth-child(6n + 1) {
-    --pill-accent: var(--bright-blue);
-  }
-  .pill-group .pill:nth-child(6n + 2) {
-    --pill-accent: var(--electric-violet);
-  }
-  .pill-group .pill:nth-child(6n + 3) {
-    --pill-accent: var(--french-violet);
-  }
-
-  .pill-group .pill:nth-child(6n + 4),
-  .pill-group .pill:nth-child(6n + 5),
-  .pill-group .pill:nth-child(6n + 6) {
-    --pill-accent: var(--hot-red);
-  }
-
-  .pill-group svg {
-    margin-inline-start: 0.25rem;
-  }
-
-  .social-links {
-    display: flex;
-    align-items: center;
-    gap: 0.73rem;
-    margin-top: 1.5rem;
-  }
-
-  .social-links path {
-    transition: fill 0.3s ease;
-    fill: var(--gray-400);
-  }
-
-  .social-links a:hover svg path {
-    fill: var(--gray-900);
-  }
-
-  @media screen and (max-width: 650px) {
-    .content {
-      flex-direction: column;
-      width: max-content;
-    }
-
-    .divider {
-      height: 1px;
-      width: 100%;
-      background: var(--red-to-pink-to-purple-horizontal-gradient);
-      margin-block: 1.5rem;
-    }
-  }
-</style>
-
-<main class="main">
-  <div class="content">
-    <div class="left-side">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 982 239"
-        fill="none"
-        class="angular-logo"
-      >
-        <g clip-path="url(#a)">
-          <path
-            fill="url(#b)"
-            d="M388.676 191.625h30.849L363.31 31.828h-35.758l-56.215 159.797h30.848l13.174-39.356h60.061l13.256 39.356Zm-65.461-62.675 21.602-64.311h1.227l21.602 64.311h-44.431Zm126.831-7.527v70.202h-28.23V71.839h27.002v20.374h1.392c2.782-6.71 7.2-12.028 13.255-15.956 6.056-3.927 13.584-5.89 22.503-5.89 8.264 0 15.465 1.8 21.684 5.318 6.137 3.518 10.964 8.673 14.319 15.382 3.437 6.71 5.074 14.81 4.992 24.383v76.175h-28.23v-71.92c0-8.019-2.046-14.237-6.219-18.819-4.173-4.5-9.819-6.791-17.102-6.791-4.91 0-9.328 1.063-13.174 3.272-3.846 2.128-6.792 5.237-9.001 9.328-2.046 4.009-3.191 8.918-3.191 14.728ZM589.233 239c-10.147 0-18.82-1.391-26.103-4.091-7.282-2.7-13.092-6.382-17.511-10.964-4.418-4.582-7.528-9.655-9.164-15.219l25.448-6.136c1.145 2.372 2.782 4.663 4.991 6.954 2.209 2.291 5.155 4.255 8.837 5.81 3.683 1.554 8.428 2.291 14.074 2.291 8.019 0 14.647-1.964 19.884-5.81 5.237-3.845 7.856-10.227 7.856-19.064v-22.665h-1.391c-1.473 2.946-3.601 5.892-6.383 9.001-2.782 3.109-6.464 5.645-10.965 7.691-4.582 2.046-10.228 3.109-17.101 3.109-9.165 0-17.511-2.209-25.039-6.545-7.446-4.337-13.42-10.883-17.757-19.474-4.418-8.673-6.628-19.473-6.628-32.565 0-13.091 2.21-24.301 6.628-33.383 4.419-9.082 10.311-15.955 17.839-20.7 7.528-4.746 15.874-7.037 25.039-7.037 7.037 0 12.846 1.145 17.347 3.518 4.582 2.373 8.182 5.236 10.883 8.51 2.7 3.272 4.746 6.382 6.137 9.327h1.554v-19.8h27.821v121.749c0 10.228-2.454 18.737-7.364 25.447-4.91 6.709-11.538 11.7-20.048 15.055-8.509 3.355-18.165 4.991-28.884 4.991Zm.245-71.266c5.974 0 11.047-1.473 15.302-4.337 4.173-2.945 7.446-7.118 9.573-12.519 2.21-5.482 3.274-12.027 3.274-19.637 0-7.609-1.064-14.155-3.274-19.8-2.127-5.646-5.318-10.064-9.491-13.255-4.174-3.11-9.329-4.746-15.384-4.746s-11.537 1.636-15.792 4.91c-4.173 3.272-7.365 7.772-9.492 13.418-2.128 5.727-3.191 12.191-3.191 19.392 0 7.2 1.063 13.745 3.273 19.228 2.127 5.482 5.318 9.736 9.573 12.764 4.174 3.027 9.41 4.582 15.629 4.582Zm141.56-26.51V71.839h28.23v119.786h-27.412v-21.273h-1.227c-2.7 6.709-7.119 12.191-13.338 16.446-6.137 4.255-13.747 6.382-22.748 6.382-7.855 0-14.81-1.718-20.783-5.237-5.974-3.518-10.72-8.591-14.075-15.382-3.355-6.709-5.073-14.891-5.073-24.464V71.839h28.312v71.921c0 7.609 2.046 13.664 6.219 18.083 4.173 4.5 9.655 6.709 16.365 6.709 4.173 0 8.183-.982 12.111-3.028 3.927-2.045 7.118-5.072 9.655-9.082 2.537-4.091 3.764-9.164 3.764-15.218Zm65.707-109.395v159.796h-28.23V31.828h28.23Zm44.841 162.169c-7.61 0-14.402-1.391-20.457-4.091-6.055-2.7-10.883-6.791-14.32-12.109-3.518-5.319-5.237-11.946-5.237-19.801 0-6.791 1.228-12.355 3.765-16.773 2.536-4.419 5.891-7.937 10.228-10.637 4.337-2.618 9.164-4.664 14.647-6.055 5.4-1.391 11.046-2.373 16.856-3.027 7.037-.737 12.683-1.391 17.102-1.964 4.337-.573 7.528-1.555 9.574-2.782 1.963-1.309 3.027-3.273 3.027-5.973v-.491c0-5.891-1.718-10.391-5.237-13.664-3.518-3.191-8.51-4.828-15.056-4.828-6.955 0-12.356 1.473-16.447 4.5-4.009 3.028-6.71 6.546-8.183 10.719l-26.348-3.764c2.046-7.282 5.483-13.336 10.31-18.328 4.746-4.909 10.638-8.59 17.511-11.045 6.955-2.455 14.565-3.682 22.912-3.682 5.809 0 11.537.654 17.265 2.045s10.965 3.6 15.711 6.71c4.746 3.109 8.51 7.282 11.455 12.6 2.864 5.318 4.337 11.946 4.337 19.883v80.184h-27.166v-16.446h-.9c-1.719 3.355-4.092 6.464-7.201 9.328-3.109 2.864-6.955 5.237-11.619 6.955-4.828 1.718-10.229 2.536-16.529 2.536Zm7.364-20.701c5.646 0 10.556-1.145 14.729-3.354 4.173-2.291 7.364-5.237 9.655-9.001 2.292-3.763 3.355-7.854 3.355-12.273v-14.155c-.9.737-2.373 1.391-4.5 2.046-2.128.654-4.419 1.145-7.037 1.636-2.619.491-5.155.9-7.692 1.227-2.537.328-4.746.655-6.628.901-4.173.572-8.019 1.472-11.292 2.781-3.355 1.31-5.973 3.11-7.855 5.401-1.964 2.291-2.864 5.318-2.864 8.918 0 5.237 1.882 9.164 5.728 11.782 3.682 2.782 8.51 4.091 14.401 4.091Zm64.643 18.328V71.839h27.412v19.965h1.227c2.21-6.955 5.974-12.274 11.292-16.038 5.319-3.763 11.456-5.645 18.329-5.645 1.555 0 3.355.082 5.237.163 1.964.164 3.601.328 4.91.573v25.938c-1.227-.41-3.109-.819-5.646-1.146a58.814 58.814 0 0 0-7.446-.49c-5.155 0-9.738 1.145-13.829 3.354-4.091 2.209-7.282 5.236-9.655 9.164-2.373 3.927-3.519 8.427-3.519 13.5v70.448h-28.312ZM222.077 39.192l-8.019 125.923L137.387 0l84.69 39.192Zm-53.105 162.825-57.933 33.056-57.934-33.056 11.783-28.556h92.301l11.783 28.556ZM111.039 62.675l30.357 73.803H80.681l30.358-73.803ZM7.937 165.115 0 39.192 84.69 0 7.937 165.115Z"
-          />
-          <path
-            fill="url(#c)"
-            d="M388.676 191.625h30.849L363.31 31.828h-35.758l-56.215 159.797h30.848l13.174-39.356h60.061l13.256 39.356Zm-65.461-62.675 21.602-64.311h1.227l21.602 64.311h-44.431Zm126.831-7.527v70.202h-28.23V71.839h27.002v20.374h1.392c2.782-6.71 7.2-12.028 13.255-15.956 6.056-3.927 13.584-5.89 22.503-5.89 8.264 0 15.465 1.8 21.684 5.318 6.137 3.518 10.964 8.673 14.319 15.382 3.437 6.71 5.074 14.81 4.992 24.383v76.175h-28.23v-71.92c0-8.019-2.046-14.237-6.219-18.819-4.173-4.5-9.819-6.791-17.102-6.791-4.91 0-9.328 1.063-13.174 3.272-3.846 2.128-6.792 5.237-9.001 9.328-2.046 4.009-3.191 8.918-3.191 14.728ZM589.233 239c-10.147 0-18.82-1.391-26.103-4.091-7.282-2.7-13.092-6.382-17.511-10.964-4.418-4.582-7.528-9.655-9.164-15.219l25.448-6.136c1.145 2.372 2.782 4.663 4.991 6.954 2.209 2.291 5.155 4.255 8.837 5.81 3.683 1.554 8.428 2.291 14.074 2.291 8.019 0 14.647-1.964 19.884-5.81 5.237-3.845 7.856-10.227 7.856-19.064v-22.665h-1.391c-1.473 2.946-3.601 5.892-6.383 9.001-2.782 3.109-6.464 5.645-10.965 7.691-4.582 2.046-10.228 3.109-17.101 3.109-9.165 0-17.511-2.209-25.039-6.545-7.446-4.337-13.42-10.883-17.757-19.474-4.418-8.673-6.628-19.473-6.628-32.565 0-13.091 2.21-24.301 6.628-33.383 4.419-9.082 10.311-15.955 17.839-20.7 7.528-4.746 15.874-7.037 25.039-7.037 7.037 0 12.846 1.145 17.347 3.518 4.582 2.373 8.182 5.236 10.883 8.51 2.7 3.272 4.746 6.382 6.137 9.327h1.554v-19.8h27.821v121.749c0 10.228-2.454 18.737-7.364 25.447-4.91 6.709-11.538 11.7-20.048 15.055-8.509 3.355-18.165 4.991-28.884 4.991Zm.245-71.266c5.974 0 11.047-1.473 15.302-4.337 4.173-2.945 7.446-7.118 9.573-12.519 2.21-5.482 3.274-12.027 3.274-19.637 0-7.609-1.064-14.155-3.274-19.8-2.127-5.646-5.318-10.064-9.491-13.255-4.174-3.11-9.329-4.746-15.384-4.746s-11.537 1.636-15.792 4.91c-4.173 3.272-7.365 7.772-9.492 13.418-2.128 5.727-3.191 12.191-3.191 19.392 0 7.2 1.063 13.745 3.273 19.228 2.127 5.482 5.318 9.736 9.573 12.764 4.174 3.027 9.41 4.582 15.629 4.582Zm141.56-26.51V71.839h28.23v119.786h-27.412v-21.273h-1.227c-2.7 6.709-7.119 12.191-13.338 16.446-6.137 4.255-13.747 6.382-22.748 6.382-7.855 0-14.81-1.718-20.783-5.237-5.974-3.518-10.72-8.591-14.075-15.382-3.355-6.709-5.073-14.891-5.073-24.464V71.839h28.312v71.921c0 7.609 2.046 13.664 6.219 18.083 4.173 4.5 9.655 6.709 16.365 6.709 4.173 0 8.183-.982 12.111-3.028 3.927-2.045 7.118-5.072 9.655-9.082 2.537-4.091 3.764-9.164 3.764-15.218Zm65.707-109.395v159.796h-28.23V31.828h28.23Zm44.841 162.169c-7.61 0-14.402-1.391-20.457-4.091-6.055-2.7-10.883-6.791-14.32-12.109-3.518-5.319-5.237-11.946-5.237-19.801 0-6.791 1.228-12.355 3.765-16.773 2.536-4.419 5.891-7.937 10.228-10.637 4.337-2.618 9.164-4.664 14.647-6.055 5.4-1.391 11.046-2.373 16.856-3.027 7.037-.737 12.683-1.391 17.102-1.964 4.337-.573 7.528-1.555 9.574-2.782 1.963-1.309 3.027-3.273 3.027-5.973v-.491c0-5.891-1.718-10.391-5.237-13.664-3.518-3.191-8.51-4.828-15.056-4.828-6.955 0-12.356 1.473-16.447 4.5-4.009 3.028-6.71 6.546-8.183 10.719l-26.348-3.764c2.046-7.282 5.483-13.336 10.31-18.328 4.746-4.909 10.638-8.59 17.511-11.045 6.955-2.455 14.565-3.682 22.912-3.682 5.809 0 11.537.654 17.265 2.045s10.965 3.6 15.711 6.71c4.746 3.109 8.51 7.282 11.455 12.6 2.864 5.318 4.337 11.946 4.337 19.883v80.184h-27.166v-16.446h-.9c-1.719 3.355-4.092 6.464-7.201 9.328-3.109 2.864-6.955 5.237-11.619 6.955-4.828 1.718-10.229 2.536-16.529 2.536Zm7.364-20.701c5.646 0 10.556-1.145 14.729-3.354 4.173-2.291 7.364-5.237 9.655-9.001 2.292-3.763 3.355-7.854 3.355-12.273v-14.155c-.9.737-2.373 1.391-4.5 2.046-2.128.654-4.419 1.145-7.037 1.636-2.619.491-5.155.9-7.692 1.227-2.537.328-4.746.655-6.628.901-4.173.572-8.019 1.472-11.292 2.781-3.355 1.31-5.973 3.11-7.855 5.401-1.964 2.291-2.864 5.318-2.864 8.918 0 5.237 1.882 9.164 5.728 11.782 3.682 2.782 8.51 4.091 14.401 4.091Zm64.643 18.328V71.839h27.412v19.965h1.227c2.21-6.955 5.974-12.274 11.292-16.038 5.319-3.763 11.456-5.645 18.329-5.645 1.555 0 3.355.082 5.237.163 1.964.164 3.601.328 4.91.573v25.938c-1.227-.41-3.109-.819-5.646-1.146a58.814 58.814 0 0 0-7.446-.49c-5.155 0-9.738 1.145-13.829 3.354-4.091 2.209-7.282 5.236-9.655 9.164-2.373 3.927-3.519 8.427-3.519 13.5v70.448h-28.312ZM222.077 39.192l-8.019 125.923L137.387 0l84.69 39.192Zm-53.105 162.825-57.933 33.056-57.934-33.056 11.783-28.556h92.301l11.783 28.556ZM111.039 62.675l30.357 73.803H80.681l30.358-73.803ZM7.937 165.115 0 39.192 84.69 0 7.937 165.115Z"
-          />
-        </g>
-        <defs>
-          <radialGradient
-            id="c"
-            cx="0"
-            cy="0"
-            r="1"
-            gradientTransform="rotate(118.122 171.182 60.81) scale(205.794)"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stop-color="#FF41F8" />
-            <stop offset=".707" stop-color="#FF41F8" stop-opacity=".5" />
-            <stop offset="1" stop-color="#FF41F8" stop-opacity="0" />
-          </radialGradient>
-          <linearGradient
-            id="b"
-            x1="0"
-            x2="982"
-            y1="192"
-            y2="192"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stop-color="#F0060B" />
-            <stop offset="0" stop-color="#F0070C" />
-            <stop offset=".526" stop-color="#CC26D5" />
-            <stop offset="1" stop-color="#7702FF" />
-          </linearGradient>
-          <clipPath id="a"><path fill="#fff" d="M0 0h982v239H0z" /></clipPath>
-        </defs>
-      </svg>
-      <h1>Hello, {{ title() }}</h1>
-      <p>Congratulations! Your app is running. 🎉</p>
+<div class="app-layout">
+  <!-- Toast Notification -->
+  @if (toastMessage()) {
+    <div class="toast-banner">
+      <span class="toast-icon">✨</span>
+      <span class="toast-text">{{ toastMessage() }}</span>
     </div>
-    <div class="divider" role="separator" aria-label="Divider"></div>
-    <div class="right-side">
-      <div class="pill-group">
-        @for (item of [
-          { title: 'Explore the Docs', link: 'https://angular.dev' },
-          { title: 'Learn with Tutorials', link: 'https://angular.dev/tutorials' },
-          { title: 'Prompt and best practices for AI', link: 'https://angular.dev/ai/develop-with-ai'},
-          { title: 'CLI Docs', link: 'https://angular.dev/tools/cli' },
-          { title: 'Angular Language Service', link: 'https://angular.dev/tools/language-service' },
-          { title: 'Angular DevTools', link: 'https://angular.dev/tools/devtools' },
-        ]; track item.title) {
-          <a
-            class="pill"
-            [href]="item.link"
-            target="_blank"
-            rel="noopener"
-          >
-            <span>{{ item.title }}</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="14"
-              viewBox="0 -960 960 960"
-              width="14"
-              fill="currentColor"
-            >
-              <path
-                d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"
-              />
+  }
+
+  <!-- ========================================================================= -->
+  <!-- 1. PANTALLA DE ENTRADA / SELECTOR DE ROL                                -->
+  <!-- ========================================================================= -->
+  @if (barberService.currentRole() === 'landing') {
+    <main class="landing-screen">
+      <div class="landing-content">
+        <!-- Logo BarberTrack -->
+        <div class="brand-header">
+          <div class="brand-emblem">
+            <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
             </svg>
-          </a>
-        }
+          </div>
+          <h1 class="brand-title">BarberTrack</h1>
+          <p class="brand-subtitle">Gestión de cortes para barbería</p>
+        </div>
+
+        <!-- Opciones de rol -->
+        <div class="role-cards-container">
+          <button class="role-card" (click)="selectRole('barber')">
+            <div class="role-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <div class="role-info">
+              <h2 class="role-title">Soy Barbero</h2>
+              <p class="role-desc">Registra cortes, gestiona clientes y revisa estadísticas</p>
+            </div>
+            <div class="role-arrow">→</div>
+          </button>
+
+          <button class="role-card" (click)="selectRole('client')">
+            <div class="role-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="role-info">
+              <h2 class="role-title">Soy Cliente</h2>
+              <p class="role-desc">Ve tu perfil, historial de cortes y progreso de fidelidad</p>
+            </div>
+            <div class="role-arrow">→</div>
+          </button>
+        </div>
+
+        <div class="landing-footer">
+          <span>BarberTrack v1.0 • PWA Móvil • Supabase Powered</span>
+        </div>
       </div>
-      <div class="social-links">
-        <a
-          href="https://github.com/angular/angular"
-          aria-label="Github"
-          target="_blank"
-          rel="noopener"
-        >
-          <svg
-            width="25"
-            height="24"
-            viewBox="0 0 25 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            alt="Github"
-          >
-            <path
-              d="M12.3047 0C5.50634 0 0 5.50942 0 12.3047C0 17.7423 3.52529 22.3535 8.41332 23.9787C9.02856 24.0946 9.25414 23.7142 9.25414 23.3871C9.25414 23.0949 9.24389 22.3207 9.23876 21.2953C5.81601 22.0377 5.09414 19.6444 5.09414 19.6444C4.53427 18.2243 3.72524 17.8449 3.72524 17.8449C2.61064 17.082 3.81137 17.0973 3.81137 17.0973C5.04697 17.1835 5.69604 18.3647 5.69604 18.3647C6.79321 20.2463 8.57636 19.7029 9.27978 19.3881C9.39052 18.5924 9.70736 18.0499 10.0591 17.7423C7.32641 17.4347 4.45429 16.3765 4.45429 11.6618C4.45429 10.3185 4.9311 9.22133 5.72065 8.36C5.58222 8.04931 5.16694 6.79833 5.82831 5.10337C5.82831 5.10337 6.85883 4.77319 9.2121 6.36459C10.1965 6.09082 11.2424 5.95546 12.2883 5.94931C13.3342 5.95546 14.3801 6.09082 15.3644 6.36459C17.7023 4.77319 18.7328 5.10337 18.7328 5.10337C19.3942 6.79833 18.9789 8.04931 18.8559 8.36C19.6403 9.22133 20.1171 10.3185 20.1171 11.6618C20.1171 16.3888 17.2409 17.4296 14.5031 17.7321C14.9338 18.1012 15.3337 18.8559 15.3337 20.0084C15.3337 21.6552 15.3183 22.978 15.3183 23.3779C15.3183 23.7009 15.5336 24.0854 16.1642 23.9623C21.0871 22.3484 24.6094 17.7341 24.6094 12.3047C24.6094 5.50942 19.0999 0 12.3047 0Z"
-            />
+    </main>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- 2. VISTA BARBERO / ADMINISTRADOR                                        -->
+  <!-- ========================================================================= -->
+  @if (barberService.currentRole() === 'barber') {
+    <div class="view-container">
+      <!-- Header Superior -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="header-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header-title">BarberTrack</h1>
+            <div class="header-subtitle-row">
+              <span class="role-badge">Admin / Barbero</span>
+              @if (supabaseService.isConfigured()) {
+                <span class="sync-badge online">● Supabase</span>
+              } @else {
+                <span class="sync-badge local">● Local PWA</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn-icon-header" (click)="switchRole()" title="Cambiar a Vista Cliente">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="18" y1="8" x2="23" y2="13"></line>
+              <line x1="23" y1="8" x2="18" y2="13"></line>
+            </svg>
+          </button>
+
+          <button class="btn-icon-header" (click)="goToLanding()" title="Cerrar sesión / Salir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Banner de sincronización / Loading -->
+      @if (barberService.isLoading()) {
+        <div class="sync-loading-banner">
+          <div class="spinner-mini"></div>
+          <span>Sincronizando con Supabase...</span>
+        </div>
+      }
+
+      @if (barberService.errorMessage()) {
+        <div class="error-banner">
+          <span>⚠️ {{ barberService.errorMessage() }}</span>
+          <button class="btn-retry" (click)="barberService.syncFromSupabase()">Reintentar</button>
+        </div>
+      }
+
+      <!-- Contenido Principal con Tabs -->
+      <main class="main-content-area">
+        <!-- ---------------- TAB INICIO (BARBERO) ---------------- -->
+        @if (barberTab() === 'inicio') {
+          <div class="tab-pane fade-in">
+            <!-- Grid de Métricas Principales (KPIs) -->
+            <section class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                    <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                    <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                  </svg>
+                </div>
+                <div class="kpi-value">{{ barberService.cutsToday() }}</div>
+                <div class="kpi-label">Cortes hoy</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div class="kpi-value">{{ barberService.cutsThisMonth() }}</div>
+                <div class="kpi-label">Este mes</div>
+              </div>
+
+              <div class="kpi-card highlight">
+                <div class="kpi-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                </div>
+                <div class="kpi-value">${{ barberService.totalRevenue().toFixed(2) }}</div>
+                <div class="kpi-label">Ingresos totales</div>
+              </div>
+
+              <div class="kpi-card">
+                <div class="kpi-icon-wrapper">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <div class="kpi-value">{{ barberService.activeClientsCount() }}</div>
+                <div class="kpi-label">Clientes activos</div>
+              </div>
+            </section>
+
+            <!-- Card de Valoración & Satisfacción -->
+            <section class="rating-banner">
+              <div class="rating-stars-badge">
+                <span class="rating-number">{{ barberService.averageRating() }}</span>
+                <span class="star-icon">★</span>
+              </div>
+              <div class="rating-info">
+                <div class="rating-title">Valoración del Barbero</div>
+                <div class="rating-subtitle">Basado en {{ barberService.reviews().length }} reseñas verificadas • Top Barber</div>
+              </div>
+              <button class="btn-rating-view" (click)="setBarberTab('stats')">Ver</button>
+            </section>
+
+            <!-- Accesos Rápidos -->
+            <section class="section-container">
+              <h2 class="section-title">Accesos rápidos</h2>
+              <div class="quick-actions-row">
+                <button class="quick-action-btn primary" (click)="openRegisterCutModal()">
+                  <span class="qa-icon">+✂</span>
+                  <span class="qa-label">Nuevo Corte</span>
+                </button>
+                <button class="quick-action-btn" (click)="openBookAppointmentModal()">
+                  <span class="qa-icon">📅</span>
+                  <span class="qa-label">Agendar Cita</span>
+                </button>
+                <button class="quick-action-btn" (click)="openNewClientModal()">
+                  <span class="qa-icon">👤+</span>
+                  <span class="qa-label">Nuevo Cliente</span>
+                </button>
+                <button class="quick-action-btn" (click)="openDailyCashModal()">
+                  <span class="qa-icon">💵</span>
+                  <span class="qa-label">Caja del Día</span>
+                </button>
+              </div>
+            </section>
+
+            <!-- Agenda de Hoy (Turnos Diarios) -->
+            <section class="section-container">
+              <div class="section-header-flex">
+                <h2 class="section-title">Agenda de hoy</h2>
+                <button class="link-btn" (click)="setBarberTab('agenda')">Ver toda ({{ barberService.todayAppointments().length }})</button>
+              </div>
+
+              @if (barberService.todayAppointments().length === 0) {
+                <div class="empty-state-mini">
+                  <p>No hay citas programadas para hoy</p>
+                </div>
+              } @else {
+                <div class="appointments-list-compact">
+                  @for (apt of barberService.todayAppointments().slice(0, 3); track apt.id) {
+                    <div class="apt-item-compact">
+                      <div class="apt-time-box">
+                        <span class="apt-time">{{ apt.time }}</span>
+                        <span class="apt-status-dot" [class]="apt.status"></span>
+                      </div>
+                      <div class="apt-details">
+                        <div class="apt-client-name">{{ apt.clientName }}</div>
+                        <div class="apt-service-name">{{ apt.serviceName }} • ${{ apt.price }}</div>
+                      </div>
+                      <div class="apt-action-col">
+                        @if (apt.status !== 'completed') {
+                          <button class="btn-sm-complete" (click)="markAppointmentCompleted(apt)" title="Marcar completado">
+                            ✓ Listo
+                          </button>
+                        } @else {
+                          <span class="badge-done">Completado</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+
+            <!-- Fidelidad de Clientes (Top Recurrentes) -->
+            <section class="section-container">
+              <div class="section-header-flex">
+                <h2 class="section-title">Fidelidad de clientes</h2>
+                <button class="link-btn" (click)="setBarberTab('clientes')">Gestionar</button>
+              </div>
+
+              <div class="loyalty-cards-horizontal">
+                @for (client of topLoyaltyClients(); track client.id) {
+                  <div class="client-loyalty-card" (click)="openRegisterCutModal(client.id)">
+                    <div class="clc-top">
+                      <div class="clc-avatar">{{ client.name.charAt(0) }}</div>
+                      <span class="clc-level-badge" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+                    </div>
+                    <div class="clc-name">{{ client.name }}</div>
+                    <div class="clc-stamps-info">
+                      <span class="clc-stamps-count">{{ client.loyaltyStamps }} / 10 cortes</span>
+                      @if (client.loyaltyStamps >= 9) {
+                        <span class="clc-free-badge">¡Próximo GRATIS!</span>
+                      }
+                    </div>
+                    <div class="stamps-progress-bar">
+                      <div class="stamps-fill" [style.width.%]="(client.loyaltyStamps / 10) * 100"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+
+            <!-- Cortes Recientes -->
+            <section class="section-container">
+              <h2 class="section-title">Cortes recientes</h2>
+
+              @if (barberService.cuts().length === 0) {
+                <div class="empty-state-card">
+                  <div class="empty-icon">✂</div>
+                  <h3 class="empty-title">Aún no hay cortes registrados</h3>
+                  <p class="empty-desc">Toca el botón + para registrar el primer corte</p>
+                </div>
+              } @else {
+                <div class="cuts-feed">
+                  @for (cut of barberService.cuts().slice(0, 6); track cut.id) {
+                    <div class="cut-feed-item">
+                      <div class="cut-item-icon">✂</div>
+                      <div class="cut-item-info">
+                        <div class="cut-item-title">{{ cut.serviceName }}</div>
+                        <div class="cut-item-meta">{{ cut.clientName }} • {{ formatDate(cut.date) }}</div>
+                      </div>
+                      <div class="cut-item-price-col">
+                        <div class="cut-item-price">+${{ cut.price.toFixed(2) }}</div>
+                        <div class="cut-item-method">{{ getPaymentLabel(cut.paymentMethod) }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+          </div>
+        }
+
+        <!-- ---------------- TAB AGENDA (BARBERO) ---------------- -->
+        @if (barberTab() === 'agenda') {
+          <div class="tab-pane fade-in">
+            <div class="pane-header">
+              <div>
+                <h2 class="pane-title">Agenda de Turnos</h2>
+                <p class="pane-subtitle">Organización y horarios del día</p>
+              </div>
+              <button class="btn-primary-action" (click)="openBookAppointmentModal()">+ Cita</button>
+            </div>
+
+            <!-- Lista de turnos con timeline -->
+            <div class="timeline-container">
+              @for (apt of barberService.todayAppointments(); track apt.id) {
+                <div class="timeline-row">
+                  <div class="timeline-time">
+                    <span class="time-text">{{ apt.time }}</span>
+                  </div>
+                  <div class="timeline-card" [class]="apt.status">
+                    <div class="t-card-header">
+                      <div class="t-client-name">{{ apt.clientName }}</div>
+                      <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
+                    </div>
+                    <div class="t-service-name">{{ apt.serviceName }} • ${{ apt.price }}</div>
+                    <div class="t-phone">📞 {{ apt.clientPhone }}</div>
+                    @if (apt.notes) {
+                      <div class="t-notes">Nota: {{ apt.notes }}</div>
+                    }
+
+                    <div class="t-actions">
+                      @if (apt.status !== 'completed' && apt.status !== 'cancelled') {
+                        <button class="btn-t-action success" (click)="markAppointmentCompleted(apt)">
+                          ✓ Marcar Completado
+                        </button>
+                        <button class="btn-t-action danger" (click)="cancelAppointment(apt)">
+                          ✕ Cancelar
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ---------------- TAB CLIENTES (BARBERO) ---------------- -->
+        @if (barberTab() === 'clientes') {
+          <div class="tab-pane fade-in">
+            <div class="pane-header">
+              <div>
+                <h2 class="pane-title">Clientes</h2>
+                <p class="pane-subtitle">{{ barberService.clients().length }} clientes registrados</p>
+              </div>
+              <button class="btn-primary-action" (click)="openNewClientModal()">+ Cliente</button>
+            </div>
+
+            <!-- Buscador -->
+            <div class="search-input-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Buscar por nombre o teléfono..."
+                [ngModel]="clientSearchQuery()"
+                (ngModelChange)="clientSearchQuery.set($event)"
+              />
+            </div>
+
+            <!-- Lista de clientes -->
+            @if (filteredClients().length === 0) {
+              <div class="empty-state-card">
+                <div class="empty-icon">🔍</div>
+                <h3 class="empty-title">Sin resultados</h3>
+                <p class="empty-desc">No se encontraron clientes con ese criterio</p>
+              </div>
+            } @else {
+              <div class="clients-list">
+                @for (client of filteredClients(); track client.id) {
+                  <div class="client-card-item">
+                    <div class="client-avatar-col">
+                      <div class="client-avatar-circle">{{ client.name.charAt(0) }}</div>
+                    </div>
+                    <div class="client-details-col">
+                      <div class="client-name-row">
+                        <span class="c-name">{{ client.name }}</span>
+                        <span class="membership-tag" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+                      </div>
+                      <div class="c-phone">📞 {{ client.phone }}</div>
+                      <div class="c-stamps-pill">
+                        Sellos de fidelidad: <strong>{{ client.loyaltyStamps }}/10</strong>
+                        @if (client.loyaltyStamps >= 9) {
+                          <span class="tag-gold-alert">¡Gratis próximo!</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="client-action-col">
+                      <button class="btn-add-cut-direct" (click)="openRegisterCutModal(client.id)" title="Registrar corte a este cliente">
+                        + ✂
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- ---------------- TAB STATS (BARBERO) ---------------- -->
+        @if (barberTab() === 'stats') {
+          <div class="tab-pane fade-in">
+            <div class="pane-header">
+              <div>
+                <h2 class="pane-title">Estadísticas & Reportes</h2>
+                <p class="pane-subtitle">Rendimiento, ingresos y opiniones</p>
+              </div>
+            </div>
+
+            <!-- Desglose de ingresos -->
+            <div class="stats-card">
+              <h3 class="stats-card-title">Resumen Financiero</h3>
+              <div class="stats-breakdown-grid">
+                <div class="sb-item">
+                  <span class="sb-label">Ingresos Hoy</span>
+                  <span class="sb-val gold">${{ barberService.revenueToday().toFixed(2) }}</span>
+                </div>
+                <div class="sb-item">
+                  <span class="sb-label">Últimos 7 Días</span>
+                  <span class="sb-val">${{ barberService.revenueThisWeek().toFixed(2) }}</span>
+                </div>
+                <div class="sb-item">
+                  <span class="sb-label">Total Histórico</span>
+                  <span class="sb-val">${{ barberService.totalRevenue().toFixed(2) }}</span>
+                </div>
+                <div class="sb-item">
+                  <span class="sb-label">Total Cortes</span>
+                  <span class="sb-val">{{ barberService.cuts().length }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Servicios más solicitados -->
+            <div class="stats-card">
+              <h3 class="stats-card-title">Servicios más Solicitados</h3>
+              <div class="services-stats-list">
+                @for (srv of barberService.services().slice(0, 4); track srv.id) {
+                  <div class="service-stat-row">
+                    <div class="ssr-info">
+                      <span class="ssr-name">{{ srv.name }}</span>
+                      <span class="ssr-price">${{ srv.price }}</span>
+                    </div>
+                    <div class="ssr-progress-bar">
+                      <div class="ssr-fill" [style.width.%]="srv.popular ? 85 : 50"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Reseñas y Opiniones -->
+            <div class="stats-card">
+              <div class="section-header-flex">
+                <h3 class="stats-card-title">Reseñas de Clientes</h3>
+                <span class="gold-rating-text">{{ barberService.averageRating() }} ★</span>
+              </div>
+
+              <div class="reviews-list">
+                @for (rev of barberService.reviews(); track rev.id) {
+                  <div class="review-item">
+                    <div class="review-top">
+                      <div class="reviewer-name">{{ rev.clientName }}</div>
+                      <div class="review-stars">
+                        @for (star of [1,2,3,4,5]; track star) {
+                          <span [class.filled]="star <= rev.rating">★</span>
+                        }
+                      </div>
+                    </div>
+                    <p class="review-comment">"{{ rev.comment }}"</p>
+                    <div class="review-date">{{ rev.date }} • Barbero: {{ rev.barberName }}</div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </main>
+
+      <!-- Botón Flotante para Registrar Corte Rápido (FAB) -->
+      <button class="fab-register-cut" (click)="openRegisterCutModal()" title="Registrar nuevo corte">
+        <span class="fab-plus">+</span>
+      </button>
+
+      <!-- Menú de Navegación Inferior (Barbero) -->
+      <nav class="bottom-nav">
+        <button class="nav-item" [class.active]="barberTab() === 'inicio'" (click)="setBarberTab('inicio')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
-        </a>
-        <a
-          href="https://x.com/angular"
-          aria-label="X"
-          target="_blank"
-          rel="noopener"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            alt="X"
-          >
-            <path
-              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-            />
+          <span>Inicio</span>
+        </button>
+
+        <button class="nav-item" [class.active]="barberTab() === 'agenda'" (click)="setBarberTab('agenda')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
-        </a>
-        <a
-          href="https://www.youtube.com/channel/UCbn1OgGei-DV7aSRo_HaAiw"
-          aria-label="Youtube"
-          target="_blank"
-          rel="noopener"
-        >
-          <svg
-            width="29"
-            height="20"
-            viewBox="0 0 29 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            alt="Youtube"
-          >
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M27.4896 1.52422C27.9301 1.96749 28.2463 2.51866 28.4068 3.12258C29.0004 5.35161 29.0004 10 29.0004 10C29.0004 10 29.0004 14.6484 28.4068 16.8774C28.2463 17.4813 27.9301 18.0325 27.4896 18.4758C27.0492 18.9191 26.5 19.2389 25.8972 19.4032C23.6778 20 14.8068 20 14.8068 20C14.8068 20 5.93586 20 3.71651 19.4032C3.11363 19.2389 2.56449 18.9191 2.12405 18.4758C1.68361 18.0325 1.36732 17.4813 1.20683 16.8774C0.613281 14.6484 0.613281 10 0.613281 10C0.613281 10 0.613281 5.35161 1.20683 3.12258C1.36732 2.51866 1.68361 1.96749 2.12405 1.52422C2.56449 1.08095 3.11363 0.76113 3.71651 0.596774C5.93586 0 14.8068 0 14.8068 0C14.8068 0 23.6778 0 25.8972 0.596774C26.5 0.76113 27.0492 1.08095 27.4896 1.52422ZM19.3229 10L11.9036 5.77905V14.221L19.3229 10Z"
-            />
+          <span>Agenda</span>
+        </button>
+
+        <button class="nav-item" [class.active]="barberTab() === 'clientes'" (click)="setBarberTab('clientes')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
-        </a>
+          <span>Clientes</span>
+        </button>
+
+        <button class="nav-item" [class.active]="barberTab() === 'stats'" (click)="setBarberTab('stats')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Stats</span>
+        </button>
+      </nav>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- 3. VISTA CLIENTE                                                        -->
+  <!-- ========================================================================= -->
+  @if (barberService.currentRole() === 'client') {
+    <div class="view-container">
+      <!-- Header Superior Vista Cliente -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="header-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <div>
+            <h1 class="header-title">BarberTrack</h1>
+            <span class="role-badge client">Hola, {{ barberService.currentClient().name }}</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn-icon-header" (click)="switchRole()" title="Cambiar a Vista Barbero">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+            </svg>
+          </button>
+
+          <button class="btn-icon-header" (click)="goToLanding()" title="Cerrar sesión / Salir">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Contenido Principal Cliente -->
+      <main class="main-content-area">
+        <!-- ---------------- TAB INICIO / RESERVA (CLIENTE) ---------------- -->
+        @if (clientTab() === 'inicio') {
+          <div class="tab-pane fade-in">
+            <!-- Tarjeta de Próximo Turno -->
+            <section class="section-container">
+              <h2 class="section-title">Tu Próximo Turno</h2>
+
+              @if (barberService.nextClientAppointment(); as apt) {
+                <div class="next-apt-card">
+                  <div class="nac-glow"></div>
+                  <div class="nac-header">
+                    <div class="nac-date-badge">
+                      <span class="nac-time">{{ apt.time }}</span>
+                      <span class="nac-date">{{ apt.date }}</span>
+                    </div>
+                    <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
+                  </div>
+
+                  <div class="nac-body">
+                    <h3 class="nac-service">{{ apt.serviceName }}</h3>
+                    <div class="nac-barber">
+                      <div class="nac-barber-avatar">✂</div>
+                      <span>Barbero: <strong>{{ apt.barberName }}</strong></span>
+                    </div>
+                    <div class="nac-price">Inversión: ${{ apt.price.toFixed(2) }}</div>
+                  </div>
+
+                  <div class="nac-actions">
+                    <button class="btn-nac-cancel" (click)="cancelAppointment(apt)">Cancelar</button>
+                    <button class="btn-nac-primary" (click)="openBookAppointmentModal()">Reprogramar</button>
+                  </div>
+                </div>
+              } @else {
+                <div class="no-apt-card">
+                  <div class="no-apt-icon">📅</div>
+                  <h3 class="no-apt-title">No tienes citas pendientes</h3>
+                  <p class="no-apt-desc">¡Agenda tu corte ahora y luce tu mejor estilo!</p>
+                  <button class="btn-book-now" (click)="openBookAppointmentModal()">
+                    Reservar mi Turno
+                  </button>
+                </div>
+              }
+            </section>
+
+            <!-- Tarjeta Resumen de Fidelidad y Membresía -->
+            <section class="section-container">
+              <div class="section-header-flex">
+                <h2 class="section-title">Tu Fidelidad</h2>
+                <button class="link-btn" (click)="setClientTab('fidelidad')">Ver tarjeta</button>
+              </div>
+
+              <div class="loyalty-snapshot-card" (click)="setClientTab('fidelidad')">
+                <div class="lsc-top">
+                  <span class="lsc-level">{{ barberService.currentClient().membershipLevel }} Member</span>
+                  <span class="lsc-stamps-pill">{{ barberService.currentClient().loyaltyStamps }} / 10 sellos</span>
+                </div>
+                <div class="stamps-progress-bar">
+                  <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+                </div>
+                <p class="lsc-motivation">
+                  @if (barberService.currentClient().loyaltyStamps >= 9) {
+                    🎉 ¡Tu próximo corte es 100% GRATIS!
+                  } @else {
+                    Faltan {{ 10 - barberService.currentClient().loyaltyStamps }} cortes para tu recompensa gratuita.
+                  }
+                </p>
+              </div>
+            </section>
+
+            <!-- Beneficios de Membresía VIP -->
+            <section class="section-container">
+              <h2 class="section-title">Beneficios de tu Membresía</h2>
+              <div class="perks-grid">
+                <div class="perk-card">
+                  <span class="perk-icon">☕</span>
+                  <div class="perk-title">Bebida de Cortesía</div>
+                  <div class="perk-desc">Café espresso o agua tónica en cada visita</div>
+                </div>
+                <div class="perk-card">
+                  <span class="perk-icon">🏷️</span>
+                  <div class="perk-title">10% Dto. en Ceras</div>
+                  <div class="perk-desc">Descuento en productos de estilizado capilar</div>
+                </div>
+                <div class="perk-card">
+                  <span class="perk-icon">⚡</span>
+                  <div class="perk-title">Reserva Prioritaria</div>
+                  <div class="perk-desc">Acceso a horarios preferenciales de fin de semana</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        }
+
+        <!-- ---------------- TAB TARJETA DE FIDELIDAD (CLIENTE) ---------------- -->
+        @if (clientTab() === 'fidelidad') {
+          <div class="tab-pane fade-in">
+            <div class="pane-header">
+              <div>
+                <h2 class="pane-title">Tarjeta de Fidelidad</h2>
+                <p class="pane-subtitle">Recompensa a tu lealtad en BarberTrack</p>
+              </div>
+            </div>
+
+            <!-- Tarjeta Física Virtual Dorada -->
+            <div class="virtual-loyalty-card">
+              <div class="vlc-header">
+                <div class="vlc-brand">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                    <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                    <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                  </svg>
+                  <span>BARBERTRACK LOYALTY</span>
+                </div>
+                <span class="vlc-tier-pill">{{ barberService.currentClient().membershipLevel }}</span>
+              </div>
+
+              <div class="vlc-client-name">{{ barberService.currentClient().name }}</div>
+              <div class="vlc-card-number">•••• •••• •••• 2026</div>
+
+              <!-- Grid de 10 Sellos -->
+              <div class="stamps-grid-10">
+                @for (slot of [1,2,3,4,5,6,7,8,9,10]; track slot) {
+                  <div class="stamp-slot" [class.stamped]="slot <= barberService.currentClient().loyaltyStamps" [class.reward-slot]="slot === 10">
+                    @if (slot <= barberService.currentClient().loyaltyStamps) {
+                      <span class="stamp-icon">✂</span>
+                    } @else if (slot === 10) {
+                      <span class="stamp-icon reward">🎁</span>
+                    } @else {
+                      <span class="stamp-number">{{ slot }}</span>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="vlc-footer">
+                <div class="vlc-progress-text">
+                  <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de 10 cortes</span>
+                  <strong>{{ (barberService.currentClient().loyaltyStamps * 10) }}%</strong>
+                </div>
+                <div class="stamps-progress-bar light">
+                  <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reglas y Condiciones -->
+            <div class="loyalty-rules-card">
+              <h3 class="rules-title">¿Cómo funciona tu tarjeta?</h3>
+              <ul class="rules-list">
+                <li><span class="bullet">✓</span> Recibes 1 sello por cada corte realizado en BarberTrack.</li>
+                <li><span class="bullet">✓</span> Al completar los 10 sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
+                <li><span class="bullet">✓</span> Tus sellos no vencen y son válidos con cualquier barbero del staff.</li>
+              </ul>
+            </div>
+          </div>
+        }
+
+        <!-- ---------------- TAB HISTORIAL DE CORTES (CLIENTE) ---------------- -->
+        @if (clientTab() === 'historial') {
+          <div class="tab-pane fade-in">
+            <div class="pane-header">
+              <div>
+                <h2 class="pane-title">Historial de Cortes</h2>
+                <p class="pane-subtitle">{{ barberService.clientCutsHistory().length }} servicios completados</p>
+              </div>
+              <button class="btn-primary-action" (click)="openReviewModal()">★ Calificar</button>
+            </div>
+
+            @if (barberService.clientCutsHistory().length === 0) {
+              <div class="empty-state-card">
+                <div class="empty-icon">✂</div>
+                <h3 class="empty-title">Sin historial aún</h3>
+                <p class="empty-desc">Tus cortes completados aparecerán registrados aquí</p>
+              </div>
+            } @else {
+              <div class="history-list">
+                @for (cut of barberService.clientCutsHistory(); track cut.id) {
+                  <div class="history-item">
+                    <div class="history-icon-col">
+                      <div class="h-icon-circle">✂</div>
+                    </div>
+                    <div class="history-info-col">
+                      <div class="h-service-name">{{ cut.serviceName }}</div>
+                      <div class="h-barber-name">Barbero: {{ cut.barberName }}</div>
+                      <div class="h-date">{{ formatDate(cut.date) }} • {{ getPaymentLabel(cut.paymentMethod) }}</div>
+                    </div>
+                    <div class="history-price-col">
+                      <div class="h-price">${{ cut.price.toFixed(2) }}</div>
+                      <span class="h-badge-paid">Pagado</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- ---------------- TAB PERFIL (CLIENTE) ---------------- -->
+        @if (clientTab() === 'perfil') {
+          <div class="tab-pane fade-in">
+            <div class="pane-header">
+              <div>
+                <h2 class="pane-title">Perfil & Cuenta</h2>
+                <p class="pane-subtitle">Tus datos personales y preferencias</p>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="profile-avatar-large">
+                {{ barberService.currentClient().name.charAt(0) }}
+              </div>
+              <h3 class="profile-name">{{ barberService.currentClient().name }}</h3>
+              <span class="membership-tag gold">{{ barberService.currentClient().membershipLevel }} Member</span>
+
+              <div class="profile-details-list">
+                <div class="profile-detail-row">
+                  <span class="p-label">Teléfono</span>
+                  <span class="p-val">{{ barberService.currentClient().phone }}</span>
+                </div>
+                <div class="profile-detail-row">
+                  <span class="p-label">Email</span>
+                  <span class="p-val">{{ barberService.currentClient().email || 'No registrado' }}</span>
+                </div>
+                <div class="profile-detail-row">
+                  <span class="p-label">Cortes Acumulados</span>
+                  <span class="p-val">{{ barberService.currentClient().cutsCount }} cortes</span>
+                </div>
+                <div class="profile-detail-row">
+                  <span class="p-label">Estilo Preferido</span>
+                  <span class="p-val">{{ barberService.currentClient().notes || 'Degradado medio, navaja' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selector para probar otros perfiles de cliente -->
+            <div class="demo-switch-client">
+              <label class="demo-label">Probar vista con otro cliente:</label>
+              <select [ngModel]="barberService.currentClientId()" (ngModelChange)="barberService.setCurrentClientId($event)">
+                @for (c of barberService.clients(); track c.id) {
+                  <option [value]="c.id">{{ c.name }} ({{ c.membershipLevel }} - {{ c.loyaltyStamps }}/10 sellos)</option>
+                }
+              </select>
+            </div>
+          </div>
+        }
+      </main>
+
+      <!-- Menú de Navegación Inferior (Cliente) -->
+      <nav class="bottom-nav">
+        <button class="nav-item" [class.active]="clientTab() === 'inicio'" (click)="setClientTab('inicio')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span>Turno</span>
+        </button>
+
+        <button class="nav-item" [class.active]="clientTab() === 'fidelidad'" (click)="setClientTab('fidelidad')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+          <span>Fidelidad</span>
+        </button>
+
+        <button class="nav-item" [class.active]="clientTab() === 'historial'" (click)="setClientTab('historial')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Historial</span>
+        </button>
+
+        <button class="nav-item" [class.active]="clientTab() === 'perfil'" (click)="setClientTab('perfil')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Perfil</span>
+        </button>
+      </nav>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODALES BLINDADOS CON ANGULAR REACTIVE FORMS                              -->
+  <!-- ========================================================================= -->
+
+  <!-- MODAL 1: REGISTRAR CORTE (Blindado con Reactive Forms) -->
+  @if (isRegisterCutModalOpen()) {
+    <div class="modal-backdrop" (click)="closeRegisterCutModal()">
+      <div class="modal-sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <h2 class="sheet-title">Registrar corte</h2>
+          <button class="btn-close-sheet" (click)="closeRegisterCutModal()">✕</button>
+        </div>
+
+        <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="sheet-body">
+          <!-- Selector de Cliente -->
+          <div class="form-group">
+            <label class="form-label">Cliente *</label>
+            <select formControlName="clientId">
+              <option value="" disabled>Selecciona un cliente...</option>
+              @for (client of barberService.clients(); track client.id) {
+                <option [value]="client.id">{{ client.name }} ({{ client.phone }})</option>
+              }
+            </select>
+
+            <button type="button" class="btn-create-client-link" (click)="openNewClientModal()">
+              + Crear cliente nuevo
+            </button>
+          </div>
+
+          <!-- Selección de Servicio (Tarjetas Visuales) -->
+          <div class="form-group">
+            <label class="form-label">Servicio *</label>
+            <div class="services-select-grid">
+              @for (srv of barberService.services(); track srv.id) {
+                <div
+                  class="service-option-card"
+                  [class.selected]="cutForm.get('serviceId')?.value === srv.id"
+                  (click)="selectService(srv.id)"
+                >
+                  <div class="soc-left">
+                    <div class="soc-name">{{ srv.name }}</div>
+                    <div class="soc-duration">{{ srv.durationMinutes }} min</div>
+                  </div>
+                  <div class="soc-price">${{ srv.price.toFixed(2) }}</div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Precio personalizado -->
+          <div class="form-group">
+            <label class="form-label">Precio personalizado (opcional)</label>
+            <input
+              type="number"
+              step="0.5"
+              placeholder="Dejar vacío para precio del servicio"
+              formControlName="customPrice"
+            />
+            @if (cutForm.get('customPrice')?.touched && cutForm.get('customPrice')?.invalid) {
+              <span class="field-error">El precio debe ser mayor a 0</span>
+            }
+          </div>
+
+          <!-- Método de Pago -->
+          <div class="form-group">
+            <label class="form-label">Método de pago *</label>
+            <div class="payment-pills-row">
+              <button
+                type="button"
+                class="payment-pill"
+                [class.selected]="cutForm.get('paymentMethod')?.value === 'cash'"
+                (click)="selectPaymentMethod('cash')"
+              >
+                💵 Efectivo
+              </button>
+              <button
+                type="button"
+                class="payment-pill"
+                [class.selected]="cutForm.get('paymentMethod')?.value === 'card'"
+                (click)="selectPaymentMethod('card')"
+              >
+                💳 Tarjeta
+              </button>
+              <button
+                type="button"
+                class="payment-pill"
+                [class.selected]="cutForm.get('paymentMethod')?.value === 'transfer'"
+                (click)="selectPaymentMethod('transfer')"
+              >
+                📱 Yape / Transf.
+              </button>
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div class="form-group">
+            <label class="form-label">Notas del corte (opcional)</label>
+            <input
+              type="text"
+              placeholder="Ej: Fade medio navaja, producto matte..."
+              formControlName="notes"
+            />
+          </div>
+
+          <!-- Botón de Confirmación Blindado -->
+          <button
+            type="submit"
+            class="btn-confirm-primary"
+            [disabled]="cutForm.invalid || isSubmitting()"
+          >
+            @if (isSubmitting()) {
+              <span>Guardando en Supabase...</span>
+            } @else {
+              <span>Confirmar y Registrar Corte</span>
+            }
+          </button>
+        </form>
       </div>
     </div>
-  </div>
-</main>
+  }
 
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * * -->
-<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
-<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+  <!-- MODAL 2: RESERVAR CITA / GESTIÓN DE RESERVA (Reactive Forms) -->
+  @if (isBookAppointmentModalOpen()) {
+    <div class="modal-backdrop" (click)="closeBookAppointmentModal()">
+      <div class="modal-sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
 
+        <div class="sheet-header">
+          <h2 class="sheet-title">Agendar cita</h2>
+          <button class="btn-close-sheet" (click)="closeBookAppointmentModal()">✕</button>
+        </div>
 
-<router-outlet />
+        <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()" class="sheet-body">
+          <!-- Servicio -->
+          <div class="form-group">
+            <label class="form-label">1. Selecciona Servicio *</label>
+            <select formControlName="serviceId">
+              @for (srv of barberService.services(); track srv.id) {
+                <option [value]="srv.id">{{ srv.name }} (${{ srv.price }} - {{ srv.durationMinutes }}min)</option>
+              }
+            </select>
+          </div>
+
+          <!-- Barbero -->
+          <div class="form-group">
+            <label class="form-label">2. Barbero Preferido *</label>
+            <select formControlName="barberId">
+              @for (barber of barberService.barbers(); track barber.id) {
+                <option [value]="barber.id">{{ barber.name }} ({{ barber.specialty }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- Fecha -->
+          <div class="form-group">
+            <label class="form-label">3. Fecha de la Cita *</label>
+            <input type="date" formControlName="date" />
+          </div>
+
+          <!-- Horario (Chips táctiles) -->
+          <div class="form-group">
+            <label class="form-label">4. Horario Disponible *</label>
+            <div class="time-slots-grid">
+              @for (time of availableTimeSlots; track time) {
+                <button
+                  type="button"
+                  class="time-slot-chip"
+                  [class.selected]="bookingForm.get('time')?.value === time"
+                  (click)="selectBookingTime(time)"
+                >
+                  {{ time }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Confirmación -->
+          <button
+            type="submit"
+            class="btn-confirm-primary"
+            [disabled]="bookingForm.invalid || isSubmitting()"
+          >
+            @if (isSubmitting()) {
+              <span>Agendando...</span>
+            } @else {
+              <span>Confirmar Reserva</span>
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL 3: CREAR NUEVO CLIENTE (Reactive Forms) -->
+  @if (isNewClientModalOpen()) {
+    <div class="modal-backdrop" (click)="closeNewClientModal()">
+      <div class="modal-sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <h2 class="sheet-title">Nuevo Cliente</h2>
+          <button class="btn-close-sheet" (click)="closeNewClientModal()">✕</button>
+        </div>
+
+        <form [formGroup]="newClientForm" (ngSubmit)="submitNewClient()" class="sheet-body">
+          <div class="form-group">
+            <label class="form-label">Nombre Completo *</label>
+            <input
+              type="text"
+              placeholder="Ej: Marcos Alarcón"
+              formControlName="fullName"
+            />
+            @if (newClientForm.get('fullName')?.touched && newClientForm.get('fullName')?.invalid) {
+              <span class="field-error">Ingresa un nombre válido (mínimo 2 letras)</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Teléfono / WhatsApp *</label>
+            <input
+              type="tel"
+              placeholder="Ej: +51 987 654 321"
+              formControlName="phone"
+            />
+            @if (newClientForm.get('phone')?.touched && newClientForm.get('phone')?.invalid) {
+              <span class="field-error">Ingresa un número telefónico válido</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Preferencia de corte o notas</label>
+            <input
+              type="text"
+              placeholder="Ej: Piel sensible, fade bajo..."
+              formControlName="notes"
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="btn-confirm-primary"
+            [disabled]="newClientForm.invalid || isSubmitting()"
+          >
+            @if (isSubmitting()) {
+              <span>Guardando en Supabase...</span>
+            } @else {
+              <span>Guardar Cliente</span>
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL 4: CALIFICAR SERVICIO (VALORACIONES) -->
+  @if (isReviewModalOpen()) {
+    <div class="modal-backdrop" (click)="closeReviewModal()">
+      <div class="modal-sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <h2 class="sheet-title">Calificar Servicio</h2>
+          <button class="btn-close-sheet" (click)="closeReviewModal()">✕</button>
+        </div>
+
+        <form [formGroup]="reviewForm" (ngSubmit)="submitReview()" class="sheet-body">
+          <div class="form-group text-center">
+            <label class="form-label">¿Cómo calificarías tu experiencia?</label>
+            <div class="stars-picker">
+              @for (star of [1,2,3,4,5]; track star) {
+                <button
+                  type="button"
+                  class="star-picker-btn"
+                  [class.active]="star <= (reviewForm.get('rating')?.value || 5)"
+                  (click)="setRating(star)"
+                >
+                  ★
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tu Opinión *</label>
+            <textarea
+              rows="3"
+              placeholder="Escribe aquí tu comentario sobre el corte y atención..."
+              formControlName="comment"
+            ></textarea>
+            @if (reviewForm.get('comment')?.touched && reviewForm.get('comment')?.invalid) {
+              <span class="field-error">Por favor escribe al menos 3 caracteres</span>
+            }
+          </div>
+
+          <button
+            type="submit"
+            class="btn-confirm-primary"
+            [disabled]="reviewForm.invalid"
+          >
+            Enviar Valoración
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL 5: CIERRE DE CAJA DEL DÍA -->
+  @if (isDailyCashModalOpen()) {
+    <div class="modal-backdrop" (click)="closeDailyCashModal()">
+      <div class="modal-sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <h2 class="sheet-title">Caja del Día</h2>
+          <button class="btn-close-sheet" (click)="closeDailyCashModal()">✕</button>
+        </div>
+
+        <div class="sheet-body">
+          <div class="cash-summary-card">
+            <div class="csc-total-label">Total Recaudado Hoy</div>
+            <div class="csc-total-val">${{ barberService.revenueToday().toFixed(2) }}</div>
+            <div class="csc-count">{{ barberService.cutsToday() }} cortes completados</div>
+          </div>
+
+          <button type="button" class="btn-confirm-primary" (click)="closeDailyCashModal()">
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

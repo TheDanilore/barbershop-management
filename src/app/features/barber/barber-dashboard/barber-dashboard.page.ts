@@ -120,7 +120,7 @@ export class BarberDashboardPage implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.supabaseService.isConfigured() && this.supabaseService.estaAutenticado) {
+    if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
       this.barberService.syncFromSupabase();
     }
   }

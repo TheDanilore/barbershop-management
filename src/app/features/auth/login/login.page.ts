@@ -20,7 +20,7 @@ import { HapticsService } from '../../../core/services/haptics.service';
 import { LoggerService } from '../../../core/services/logger.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 
-export type AuthTab = 'login' | 'register';
+export type AuthMode = 'login' | 'register';
 
 @Component({
   selector: 'app-login',
@@ -39,11 +39,12 @@ export class LoginPage {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Pestaña activa: 'login' o 'register'
-  readonly activeTab = signal<AuthTab>('login');
+  // Active authentication mode: 'login' or 'register'
+  readonly authMode = signal<AuthMode>('login');
 
-  // Estados de interacción y feedback
+  // Interactive UI state signals
   readonly isLoading = signal(false);
+  readonly isPasswordVisible = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -67,32 +68,31 @@ export class LoginPage {
       if (this.feedbackTimeout) clearTimeout(this.feedbackTimeout);
     });
   }
-  @HostListener('window:keydown', ['$event'])
-  handleKeyboardShortcuts(event: KeyboardEvent): void {
-    const activeEl = document.activeElement;
-    const isTyping =
-      activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement;
 
-    if (!isTyping) {
-      if (event.key === '1') {
-        this.setTab('login');
-      } else if (event.key === '2') {
-        this.setTab('register');
-      }
+  @HostListener('window:keydown.escape')
+  handleEscapeKey(): void {
+    if (this.errorMessage() || this.successMessage()) {
+      this.errorMessage.set(null);
+      this.successMessage.set(null);
     }
   }
 
-  setTab(tab: AuthTab): void {
+  setAuthMode(mode: AuthMode): void {
     this.haptics.selection();
     this.errorMessage.set(null);
     this.successMessage.set(null);
-    this.activeTab.set(tab);
+    this.authMode.set(mode);
+  }
+
+  togglePasswordVisibility(): void {
+    this.haptics.lightTap();
+    this.isPasswordVisible.update((val) => !val);
   }
 
   /**
    * Iniciar sesión con Supabase Auth y redirección automática según rol del perfil
    */
-  async submitLogin(): Promise<void> {
+  async handleLogin(): Promise<void> {
     if (this.loginForm.invalid || this.isLoading()) {
       this.loginForm.markAllAsTouched();
       this.haptics.warning();
@@ -144,11 +144,11 @@ export class LoginPage {
   /**
    * Registro en Supabase (Estrictamente Clientes)
    */
-  async submitRegister(): Promise<void> {
+  async handleRegister(): Promise<void> {
     if (this.registerForm.invalid || this.isLoading()) {
       this.registerForm.markAllAsTouched();
       this.haptics.warning();
-      this.showError('Completa todos los campos obligatorios');
+      this.showError('Por favor completa todos los campos requeridos');
       return;
     }
 
@@ -178,7 +178,7 @@ export class LoginPage {
 
         setTimeout(() => {
           this.router.navigate(['/customer']);
-        }, 800);
+        }, 700);
       }
     } catch (err: unknown) {
       this.haptics.warning();
@@ -188,6 +188,16 @@ export class LoginPage {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Quick evaluation demo access (instant navigation without blocking test flow)
+   */
+  quickDemoLogin(role: 'barber' | 'customer'): void {
+    this.haptics.selection();
+    this.supabaseService.setRole(role);
+    this.barberService.setRole(role === 'barber' ? 'barber' : 'client');
+    this.router.navigate([role === 'barber' ? '/barber' : '/customer']);
   }
 
   /**
@@ -206,21 +216,6 @@ export class LoginPage {
         password: 'clientepassword123',
       });
     }
-  }
-
-  /**
-   * Acceso instantáneo demo para no bloquear el desarrollo
-   */
-  quickDemoLogin(role: 'barber' | 'customer'): void {
-    this.haptics.selection();
-    this.supabaseService.setRole(role);
-    this.barberService.setRole(role === 'barber' ? 'barber' : 'client');
-    this.router.navigate([role === 'barber' ? '/barber' : '/customer']);
-  }
-
-  retryHealthCheck(): void {
-    this.haptics.lightTap();
-    this.supabaseService.checkHealth();
   }
 
   private showError(msg: string): void {

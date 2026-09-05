@@ -1,101 +1,29 @@
-<main class="auth-portal" role="main">
+<main class="auth-viewport" role="main">
+  <!-- Ambient Atmospheric Lighting -->
+  <div class="ambient-glow" aria-hidden="true"></div>
+
   <!-- Feedback Notifications -->
   @if (errorMessage()) {
-    <div class="feedback-toast error" role="alert">
+    <div class="toast-feedback error" role="alert" aria-live="assertive">
       <span class="toast-icon">⚠️</span>
-      <span class="toast-text">{{ errorMessage() }}</span>
-      <button class="toast-close" (click)="errorMessage.set(null)">✕</button>
+      <span class="toast-message">{{ errorMessage() }}</span>
+      <button type="button" class="toast-dismiss" (click)="errorMessage.set(null)" aria-label="Cerrar notificación">✕</button>
     </div>
   }
   @if (successMessage()) {
-    <div class="feedback-toast success" role="status">
+    <div class="toast-feedback success" role="status" aria-live="polite">
       <span class="toast-icon">✅</span>
-      <span class="toast-text">{{ successMessage() }}</span>
-      <button class="toast-close" (click)="successMessage.set(null)">✕</button>
+      <span class="toast-message">{{ successMessage() }}</span>
+      <button type="button" class="toast-dismiss" (click)="successMessage.set(null)" aria-label="Cerrar notificación">✕</button>
     </div>
   }
 
-  <!-- ========================================================================= -->
-  <!-- PANEL IZQUIERDO: EDITORIAL / SHOWCASE (Desktop & Tablet)                  -->
-  <!-- ========================================================================= -->
-  <aside class="auth-showcase" aria-label="Beneficios de BarberTrack">
-    <div class="showcase-glow-bg"></div>
-
-    <header class="showcase-brand">
-      <div class="brand-emblem-large">
-        <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="6" cy="6" r="3"></circle>
-          <circle cx="6" cy="18" r="3"></circle>
-          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-        </svg>
-      </div>
-      <div>
-        <h1 class="brand-title-large">BarberTrack</h1>
-        <p class="brand-tagline">ERP & Fidelización de Alta Gama para Barberías</p>
-      </div>
-    </header>
-
-    <div class="showcase-content">
-      <h2 class="showcase-headline">
-        Gestión inteligente para tu barbería, <span class="gold-gradient-text">en tiempo real.</span>
-      </h2>
-      <p class="showcase-desc">
-        Inicia sesión para acceder automáticamente a tu entorno especializado. La plataforma detecta de forma transparente si eres administrador, barbero o cliente.
-      </p>
-
-      <!-- Métricas Clave de Social Proof -->
-      <div class="proof-metrics-grid">
-        <div class="metric-card">
-          <span class="metric-value">+1,420</span>
-          <span class="metric-label">Cortes Registrados</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-value">4.9 ★</span>
-          <span class="metric-label">Satisfacción Clientes</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-value">10 Sellos</span>
-          <span class="metric-label">Fidelidad Atómica</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Live Supabase Infrastructure Health Bar & Logs Trigger -->
-    <footer class="showcase-footer">
-      <div class="supabase-health-pill" [class]="supabaseService.connectionStatus()">
-        <span class="health-dot"></span>
-        <span class="health-label">
-          @if (supabaseService.connectionStatus() === 'checking') {
-            Comprobando Supabase...
-          } @else if (supabaseService.connectionStatus() === 'connected') {
-            Supabase Conectado ({{ supabaseService.latencyMs() ?? 38 }}ms)
-          } @else if (supabaseService.connectionStatus() === 'offline') {
-            Modo Local PWA (Sin Internet)
-          } @else {
-            Supabase Reconectando...
-          }
-        </span>
-        <button class="btn-refresh-ping" (click)="retryHealthCheck()" title="Reintentar ping de conexión">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-          </svg>
-        </button>
-      </div>
-    </footer>
-  </aside>
-
-  <!-- ========================================================================= -->
-  <!-- PANEL DERECHO: CENTRO DE AUTENTICACIÓN UNIFICADO (Login & Register)        -->
-  <!-- ========================================================================= -->
-  <section class="auth-action-panel" aria-labelledby="auth-card-title">
-    <div class="panel-inner">
-      <!-- Cabecera Mobile (Solo visible en < 768px) -->
-      <header class="mobile-brand-header">
-        <div class="mobile-emblem">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <div class="auth-stage-container">
+    <!-- Brand Identity Header -->
+    <header class="brand-header">
+      <div class="brand-emblem-wrapper">
+        <div class="brand-emblem">
+          <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="6" cy="6" r="3"></circle>
             <circle cx="6" cy="18" r="3"></circle>
             <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
@@ -103,212 +31,264 @@
             <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
           </svg>
         </div>
-        <h1 class="mobile-title">BarberTrack</h1>
-        <div class="mobile-meta-row">
-          <div class="supabase-health-pill mini" [class]="supabaseService.connectionStatus()">
-            <span class="health-dot"></span>
-            <span>{{ supabaseService.connectionStatus() === 'connected' ? 'Supabase Online' : 'PWA Local' }}</span>
-          </div>
-        </div>
-      </header>
+      </div>
+      <h1 class="brand-title">BarberTrack</h1>
+      <p class="brand-tagline">ERP & Fidelización de Alta Gama</p>
+    </header>
 
-      <!-- Tarjeta Principal de Autenticación -->
-      <div class="auth-card">
-        <!-- Pestañas Segmentadas: Iniciar Sesión / Crear Cuenta -->
-        <nav class="auth-nav-tabs" aria-label="Modo de autenticación">
-          <button
-            type="button"
-            class="tab-button"
-            [class.active]="activeTab() === 'login'"
-            (click)="setTab('login')"
-          >
-            Iniciar Sesión
-          </button>
-          <button
-            type="button"
-            class="tab-button"
-            [class.active]="activeTab() === 'register'"
-            (click)="setTab('register')"
-          >
-            Crear Cuenta
-          </button>
-        </nav>
+    <!-- Main Authentication Glassmorphic Card -->
+    <section class="auth-card" aria-labelledby="auth-heading">
+      
+      <!-- ================================================================= -->
+      <!-- VIEW 1: SIGN IN (Default)                                         -->
+      <!-- ================================================================= -->
+      @if (authMode() === 'login') {
+        <div class="auth-form-wrapper fade-in">
+          <header class="card-header">
+            <h2 id="auth-heading" class="card-title">Iniciar Sesión</h2>
+            <p class="card-subtitle">Ingresa tus credenciales para acceder a tu entorno</p>
+          </header>
 
-        <!-- ---------------- TAB 1: INICIAR SESIÓN ---------------- -->
-        @if (activeTab() === 'login') {
-          <div class="tab-content fade-in">
-            <div class="card-header-text">
-              <h2 id="auth-card-title" class="auth-title">Accede a BarberTrack</h2>
-              <p class="auth-subtitle">
-                Ingresa con tu correo y contraseña registrados en Supabase.
-              </p>
-            </div>
-
-            <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" class="auth-form-fields">
-              <div class="form-group">
-                <label class="form-label" for="login-email">Correo Electrónico *</label>
+          <form [formGroup]="loginForm" (ngSubmit)="handleLogin()" class="form-fields" novalidate>
+            <!-- Email Input -->
+            <div class="field-group">
+              <label class="field-label" for="login-email">Correo Electrónico</label>
+              <div class="input-wrapper">
                 <input
                   id="login-email"
                   type="email"
-                  class="form-input"
+                  class="field-input"
                   placeholder="ejemplo@barbertrack.com"
                   formControlName="email"
                   autocomplete="email"
+                  required
                 />
-                @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
-                  <span class="field-error">Ingresa un correo electrónico válido</span>
-                }
               </div>
+              @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
+                <span class="field-error" role="alert">Ingresa un correo electrónico válido</span>
+              }
+            </div>
 
-              <div class="form-group">
-                <label class="form-label" for="login-password">Contraseña *</label>
+            <!-- Password Input with Eye Toggle -->
+            <div class="field-group">
+              <label class="field-label" for="login-password">Contraseña</label>
+              <div class="input-wrapper has-trailing-action">
                 <input
                   id="login-password"
-                  type="password"
-                  class="form-input"
+                  [type]="isPasswordVisible() ? 'text' : 'password'"
+                  class="field-input"
                   placeholder="••••••••"
                   formControlName="password"
                   autocomplete="current-password"
+                  required
                 />
-                @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
-                  <span class="field-error">La contraseña debe tener al menos 6 caracteres</span>
-                }
+                <button
+                  type="button"
+                  class="btn-input-trailing"
+                  (click)="togglePasswordVisibility()"
+                  [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'"
+                >
+                  @if (isPasswordVisible()) {
+                    <!-- Eye Off Icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  } @else {
+                    <!-- Eye Icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  }
+                </button>
               </div>
+              @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+                <span class="field-error" role="alert">La contraseña debe tener mínimo 6 caracteres</span>
+              }
+            </div>
 
+            <!-- Primary Submit Button -->
+            <button
+              type="submit"
+              class="btn-submit-luxury"
+              [disabled]="loginForm.invalid || isLoading()"
+            >
+              @if (isLoading()) {
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span>Iniciando Sesión...</span>
+              } @else {
+                <span>Ingresar a mi Cuenta</span>
+              }
+            </button>
+          </form>
+
+          <!-- Toggle to Registration -->
+          <div class="auth-switch-prompt">
+            <span class="prompt-text">¿Eres un cliente nuevo?</span>
+            <button type="button" class="btn-link-action" (click)="setAuthMode('register')">
+              Crear cuenta de cliente
+            </button>
+          </div>
+
+          <!-- Discrete Evaluation Demo Quick Access -->
+          <div class="demo-eval-section">
+            <div class="demo-divider">
+              <span>ACCESO RÁPIDO EVALUACIÓN</span>
+            </div>
+            <div class="demo-buttons-row">
               <button
-                type="submit"
-                class="btn-submit-gold"
-                [disabled]="loginForm.invalid || isLoading()"
+                type="button"
+                class="btn-demo-pill barber"
+                (click)="quickDemoLogin('barber')"
+                title="Acceso directo de demostración para Barbero/Admin"
               >
-                @if (isLoading()) {
-                  <span class="spinner-small"></span>
-                  <span>Verificando con Supabase...</span>
-                } @else {
-                  <span>Ingresar a mi Cuenta</span>
-                }
+                ✂ Barbero (Carlos)
               </button>
-            </form>
-
-            <!-- Acceso Rápido Demo (Pruebas instantáneas) -->
-            <div class="demo-access-container">
-              <div class="divider-line">
-                <span>ACCESO RÁPIDO PARA EVALUACIÓN</span>
-              </div>
-              <div class="demo-buttons-grid">
-                <button
-                  type="button"
-                  class="btn-demo-pill"
-                  (click)="quickDemoLogin('barber')"
-                  title="Ingresa directamente al panel de barbero/admin"
-                >
-                  ✂ Entrar Barbero (Carlos)
-                </button>
-                <button
-                  type="button"
-                  class="btn-demo-pill client"
-                  (click)="quickDemoLogin('customer')"
-                  title="Ingresa directamente a la vista de cliente"
-                >
-                  ⭐ Entrar Cliente (Mateo)
-                </button>
-              </div>
+              <button
+                type="button"
+                class="btn-demo-pill customer"
+                (click)="quickDemoLogin('customer')"
+                title="Acceso directo de demostración para Cliente"
+              >
+                ⭐ Cliente (Mateo)
+              </button>
             </div>
           </div>
-        }
+        </div>
+      }
 
-        <!-- ---------------- TAB 2: CREAR CUENTA (Solo Clientes) ---------------- -->
-        @if (activeTab() === 'register') {
-          <div class="tab-content fade-in">
-            <div class="card-header-text">
-              <h2 id="auth-card-title" class="auth-title">Crea tu Cuenta de Cliente</h2>
-              <p class="auth-subtitle">
-                Acumula sellos de fidelidad dorados y gestiona tus reservas.
-              </p>
-            </div>
+      <!-- ================================================================= -->
+      <!-- VIEW 2: CUSTOMER SIGN UP (Clients Only)                           -->
+      <!-- ================================================================= -->
+      @if (authMode() === 'register') {
+        <div class="auth-form-wrapper fade-in">
+          <header class="card-header">
+            <h2 id="auth-heading" class="card-title">Crea tu Cuenta</h2>
+            <p class="card-subtitle">Acumula sellos dorados y gestiona tus reservas de forma directa</p>
+          </header>
 
-            <!-- Banner Informativo RBAC -->
-            <div class="info-callout">
-              <span class="callout-icon">ℹ️</span>
-              <span class="callout-text">
-                El registro público es exclusivo para clientes. Las cuentas de barbero y administrador se gestionan privadamente en Supabase.
-              </span>
-            </div>
-
-            <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" class="auth-form-fields">
-              <div class="form-group">
-                <label class="form-label" for="reg-name">Nombre y Apellido *</label>
+          <form [formGroup]="registerForm" (ngSubmit)="handleRegister()" class="form-fields" novalidate>
+            <!-- Full Name -->
+            <div class="field-group">
+              <label class="field-label" for="reg-name">Nombre Completo</label>
+              <div class="input-wrapper">
                 <input
                   id="reg-name"
                   type="text"
-                  class="form-input"
-                  placeholder="Ej. Mateo Silva"
+                  class="field-input"
+                  placeholder="Mateo Silva"
                   formControlName="fullName"
                   autocomplete="name"
+                  required
                 />
-                @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid) {
-                  <span class="field-error">Ingresa tu nombre completo</span>
-                }
               </div>
+              @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid) {
+                <span class="field-error" role="alert">Ingresa tu nombre y apellido</span>
+              }
+            </div>
 
-              <div class="form-group">
-                <label class="form-label" for="reg-email">Correo Electrónico *</label>
+            <!-- Email -->
+            <div class="field-group">
+              <label class="field-label" for="reg-email">Correo Electrónico</label>
+              <div class="input-wrapper">
                 <input
                   id="reg-email"
                   type="email"
-                  class="form-input"
+                  class="field-input"
                   placeholder="mateo@cliente.com"
                   formControlName="email"
                   autocomplete="email"
+                  required
                 />
-                @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
-                  <span class="field-error">Ingresa un correo electrónico válido</span>
-                }
               </div>
+              @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
+                <span class="field-error" role="alert">Ingresa un correo electrónico válido</span>
+              }
+            </div>
 
-              <div class="form-group">
-                <label class="form-label" for="reg-password">Contraseña *</label>
+            <!-- Password with Eye Toggle -->
+            <div class="field-group">
+              <label class="field-label" for="reg-password">Contraseña</label>
+              <div class="input-wrapper has-trailing-action">
                 <input
                   id="reg-password"
-                  type="password"
-                  class="form-input"
+                  [type]="isPasswordVisible() ? 'text' : 'password'"
+                  class="field-input"
                   placeholder="••••••••"
                   formControlName="password"
                   autocomplete="new-password"
+                  required
                 />
-                @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
-                  <span class="field-error">Mínimo 6 caracteres</span>
-                }
+                <button
+                  type="button"
+                  class="btn-input-trailing"
+                  (click)="togglePasswordVisibility()"
+                  [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'"
+                >
+                  @if (isPasswordVisible()) {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  }
+                </button>
               </div>
+              @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
+                <span class="field-error" role="alert">Mínimo 6 caracteres</span>
+              }
+            </div>
 
-              <div class="form-group">
-                <label class="form-label" for="reg-phone">Teléfono (Opcional)</label>
+            <!-- Phone (Optional) -->
+            <div class="field-group">
+              <label class="field-label" for="reg-phone">Teléfono (Opcional)</label>
+              <div class="input-wrapper">
                 <input
                   id="reg-phone"
                   type="tel"
-                  class="form-input"
+                  class="field-input"
                   placeholder="+51 987 654 321"
                   formControlName="phone"
                   autocomplete="tel"
                 />
               </div>
+            </div>
 
-              <button
-                type="submit"
-                class="btn-submit-gold"
-                [disabled]="registerForm.invalid || isLoading()"
-              >
-                @if (isLoading()) {
-                  <span class="spinner-small"></span>
-                  <span>Registrando en Supabase...</span>
-                } @else {
-                  <span>Crear Cuenta de Cliente</span>
-                }
-              </button>
-            </form>
+            <!-- Primary Submit Button -->
+            <button
+              type="submit"
+              class="btn-submit-luxury"
+              [disabled]="registerForm.invalid || isLoading()"
+            >
+              @if (isLoading()) {
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span>Creando Cuenta...</span>
+              } @else {
+                <span>Crear Cuenta de Cliente</span>
+              }
+            </button>
+          </form>
+
+          <!-- Toggle back to Sign In -->
+          <div class="auth-switch-prompt">
+            <span class="prompt-text">¿Ya tienes una cuenta?</span>
+            <button type="button" class="btn-link-action" (click)="setAuthMode('login')">
+              Iniciar Sesión
+            </button>
           </div>
-        }
-      </div>
-    </div>
-  </section>
+        </div>
+      }
 
+    </section>
+
+    <!-- Subtle Footer -->
+    <footer class="auth-footer">
+      <p class="footer-note">BarberTrack Pro Enterprise &bull; Plataforma Segura</p>
+    </footer>
+  </div>
 </main>

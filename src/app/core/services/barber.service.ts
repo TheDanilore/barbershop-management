@@ -379,9 +379,9 @@ export class BarberService {
   });
 
   constructor() {
-    this.logger.info('BarberService', 'Inicializando BarberService');
+    this.logger.info('BarberService', 'Initializing BarberService');
     // Solo sincronizar si el usuario ya está autenticado
-    if (this.supabaseService.isConfigured() && this.supabaseService.estaAutenticado) {
+    if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
       this.syncFromSupabase();
     }
   }
@@ -404,7 +404,7 @@ export class BarberService {
    * Sincroniza datos desde Supabase con Proyecciones Quirúrgicas y Joins
    */
   async syncFromSupabase(): Promise<void> {
-    if (!this.supabaseService.isConfigured() || !this.supabaseService.estaAutenticado) {
+    if (!this.supabaseService.isConfigured() || !this.supabaseService.isAuthenticated) {
       return;
     }
 

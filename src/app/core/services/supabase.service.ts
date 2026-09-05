@@ -17,21 +17,21 @@ export class SupabaseService {
   // Cliente oficial de Supabase
   public readonly supabase: SupabaseClient;
 
-  // Signal reactivo para el usuario autenticado
-  public readonly usuarioActual = signal<User | null>(null);
+  // Reactive signal for the authenticated user
+  public readonly currentUser = signal<User | null>(null);
 
-  // Signal reactivo para el rol del usuario actual ('barber' | 'customer' | 'admin')
+  // Reactive signal for the current user role ('barber' | 'customer' | 'admin')
   public readonly currentRole = signal<UserRole | null>(this.getInitialRole());
 
-  // Signal reactivo para el perfil del usuario actual
+  // Reactive signal for the current user profile
   public readonly userProfile = signal<ProfileRow | null>(null);
 
-  // Signal para estado de conexión/red
+  // Signal for network status
   public readonly isOnline = signal<boolean>(
     typeof navigator !== 'undefined' ? navigator.onLine : true
   );
 
-  // Signal de estado de conexión activa y latencia hacia Supabase
+  // Signal for Supabase latency & active status
   public readonly connectionStatus = signal<SupabaseConnectionStatus>('checking');
   public readonly latencyMs = signal<number | null>(null);
 
@@ -43,10 +43,10 @@ export class SupabaseService {
       },
     });
 
-    // Escuchar cambios de sesión de forma reactiva
+    // Listen to auth state changes reactively
     this.supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user ?? null;
-      this.usuarioActual.set(user);
+      this.currentUser.set(user);
       this.logger.info('SupabaseService', `Auth state changed: ${event}`, {
         userId: user?.id,
         email: user?.email,
@@ -141,7 +141,7 @@ export class SupabaseService {
         userId: res.data.user.id,
         email: res.data.user.email,
       });
-      this.usuarioActual.set(res.data.user);
+      this.currentUser.set(res.data.user);
       const profile = await this.loadUserProfile(res.data.user.id);
       const role = profile?.role || (res.data.user.user_metadata?.['role'] as UserRole) || 'customer';
       this.setRole(role);
@@ -182,7 +182,7 @@ export class SupabaseService {
         userId: res.data.user.id,
         email: res.data.user.email,
       });
-      this.usuarioActual.set(res.data.user);
+      this.currentUser.set(res.data.user);
       this.setRole('customer');
     }
 
@@ -211,7 +211,7 @@ export class SupabaseService {
     }
 
     // Fallback con metadata de auth
-    const authUser = this.usuarioActual();
+    const authUser = this.currentUser();
     const fallbackRole = (authUser?.user_metadata?.['role'] as UserRole) || 'customer';
     this.setRole(fallbackRole);
     return null;
@@ -245,7 +245,7 @@ export class SupabaseService {
   }
 
   private clearSessionState(): void {
-    this.usuarioActual.set(null);
+    this.currentUser.set(null);
     this.userProfile.set(null);
     this.currentRole.set(null);
     if (typeof localStorage !== 'undefined') {
@@ -284,7 +284,7 @@ export class SupabaseService {
     );
   }
 
-  get estaAutenticado(): boolean {
-    return !!this.usuarioActual() || !!this.currentRole();
+  get isAuthenticated(): boolean {
+    return !!this.currentUser() || !!this.currentRole();
   }
 }

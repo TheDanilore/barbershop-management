@@ -12,7 +12,7 @@ export const authGuard = (allowedRoles?: UserRole[]): CanActivateFn => {
     const router = inject(Router);
 
     // Si no está autenticado en Supabase ni tiene rol activo, va a /login
-    if (!supabase.estaAutenticado) {
+    if (!supabase.isAuthenticated) {
       return router.createUrlTree(['/login']);
     }
 

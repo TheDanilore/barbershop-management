@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  OnInit,
   computed,
   inject,
   signal,
@@ -36,7 +37,7 @@ import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
   styleUrl: './barber-dashboard.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BarberDashboardPage {
+export class BarberDashboardPage implements OnInit {
   readonly barberService = inject(BarberService);
   readonly supabaseService = inject(SupabaseService);
   readonly haptics = inject(HapticsService);
@@ -116,6 +117,12 @@ export class BarberDashboardPage {
     this.destroyRef.onDestroy(() => {
       if (this.toastTimeout) clearTimeout(this.toastTimeout);
     });
+  }
+
+  ngOnInit(): void {
+    if (this.supabaseService.isConfigured() && this.supabaseService.estaAutenticado) {
+      this.barberService.syncFromSupabase();
+    }
   }
 
   setTab(tab: 'inicio' | 'agenda' | 'clientes' | 'stats'): void {

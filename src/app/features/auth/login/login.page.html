@@ -84,14 +84,6 @@
           </svg>
         </button>
       </div>
-
-      <button class="btn-show-logs-pill" (click)="toggleLogsModal()" title="Ver consola de logs en pantalla">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="4 17 10 11 4 5"></polyline>
-          <line x1="12" y1="19" x2="20" y2="19"></line>
-        </svg>
-        <span>Logs ({{ logger.getRecentLogs().length }})</span>
-      </button>
     </footer>
   </aside>
 
@@ -117,9 +109,6 @@
             <span class="health-dot"></span>
             <span>{{ supabaseService.connectionStatus() === 'connected' ? 'Supabase Online' : 'PWA Local' }}</span>
           </div>
-          <button class="btn-show-logs-pill mini" (click)="toggleLogsModal()">
-            Logs ({{ logger.getRecentLogs().length }})
-          </button>
         </div>
       </header>
 
@@ -322,48 +311,4 @@
     </div>
   </section>
 
-  <!-- ========================================================================= -->
-  <!-- MODAL / VISOR DE LOGS DE DIAGNÓSTICO EN TIEMPO REAL                       -->
-  <!-- ========================================================================= -->
-  @if (showLogsModal()) {
-    <div class="logs-modal-backdrop" (click)="toggleLogsModal()">
-      <div class="logs-modal-dialog" (click)="$event.stopPropagation()">
-        <header class="logs-modal-header">
-          <div class="logs-header-left">
-            <span class="terminal-dot red"></span>
-            <span class="terminal-dot yellow"></span>
-            <span class="terminal-dot green"></span>
-            <h3 class="logs-modal-title">Terminal de Diagnóstico & Logs de Supabase</h3>
-          </div>
-          <button class="btn-close-logs" (click)="toggleLogsModal()">✕</button>
-        </header>
-
-        <div class="logs-modal-body">
-          <div class="logs-info-banner">
-            <span>💡 También puedes abrir la consola de tu navegador con <strong>F12 → Console</strong> o ver las peticiones en <strong>F12 → Network</strong>.</span>
-          </div>
-
-          @if (logger.getRecentLogs().length === 0) {
-            <div class="empty-logs-msg">No hay trazas registradas todavía.</div>
-          } @else {
-            <div class="logs-list">
-              @for (log of logger.getRecentLogs(); track log.timestamp) {
-                <div class="log-entry-row" [class]="log.level.toLowerCase()">
-                  <div class="log-top-meta">
-                    <span class="log-level-badge" [class]="log.level.toLowerCase()">{{ log.level }}</span>
-                    <span class="log-context">[{{ log.context }}]</span>
-                    <span class="log-time">{{ log.timestamp.split('T')[1].slice(0, 8) }}</span>
-                  </div>
-                  <div class="log-message-text">{{ log.message }}</div>
-                  @if (log.details) {
-                    <pre class="log-details-json">{{ log.details | json }}</pre>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
-  }
 </main>

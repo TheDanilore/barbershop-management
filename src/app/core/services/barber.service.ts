@@ -379,9 +379,9 @@ export class BarberService {
   });
 
   constructor() {
-    this.logger.info('BarberService', 'Inicializando BarberService con soporte Supabase');
-    // Si Supabase tiene credenciales reales configuradas, sincronizar
-    if (this.supabaseService.isConfigured()) {
+    this.logger.info('BarberService', 'Inicializando BarberService');
+    // Solo sincronizar si el usuario ya está autenticado
+    if (this.supabaseService.isConfigured() && this.supabaseService.estaAutenticado) {
       this.syncFromSupabase();
     }
   }
@@ -404,112 +404,130 @@ export class BarberService {
    * Sincroniza datos desde Supabase con Proyecciones Quirúrgicas y Joins
    */
   async syncFromSupabase(): Promise<void> {
-    if (!this.supabaseService.isConfigured()) return;
+    if (!this.supabaseService.isConfigured() || !this.supabaseService.estaAutenticado) {
+      return;
+    }
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
     try {
-      this.logger.info('BarberService', 'Iniciando sincronización quirúrgica con Supabase');
+      this.logger.info('BarberService', 'Iniciando sincronización con Supabase');
 
-      // 1. Cargar KPIs agregados vía RPC de bajo Data Egress
-      const { data: kpisData, error: kpisError } = await this.supabaseService.supabase.rpc('get_barber_dashboard_kpis');
-      if (!kpisError && kpisData) {
-        this.serverKpis.set({
-          cutsToday: kpisData.cuts_today ?? 0,
-          cutsThisMonth: kpisData.cuts_this_month ?? 0,
-          revenueToday: Number(kpisData.revenue_today ?? 0),
-          revenueThisWeek: Number(kpisData.revenue_this_week ?? 0),
-          revenueThisMonth: Number(kpisData.revenue_this_month ?? 0),
-          totalRevenue: Number(kpisData.total_revenue ?? 0),
-          totalCuts: kpisData.total_cuts ?? 0,
-          activeClients: kpisData.active_clients ?? 0,
-          averageRating: Number(kpisData.average_rating ?? 5.0),
-        });
+      // 1. Cargar KPIs agregados vía RPC si la función existe en la base de datos
+      try {
+        const { data: kpisData, error: kpisError } = await this.supabaseService.supabase.rpc('get_barber_dashboard_kpis');
+        if (!kpisError && kpisData) {
+          this.serverKpis.set({
+            cutsToday: kpisData.cuts_today ?? 0,
+            cutsThisMonth: kpisData.cuts_this_month ?? 0,
+            revenueToday: Number(kpisData.revenue_today ?? 0),
+            revenueThisWeek: Number(kpisData.revenue_this_week ?? 0),
+            revenueThisMonth: Number(kpisData.revenue_this_month ?? 0),
+            totalRevenue: Number(kpisData.total_revenue ?? 0),
+            totalCuts: kpisData.total_cuts ?? 0,
+            activeClients: kpisData.active_clients ?? 0,
+            averageRating: Number(kpisData.average_rating ?? 5.0),
+          });
+        }
+      } catch {
+        // RPC no disponible aún, cálculos reactivos locales activos
       }
 
       // 2. Proyección quirúrgica de Servicios
-      const { data: servicesData, error: srvError } = await this.supabaseService.supabase
-        .from('services')
-        .select('id, name, base_price, duration_minutes, is_active')
-        .eq('is_active', true)
-        .order('name');
+      try {
+        const { data: servicesData, error: srvError } = await this.supabaseService.supabase
+          .from('services')
+          .select('id, name, base_price, duration_minutes, is_active')
+          .eq('is_active', true)
+          .order('name');
 
-      if (!srvError && servicesData && servicesData.length > 0) {
-        const mappedServices: ServiceItem[] = servicesData.map((s) => ({
-          id: s.id,
-          name: s.name,
-          durationMinutes: s.duration_minutes,
-          price: Number(s.base_price),
-        }));
-        this.services.set(mappedServices);
-        this.saveToStorage(STORAGE_KEYS.SERVICES, mappedServices);
+        if (!srvError && servicesData && servicesData.length > 0) {
+          const mappedServices: ServiceItem[] = servicesData.map((s) => ({
+            id: s.id,
+            name: s.name,
+            durationMinutes: s.duration_minutes,
+            price: Number(s.base_price),
+          }));
+          this.services.set(mappedServices);
+          this.saveToStorage(STORAGE_KEYS.SERVICES, mappedServices);
+        }
+      } catch {
+        // Usar servicios predeterminados
       }
 
       // 3. Proyección quirúrgica de Clientes con su progreso de fidelidad
-      const { data: profilesData, error: profError } = await this.supabaseService.supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          phone,
-          membership_tier,
-          avatar_url,
-          loyalty_progress (current_stamps, total_historical_cuts)
-        `)
-        .eq('role', 'customer')
-        .eq('is_active', true);
+      try {
+        const { data: profilesData, error: profError } = await this.supabaseService.supabase
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            phone,
+            membership_tier,
+            avatar_url,
+            loyalty_progress (current_stamps, total_historical_cuts)
+          `)
+          .eq('role', 'customer')
+          .eq('is_active', true);
 
-      if (!profError && profilesData && profilesData.length > 0) {
-        const mappedClients: Client[] = profilesData.map((p) => {
-          const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
-          return {
-            id: p.id,
-            name: p.full_name,
-            phone: p.phone || '',
-            cutsCount: lp?.total_historical_cuts ?? 0,
-            loyaltyStamps: lp?.current_stamps ?? 0,
-            membershipLevel: (p.membership_tier as any) || 'Bronze',
-            avatarUrl: p.avatar_url || undefined,
-          };
-        });
-        this.clients.set(mappedClients);
-        this.saveToStorage(STORAGE_KEYS.CLIENTS, mappedClients);
+        if (!profError && profilesData && profilesData.length > 0) {
+          const mappedClients: Client[] = profilesData.map((p) => {
+            const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
+            return {
+              id: p.id,
+              name: p.full_name,
+              phone: p.phone || '',
+              cutsCount: lp?.total_historical_cuts ?? 0,
+              loyaltyStamps: lp?.current_stamps ?? 0,
+              membershipLevel: (p.membership_tier as any) || 'Bronze',
+              avatarUrl: p.avatar_url || undefined,
+            };
+          });
+          this.clients.set(mappedClients);
+          this.saveToStorage(STORAGE_KEYS.CLIENTS, mappedClients);
+        }
+      } catch {
+        // Usar clientes locales
       }
 
       // 4. Proyección quirúrgica de Ventas recientes con Join relacional
-      const { data: salesData, error: salesError } = await this.supabaseService.supabase
-        .from('sales_history')
-        .select(`
-          id,
-          final_price,
-          payment_method,
-          created_at,
-          customer:customer_id (id, full_name),
-          barber:barber_id (id, full_name),
-          service:service_id (id, name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      try {
+        const { data: salesData, error: salesError } = await this.supabaseService.supabase
+          .from('sales_history')
+          .select(`
+            id,
+            final_price,
+            payment_method,
+            created_at,
+            customer:customer_id (id, full_name),
+            barber:barber_id (id, full_name),
+            service:service_id (id, name)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(20);
 
-      if (!salesError && salesData && salesData.length > 0) {
-        const mappedCuts: CutRecord[] = (salesData as unknown as SaleHistoryRow[]).map((s) => ({
-          id: s.id,
-          clientId: s.customer?.id || '',
-          clientName: s.customer?.full_name || 'Cliente General',
-          barberId: s.barber?.id || '',
-          barberName: s.barber?.full_name || 'Barbero',
-          serviceId: s.service?.id || '',
-          serviceName: s.service?.name || 'Corte',
-          price: Number(s.final_price),
-          date: s.created_at,
-          paymentMethod: (s.payment_method as PaymentMethod) || 'cash',
-        }));
-        this.cuts.set(mappedCuts);
-        this.saveToStorage(STORAGE_KEYS.CUTS, mappedCuts);
+        if (!salesError && salesData && salesData.length > 0) {
+          const mappedCuts: CutRecord[] = (salesData as unknown as SaleHistoryRow[]).map((s) => ({
+            id: s.id,
+            clientId: s.customer?.id || '',
+            clientName: s.customer?.full_name || 'Cliente General',
+            barberId: s.barber?.id || '',
+            barberName: s.barber?.full_name || 'Barbero',
+            serviceId: s.service?.id || '',
+            serviceName: s.service?.name || 'Corte',
+            price: Number(s.final_price),
+            date: s.created_at,
+            paymentMethod: (s.payment_method as PaymentMethod) || 'cash',
+          }));
+          this.cuts.set(mappedCuts);
+          this.saveToStorage(STORAGE_KEYS.CUTS, mappedCuts);
+        }
+      } catch {
+        // Usar historial local
       }
 
-      this.logger.info('BarberService', 'Sincronización con Supabase completada con éxito');
+      this.logger.info('BarberService', 'Sincronización completada');
     } catch (err: unknown) {
       this.logger.error('BarberService', 'Error durante la sincronización con Supabase', err);
       this.errorMessage.set('No se pudo sincronizar con el servidor. Modo offline activado.');

@@ -42,9 +42,6 @@ export class LoginPage {
   // Pestaña activa: 'login' o 'register'
   readonly activeTab = signal<AuthTab>('login');
 
-  // Visor de logs interactivo en pantalla
-  readonly showLogsModal = signal(false);
-
   // Estados de interacción y feedback
   readonly isLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -70,17 +67,11 @@ export class LoginPage {
       if (this.feedbackTimeout) clearTimeout(this.feedbackTimeout);
     });
   }
-
   @HostListener('window:keydown', ['$event'])
   handleKeyboardShortcuts(event: KeyboardEvent): void {
     const activeEl = document.activeElement;
     const isTyping =
       activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement;
-
-    if (event.key === 'Escape') {
-      this.showLogsModal.set(false);
-      return;
-    }
 
     if (!isTyping) {
       if (event.key === '1') {
@@ -96,11 +87,6 @@ export class LoginPage {
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.activeTab.set(tab);
-  }
-
-  toggleLogsModal(): void {
-    this.haptics.lightTap();
-    this.showLogsModal.update((v) => !v);
   }
 
   /**
@@ -125,11 +111,13 @@ export class LoginPage {
 
       if (res.error) {
         this.haptics.warning();
-        this.logger.error('LoginPage', `Error Supabase Auth: ${res.error.message}`, {
-          status: res.error.status,
-          code: res.error.code,
-        });
-        this.showError(res.error.message || 'Credenciales no válidas en Supabase');
+        const friendlyMessage =
+          res.error.message === 'Invalid login credentials'
+            ? 'Credenciales inválidas. Verifica tu correo y contraseña o crea el usuario en Supabase Auth.'
+            : res.error.message.includes('Email not confirmed')
+              ? 'Correo no verificado. Confirma tu correo o desactiva "Confirm email" en Supabase.'
+              : res.error.message;
+        this.showError(friendlyMessage);
       } else {
         this.haptics.success();
         this.logger.info('LoginPage', `Login exitoso. Rol detectado: ${res.role}`);

@@ -1,0 +1,56 @@
+<main class="landing-screen">
+  <div class="landing-content">
+    <!-- Logo BarberTrack -->
+    <div class="brand-header">
+      <div class="brand-emblem">
+        <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <h1 class="brand-title">BarberTrack</h1>
+      <p class="brand-subtitle">Gestión de cortes para barbería</p>
+    </div>
+
+    <!-- Opciones de rol -->
+    <div class="role-cards-container">
+      <button class="role-card" (click)="selectRole('barber')">
+        <div class="role-icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="role-info">
+          <h2 class="role-title">Soy Barbero</h2>
+          <p class="role-desc">Registra cortes, gestiona clientes y revisa estadísticas</p>
+        </div>
+        <div class="role-arrow">→</div>
+      </button>
+
+      <button class="role-card" (click)="selectRole('customer')">
+        <div class="role-icon-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <div class="role-info">
+          <h2 class="role-title">Soy Cliente</h2>
+          <p class="role-desc">Ve tu perfil, historial de cortes y progreso de fidelidad</p>
+        </div>
+        <div class="role-arrow">→</div>
+      </button>
+    </div>
+
+    <div class="landing-footer">
+      <span>BarberTrack v1.0 • PWA Móvil • Supabase Powered</span>
+    </div>
+  </div>
+</main>

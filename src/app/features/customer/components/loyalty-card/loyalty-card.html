@@ -1,0 +1,58 @@
+<!-- Tarjeta Física Virtual Dorada -->
+<div class="virtual-loyalty-card">
+  <div class="vlc-header">
+    <div class="vlc-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <circle cx="6" cy="6" r="3"></circle>
+        <circle cx="6" cy="18" r="3"></circle>
+        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+      </svg>
+      <span>BARBERTRACK LOYALTY</span>
+    </div>
+    <span class="vlc-tier-pill">{{ barberService.currentClient().membershipLevel }}</span>
+  </div>
+
+  <div class="vlc-client-name">{{ barberService.currentClient().name }}</div>
+  <div class="vlc-card-number">•••• •••• •••• 2026</div>
+
+  <!-- Grid de 10 Sellos -->
+  <div class="stamps-grid-10">
+    @for (slot of [1,2,3,4,5,6,7,8,9,10]; track slot) {
+      <div
+        class="stamp-slot"
+        [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
+        [class.reward-slot]="slot === 10"
+      >
+        @if (slot <= barberService.currentClient().loyaltyStamps) {
+          <span class="stamp-icon">✂</span>
+        } @else if (slot === 10) {
+          <span class="stamp-icon reward">🎁</span>
+        } @else {
+          <span class="stamp-number">{{ slot }}</span>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="vlc-footer">
+    <div class="vlc-progress-text">
+      <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de 10 cortes</span>
+      <strong>{{ (barberService.currentClient().loyaltyStamps * 10) }}%</strong>
+    </div>
+    <div class="stamps-progress-bar light">
+      <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Reglas y Condiciones -->
+<div class="loyalty-rules-card">
+  <h3 class="rules-title">¿Cómo funciona tu tarjeta?</h3>
+  <ul class="rules-list">
+    <li><span class="bullet">✓</span> Recibes 1 sello por cada corte registrado en BarberTrack.</li>
+    <li><span class="bullet">✓</span> Al completar los 10 sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
+    <li><span class="bullet">✓</span> Tus sellos no vencen y son válidos con cualquier barbero del staff.</li>
+  </ul>
+</div>

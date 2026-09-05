@@ -1,0 +1,39 @@
+<div class="timeline-container">
+  @if (barberService.todayAppointments().length === 0) {
+    <div class="empty-state-card">
+      <div class="empty-icon">📅</div>
+      <h3 class="empty-title">Sin citas para hoy</h3>
+      <p class="empty-desc">Las citas agendadas por los clientes aparecerán aquí</p>
+    </div>
+  } @else {
+    @for (apt of barberService.todayAppointments(); track apt.id) {
+      <div class="timeline-row">
+        <div class="timeline-time">
+          <span class="time-text">{{ apt.time }}</span>
+        </div>
+        <div class="timeline-card" [class]="apt.status">
+          <div class="t-card-header">
+            <div class="t-client-name">{{ apt.clientName }}</div>
+            <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
+          </div>
+          <div class="t-service-name">{{ apt.serviceName }} • ${{ apt.price }}</div>
+          <div class="t-phone">📞 {{ apt.clientPhone }}</div>
+          @if (apt.notes) {
+            <div class="t-notes">Nota: {{ apt.notes }}</div>
+          }
+
+          <div class="t-actions">
+            @if (apt.status !== 'completed' && apt.status !== 'cancelled') {
+              <button class="btn-t-action success" (click)="markCompleted(apt)">
+                ✓ Completar
+              </button>
+              <button class="btn-t-action danger" (click)="cancel(apt)">
+                ✕ Cancelar
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

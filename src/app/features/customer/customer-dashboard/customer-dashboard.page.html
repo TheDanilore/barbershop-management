@@ -1,0 +1,331 @@
+<div class="view-container">
+  <!-- Toast Notification -->
+  @if (toastMessage()) {
+    <div class="toast-banner">
+      <span class="toast-icon">✨</span>
+      <span class="toast-text">{{ toastMessage() }}</span>
+    </div>
+  }
+
+  <!-- Header Superior Vista Cliente -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="header-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div>
+        <h1 class="header-title">BarberTrack</h1>
+        <span class="role-badge client">Hola, {{ barberService.currentClient().name }}</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-icon-header" (click)="switchToBarber()" title="Cambiar a Vista Barbero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+        </svg>
+      </button>
+
+      <button class="btn-icon-header" (click)="goToLanding()" title="Cerrar sesión / Salir">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenido Principal Cliente -->
+  <main class="main-content-area">
+    <!-- ---------------- TAB INICIO / RESERVA ---------------- -->
+    @if (clientTab() === 'inicio') {
+      <div class="tab-pane fade-in">
+        <!-- Tarjeta de Próximo Turno -->
+        <section class="section-container">
+          <h2 class="section-title">Tu Próximo Turno</h2>
+
+          @if (barberService.nextClientAppointment(); as apt) {
+            <div class="next-apt-card">
+              <div class="nac-glow"></div>
+              <div class="nac-header">
+                <div class="nac-date-badge">
+                  <span class="nac-time">{{ apt.time }}</span>
+                  <span class="nac-date">{{ apt.date }}</span>
+                </div>
+                <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
+              </div>
+
+              <div class="nac-body">
+                <h3 class="nac-service">{{ apt.serviceName }}</h3>
+                <div class="nac-barber">
+                  <div class="nac-barber-avatar">✂</div>
+                  <span>Barbero: <strong>{{ apt.barberName }}</strong></span>
+                </div>
+                <div class="nac-price">Inversión: ${{ apt.price.toFixed(2) }}</div>
+              </div>
+
+              <div class="nac-actions">
+                <button class="btn-nac-cancel" (click)="cancelAppointment(apt)">Cancelar</button>
+                <button class="btn-nac-primary" (click)="openBookingModal()">Reprogramar</button>
+              </div>
+            </div>
+          } @else {
+            <div class="no-apt-card">
+              <div class="no-apt-icon">📅</div>
+              <h3 class="no-apt-title">No tienes citas pendientes</h3>
+              <p class="no-apt-desc">¡Agenda tu corte ahora y luce tu mejor estilo!</p>
+              <button class="btn-book-now" (click)="openBookingModal()">
+                Reservar mi Turno
+              </button>
+            </div>
+          }
+        </section>
+
+        <!-- Tarjeta Resumen de Fidelidad y Membresía -->
+        <section class="section-container">
+          <div class="section-header-flex">
+            <h2 class="section-title">Tu Fidelidad</h2>
+            <button class="link-btn" (click)="setTab('fidelidad')">Ver tarjeta</button>
+          </div>
+
+          <div class="loyalty-snapshot-card" (click)="setTab('fidelidad')">
+            <div class="lsc-top">
+              <span class="lsc-level">{{ barberService.currentClient().membershipLevel }} Member</span>
+              <span class="lsc-stamps-pill">{{ barberService.currentClient().loyaltyStamps }} / 10 sellos</span>
+            </div>
+            <div class="stamps-progress-bar">
+              <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+            </div>
+            <p class="lsc-motivation">
+              @if (barberService.currentClient().loyaltyStamps >= 9) {
+                🎉 ¡Tu próximo corte es 100% GRATIS!
+              } @else {
+                Faltan {{ 10 - barberService.currentClient().loyaltyStamps }} cortes para tu recompensa gratuita.
+              }
+            </p>
+          </div>
+        </section>
+
+        <!-- Beneficios de Membresía VIP -->
+        <section class="section-container">
+          <h2 class="section-title">Beneficios de tu Membresía</h2>
+          <div class="perks-grid">
+            <div class="perk-card">
+              <span class="perk-icon">☕</span>
+              <div class="perk-title">Bebida de Cortesía</div>
+              <div class="perk-desc">Café espresso o agua tónica en cada visita</div>
+            </div>
+            <div class="perk-card">
+              <span class="perk-icon">🏷️</span>
+              <div class="perk-title">10% Dto. en Ceras</div>
+              <div class="perk-desc">Descuento en productos de estilizado capilar</div>
+            </div>
+            <div class="perk-card">
+              <span class="perk-icon">⚡</span>
+              <div class="perk-title">Reserva Prioritaria</div>
+              <div class="perk-desc">Acceso a horarios preferenciales de fin de semana</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+
+    <!-- ---------------- TAB TARJETA DE FIDELIDAD ---------------- -->
+    @if (clientTab() === 'fidelidad') {
+      <div class="tab-pane fade-in">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Tarjeta de Fidelidad</h2>
+            <p class="pane-subtitle">Recompensa a tu lealtad en BarberTrack</p>
+          </div>
+        </div>
+
+        <!-- Subcomponente modular LoyaltyCard -->
+        <app-loyalty-card></app-loyalty-card>
+      </div>
+    }
+
+    <!-- ---------------- TAB HISTORIAL DE CORTES ---------------- -->
+    @if (clientTab() === 'historial') {
+      <div class="tab-pane fade-in">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Historial de Cortes</h2>
+            <p class="pane-subtitle">{{ barberService.clientCutsHistory().length }} servicios completados</p>
+          </div>
+          <button class="btn-primary-action" (click)="openReviewModal()">★ Calificar</button>
+        </div>
+
+        @if (barberService.clientCutsHistory().length === 0) {
+          <div class="empty-state-card">
+            <div class="empty-icon">✂</div>
+            <h3 class="empty-title">Sin historial aún</h3>
+            <p class="empty-desc">Tus cortes completados aparecerán registrados aquí</p>
+          </div>
+        } @else {
+          <div class="history-list">
+            @for (cut of barberService.clientCutsHistory(); track cut.id) {
+              <div class="history-item">
+                <div class="history-icon-col">
+                  <div class="h-icon-circle">✂</div>
+                </div>
+                <div class="history-info-col">
+                  <div class="h-service-name">{{ cut.serviceName }}</div>
+                  <div class="h-barber-name">Barbero: {{ cut.barberName }}</div>
+                  <div class="h-date">{{ formatDate(cut.date) }} • {{ getPaymentLabel(cut.paymentMethod) }}</div>
+                </div>
+                <div class="history-price-col">
+                  <div class="h-price">${{ cut.price.toFixed(2) }}</div>
+                  <span class="h-badge-paid">Pagado</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ---------------- TAB PERFIL ---------------- -->
+    @if (clientTab() === 'perfil') {
+      <div class="tab-pane fade-in">
+        <div class="pane-header">
+          <div>
+            <h2 class="pane-title">Perfil & Cuenta</h2>
+            <p class="pane-subtitle">Tus datos personales y preferencias</p>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-avatar-large">
+            {{ barberService.currentClient().name.charAt(0) }}
+          </div>
+          <h3 class="profile-name">{{ barberService.currentClient().name }}</h3>
+          <span class="membership-tag gold">{{ barberService.currentClient().membershipLevel }} Member</span>
+
+          <div class="profile-details-list">
+            <div class="profile-detail-row">
+              <span class="p-label">Teléfono</span>
+              <span class="p-val">{{ barberService.currentClient().phone }}</span>
+            </div>
+            <div class="profile-detail-row">
+              <span class="p-label">Email</span>
+              <span class="p-val">{{ barberService.currentClient().email || 'No registrado' }}</span>
+            </div>
+            <div class="profile-detail-row">
+              <span class="p-label">Cortes Acumulados</span>
+              <span class="p-val">{{ barberService.currentClient().cutsCount }} cortes</span>
+            </div>
+            <div class="profile-detail-row">
+              <span class="p-label">Estilo Preferido</span>
+              <span class="p-val">{{ barberService.currentClient().notes || 'Degradado medio, navaja' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-switch-client">
+          <label class="demo-label">Probar vista con otro cliente:</label>
+          <select [ngModel]="barberService.currentClientId()" (ngModelChange)="barberService.setCurrentClientId($event)">
+            @for (c of barberService.clients(); track c.id) {
+              <option [value]="c.id">{{ c.name }} ({{ c.membershipLevel }} - {{ c.loyaltyStamps }}/10 sellos)</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+  </main>
+
+  <!-- Subcomponente modular BookingModal -->
+  <app-booking-modal
+    [isOpen]="isBookingModalOpen()"
+    (close)="closeBookingModal()"
+    (booked)="onBookingSuccess($event)"
+  ></app-booking-modal>
+
+  <!-- Menú de Navegación Inferior (Cliente) -->
+  <nav class="bottom-nav">
+    <button class="nav-item" [class.active]="clientTab() === 'inicio'" (click)="setTab('inicio')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Turno</span>
+    </button>
+
+    <button class="nav-item" [class.active]="clientTab() === 'fidelidad'" (click)="setTab('fidelidad')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      <span>Fidelidad</span>
+    </button>
+
+    <button class="nav-item" [class.active]="clientTab() === 'historial'" (click)="setTab('historial')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>Historial</span>
+    </button>
+
+    <button class="nav-item" [class.active]="clientTab() === 'perfil'" (click)="setTab('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
+
+  <!-- MODAL: CALIFICAR SERVICIO -->
+  @if (isReviewModalOpen()) {
+    <div class="modal-backdrop" (click)="closeReviewModal()">
+      <div class="modal-sheet" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <h2 class="sheet-title">Calificar Servicio</h2>
+          <button class="btn-close-sheet" (click)="closeReviewModal()">✕</button>
+        </div>
+
+        <form [formGroup]="reviewForm" (ngSubmit)="submitReview()" class="sheet-body">
+          <div class="form-group text-center">
+            <label class="form-label">¿Cómo calificarías tu experiencia?</label>
+            <div class="stars-picker">
+              @for (star of [1,2,3,4,5]; track star) {
+                <button
+                  type="button"
+                  class="star-picker-btn"
+                  [class.active]="star <= (reviewForm.get('rating')?.value || 5)"
+                  (click)="setRating(star)"
+                >
+                  ★
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tu Opinión *</label>
+            <textarea
+              rows="3"
+              placeholder="Escribe aquí tu comentario sobre el corte..."
+              formControlName="comment"
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn-confirm-primary" [disabled]="reviewForm.invalid">
+            Enviar Valoración
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,70 @@
+@if (isOpen) {
+  <div class="modal-backdrop" (click)="onClose()">
+    <div class="modal-sheet" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle"></div>
+
+      <div class="sheet-header">
+        <h2 class="sheet-title">Reservar mi Turno</h2>
+        <button class="btn-close-sheet" (click)="onClose()">✕</button>
+      </div>
+
+      <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()" class="sheet-body">
+        <!-- Servicio -->
+        <div class="form-group">
+          <label class="form-label">1. Servicio Deseado *</label>
+          <select formControlName="serviceId">
+            @for (srv of barberService.services(); track srv.id) {
+              <option [value]="srv.id">{{ srv.name }} (${{ srv.price }} - {{ srv.durationMinutes }}min)</option>
+            }
+          </select>
+        </div>
+
+        <!-- Barbero -->
+        <div class="form-group">
+          <label class="form-label">2. Barbero Preferido *</label>
+          <select formControlName="barberId">
+            @for (barber of barberService.barbers(); track barber.id) {
+              <option [value]="barber.id">{{ barber.name }} ({{ barber.specialty }})</option>
+            }
+          </select>
+        </div>
+
+        <!-- Fecha -->
+        <div class="form-group">
+          <label class="form-label">3. Fecha del Turno *</label>
+          <input type="date" formControlName="date" />
+        </div>
+
+        <!-- Horario -->
+        <div class="form-group">
+          <label class="form-label">4. Horario Disponible *</label>
+          <div class="time-slots-grid">
+            @for (time of availableTimeSlots; track time) {
+              <button
+                type="button"
+                class="time-slot-chip"
+                [class.selected]="bookingForm.get('time')?.value === time"
+                (click)="selectTime(time)"
+              >
+                {{ time }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Confirmación -->
+        <button
+          type="submit"
+          class="btn-confirm-primary"
+          [disabled]="bookingForm.invalid || isSubmitting()"
+        >
+          @if (isSubmitting()) {
+            <span>Confirmando con Supabase...</span>
+          } @else {
+            <span>Confirmar Reserva</span>
+          }
+        </button>
+      </form>
+    </div>
+  </div>
+}

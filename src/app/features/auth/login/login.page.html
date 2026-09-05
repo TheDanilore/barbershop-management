@@ -1,0 +1,369 @@
+<main class="auth-portal" role="main">
+  <!-- Feedback Notifications -->
+  @if (errorMessage()) {
+    <div class="feedback-toast error" role="alert">
+      <span class="toast-icon">⚠️</span>
+      <span class="toast-text">{{ errorMessage() }}</span>
+      <button class="toast-close" (click)="errorMessage.set(null)">✕</button>
+    </div>
+  }
+  @if (successMessage()) {
+    <div class="feedback-toast success" role="status">
+      <span class="toast-icon">✅</span>
+      <span class="toast-text">{{ successMessage() }}</span>
+      <button class="toast-close" (click)="successMessage.set(null)">✕</button>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- PANEL IZQUIERDO: EDITORIAL / SHOWCASE (Desktop & Tablet)                  -->
+  <!-- ========================================================================= -->
+  <aside class="auth-showcase" aria-label="Beneficios de BarberTrack">
+    <div class="showcase-glow-bg"></div>
+
+    <header class="showcase-brand">
+      <div class="brand-emblem-large">
+        <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title-large">BarberTrack</h1>
+        <p class="brand-tagline">ERP & Fidelización de Alta Gama para Barberías</p>
+      </div>
+    </header>
+
+    <div class="showcase-content">
+      <h2 class="showcase-headline">
+        Gestión inteligente para tu barbería, <span class="gold-gradient-text">en tiempo real.</span>
+      </h2>
+      <p class="showcase-desc">
+        Inicia sesión para acceder automáticamente a tu entorno especializado. La plataforma detecta de forma transparente si eres administrador, barbero o cliente.
+      </p>
+
+      <!-- Métricas Clave de Social Proof -->
+      <div class="proof-metrics-grid">
+        <div class="metric-card">
+          <span class="metric-value">+1,420</span>
+          <span class="metric-label">Cortes Registrados</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">4.9 ★</span>
+          <span class="metric-label">Satisfacción Clientes</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value">10 Sellos</span>
+          <span class="metric-label">Fidelidad Atómica</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Supabase Infrastructure Health Bar & Logs Trigger -->
+    <footer class="showcase-footer">
+      <div class="supabase-health-pill" [class]="supabaseService.connectionStatus()">
+        <span class="health-dot"></span>
+        <span class="health-label">
+          @if (supabaseService.connectionStatus() === 'checking') {
+            Comprobando Supabase...
+          } @else if (supabaseService.connectionStatus() === 'connected') {
+            Supabase Conectado ({{ supabaseService.latencyMs() ?? 38 }}ms)
+          } @else if (supabaseService.connectionStatus() === 'offline') {
+            Modo Local PWA (Sin Internet)
+          } @else {
+            Supabase Reconectando...
+          }
+        </span>
+        <button class="btn-refresh-ping" (click)="retryHealthCheck()" title="Reintentar ping de conexión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+
+      <button class="btn-show-logs-pill" (click)="toggleLogsModal()" title="Ver consola de logs en pantalla">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+        <span>Logs ({{ logger.getRecentLogs().length }})</span>
+      </button>
+    </footer>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- PANEL DERECHO: CENTRO DE AUTENTICACIÓN UNIFICADO (Login & Register)        -->
+  <!-- ========================================================================= -->
+  <section class="auth-action-panel" aria-labelledby="auth-card-title">
+    <div class="panel-inner">
+      <!-- Cabecera Mobile (Solo visible en < 768px) -->
+      <header class="mobile-brand-header">
+        <div class="mobile-emblem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <h1 class="mobile-title">BarberTrack</h1>
+        <div class="mobile-meta-row">
+          <div class="supabase-health-pill mini" [class]="supabaseService.connectionStatus()">
+            <span class="health-dot"></span>
+            <span>{{ supabaseService.connectionStatus() === 'connected' ? 'Supabase Online' : 'PWA Local' }}</span>
+          </div>
+          <button class="btn-show-logs-pill mini" (click)="toggleLogsModal()">
+            Logs ({{ logger.getRecentLogs().length }})
+          </button>
+        </div>
+      </header>
+
+      <!-- Tarjeta Principal de Autenticación -->
+      <div class="auth-card">
+        <!-- Pestañas Segmentadas: Iniciar Sesión / Crear Cuenta -->
+        <nav class="auth-nav-tabs" aria-label="Modo de autenticación">
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab() === 'login'"
+            (click)="setTab('login')"
+          >
+            Iniciar Sesión
+          </button>
+          <button
+            type="button"
+            class="tab-button"
+            [class.active]="activeTab() === 'register'"
+            (click)="setTab('register')"
+          >
+            Crear Cuenta
+          </button>
+        </nav>
+
+        <!-- ---------------- TAB 1: INICIAR SESIÓN ---------------- -->
+        @if (activeTab() === 'login') {
+          <div class="tab-content fade-in">
+            <div class="card-header-text">
+              <h2 id="auth-card-title" class="auth-title">Accede a BarberTrack</h2>
+              <p class="auth-subtitle">
+                Ingresa con tu correo y contraseña registrados en Supabase.
+              </p>
+            </div>
+
+            <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" class="auth-form-fields">
+              <div class="form-group">
+                <label class="form-label" for="login-email">Correo Electrónico *</label>
+                <input
+                  id="login-email"
+                  type="email"
+                  class="form-input"
+                  placeholder="ejemplo@barbertrack.com"
+                  formControlName="email"
+                  autocomplete="email"
+                />
+                @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
+                  <span class="field-error">Ingresa un correo electrónico válido</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="login-password">Contraseña *</label>
+                <input
+                  id="login-password"
+                  type="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  formControlName="password"
+                  autocomplete="current-password"
+                />
+                @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+                  <span class="field-error">La contraseña debe tener al menos 6 caracteres</span>
+                }
+              </div>
+
+              <button
+                type="submit"
+                class="btn-submit-gold"
+                [disabled]="loginForm.invalid || isLoading()"
+              >
+                @if (isLoading()) {
+                  <span class="spinner-small"></span>
+                  <span>Verificando con Supabase...</span>
+                } @else {
+                  <span>Ingresar a mi Cuenta</span>
+                }
+              </button>
+            </form>
+
+            <!-- Acceso Rápido Demo (Pruebas instantáneas) -->
+            <div class="demo-access-container">
+              <div class="divider-line">
+                <span>ACCESO RÁPIDO PARA EVALUACIÓN</span>
+              </div>
+              <div class="demo-buttons-grid">
+                <button
+                  type="button"
+                  class="btn-demo-pill"
+                  (click)="quickDemoLogin('barber')"
+                  title="Ingresa directamente al panel de barbero/admin"
+                >
+                  ✂ Entrar Barbero (Carlos)
+                </button>
+                <button
+                  type="button"
+                  class="btn-demo-pill client"
+                  (click)="quickDemoLogin('customer')"
+                  title="Ingresa directamente a la vista de cliente"
+                >
+                  ⭐ Entrar Cliente (Mateo)
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ---------------- TAB 2: CREAR CUENTA (Solo Clientes) ---------------- -->
+        @if (activeTab() === 'register') {
+          <div class="tab-content fade-in">
+            <div class="card-header-text">
+              <h2 id="auth-card-title" class="auth-title">Crea tu Cuenta de Cliente</h2>
+              <p class="auth-subtitle">
+                Acumula sellos de fidelidad dorados y gestiona tus reservas.
+              </p>
+            </div>
+
+            <!-- Banner Informativo RBAC -->
+            <div class="info-callout">
+              <span class="callout-icon">ℹ️</span>
+              <span class="callout-text">
+                El registro público es exclusivo para clientes. Las cuentas de barbero y administrador se gestionan privadamente en Supabase.
+              </span>
+            </div>
+
+            <form [formGroup]="registerForm" (ngSubmit)="submitRegister()" class="auth-form-fields">
+              <div class="form-group">
+                <label class="form-label" for="reg-name">Nombre y Apellido *</label>
+                <input
+                  id="reg-name"
+                  type="text"
+                  class="form-input"
+                  placeholder="Ej. Mateo Silva"
+                  formControlName="fullName"
+                  autocomplete="name"
+                />
+                @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid) {
+                  <span class="field-error">Ingresa tu nombre completo</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reg-email">Correo Electrónico *</label>
+                <input
+                  id="reg-email"
+                  type="email"
+                  class="form-input"
+                  placeholder="mateo@cliente.com"
+                  formControlName="email"
+                  autocomplete="email"
+                />
+                @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
+                  <span class="field-error">Ingresa un correo electrónico válido</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reg-password">Contraseña *</label>
+                <input
+                  id="reg-password"
+                  type="password"
+                  class="form-input"
+                  placeholder="••••••••"
+                  formControlName="password"
+                  autocomplete="new-password"
+                />
+                @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
+                  <span class="field-error">Mínimo 6 caracteres</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reg-phone">Teléfono (Opcional)</label>
+                <input
+                  id="reg-phone"
+                  type="tel"
+                  class="form-input"
+                  placeholder="+51 987 654 321"
+                  formControlName="phone"
+                  autocomplete="tel"
+                />
+              </div>
+
+              <button
+                type="submit"
+                class="btn-submit-gold"
+                [disabled]="registerForm.invalid || isLoading()"
+              >
+                @if (isLoading()) {
+                  <span class="spinner-small"></span>
+                  <span>Registrando en Supabase...</span>
+                } @else {
+                  <span>Crear Cuenta de Cliente</span>
+                }
+              </button>
+            </form>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL / VISOR DE LOGS DE DIAGNÓSTICO EN TIEMPO REAL                       -->
+  <!-- ========================================================================= -->
+  @if (showLogsModal()) {
+    <div class="logs-modal-backdrop" (click)="toggleLogsModal()">
+      <div class="logs-modal-dialog" (click)="$event.stopPropagation()">
+        <header class="logs-modal-header">
+          <div class="logs-header-left">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <h3 class="logs-modal-title">Terminal de Diagnóstico & Logs de Supabase</h3>
+          </div>
+          <button class="btn-close-logs" (click)="toggleLogsModal()">✕</button>
+        </header>
+
+        <div class="logs-modal-body">
+          <div class="logs-info-banner">
+            <span>💡 También puedes abrir la consola de tu navegador con <strong>F12 → Console</strong> o ver las peticiones en <strong>F12 → Network</strong>.</span>
+          </div>
+
+          @if (logger.getRecentLogs().length === 0) {
+            <div class="empty-logs-msg">No hay trazas registradas todavía.</div>
+          } @else {
+            <div class="logs-list">
+              @for (log of logger.getRecentLogs(); track log.timestamp) {
+                <div class="log-entry-row" [class]="log.level.toLowerCase()">
+                  <div class="log-top-meta">
+                    <span class="log-level-badge" [class]="log.level.toLowerCase()">{{ log.level }}</span>
+                    <span class="log-context">[{{ log.context }}]</span>
+                    <span class="log-time">{{ log.timestamp.split('T')[1].slice(0, 8) }}</span>
+                  </div>
+                  <div class="log-message-text">{{ log.message }}</div>
+                  @if (log.details) {
+                    <pre class="log-details-json">{{ log.details | json }}</pre>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</main>

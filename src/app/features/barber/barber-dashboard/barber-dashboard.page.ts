@@ -129,10 +129,10 @@ export class BarberDashboardPage {
     this.router.navigate(['/customer']);
   }
 
-  goToLanding(): void {
+  logout(): void {
     this.haptics.lightTap();
-    this.barberService.setRole('landing');
-    this.router.navigate(['/select-role']);
+    this.supabaseService.signOut();
+    this.router.navigate(['/login']);
   }
 
   openRegisterCutModal(preselectedClientId?: string): void {

@@ -1,21 +1,21 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'select-role',
+    redirectTo: 'login',
     pathMatch: 'full',
   },
   {
-    path: 'select-role',
+    path: 'login',
     loadComponent: () =>
-      import('./features/auth/role-selection/role-selection.page').then(
-        (m) => m.RoleSelectionPage
-      ),
-    title: 'BarberTrack - Selección de Rol',
+      import('./features/auth/login/login.page').then((m) => m.LoginPage),
+    title: 'BarberTrack - Iniciar Sesión',
   },
   {
     path: 'barber',
+    canActivate: [authGuard(['barber', 'admin'])],
     loadComponent: () =>
       import('./features/barber/barber-dashboard/barber-dashboard.page').then(
         (m) => m.BarberDashboardPage
@@ -24,6 +24,7 @@ export const routes: Routes = [
   },
   {
     path: 'customer',
+    canActivate: [authGuard(['customer'])],
     loadComponent: () =>
       import(
         './features/customer/customer-dashboard/customer-dashboard.page'
@@ -32,6 +33,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'select-role',
+    redirectTo: 'login',
   },
 ];

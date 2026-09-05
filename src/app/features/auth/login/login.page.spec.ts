@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { RoleSelectionPage } from './role-selection.page';
+import { LoginPage } from './login.page';
 
-describe('RoleSelectionPage', () => {
-  let component: RoleSelectionPage;
-  let fixture: ComponentFixture<RoleSelectionPage>;
+describe('LoginPage', () => {
+  let component: LoginPage;
+  let fixture: ComponentFixture<LoginPage>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RoleSelectionPage],
+      imports: [LoginPage],
       providers: [provideRouter([])],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(RoleSelectionPage);
+    fixture = TestBed.createComponent(LoginPage);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

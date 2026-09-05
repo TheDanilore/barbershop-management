@@ -77,10 +77,10 @@ export class CustomerDashboardPage {
     this.router.navigate(['/barber']);
   }
 
-  goToLanding(): void {
+  logout(): void {
     this.haptics.lightTap();
-    this.barberService.setRole('landing');
-    this.router.navigate(['/select-role']);
+    this.supabaseService.signOut();
+    this.router.navigate(['/login']);
   }
 
   openBookingModal(): void {

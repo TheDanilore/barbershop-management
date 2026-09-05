@@ -1,8 +1,8 @@
 <main class="auth-viewport" role="main">
-  <!-- Ambient Atmospheric Lighting -->
+  <!-- Iluminación atmosférica ambiental -->
   <div class="ambient-glow" aria-hidden="true"></div>
 
-  <!-- Feedback Notifications -->
+  <!-- Notificaciones y retroalimentación de usuario (Toasts) -->
   @if (errorMessage()) {
     <div class="toast-feedback error" role="alert" aria-live="assertive">
       <span class="toast-icon">⚠️</span>
@@ -19,7 +19,7 @@
   }
 
   <div class="auth-stage-container">
-    <!-- Brand Identity Header -->
+    <!-- Cabecera de identidad de marca -->
     <header class="brand-header">
       <div class="brand-emblem-wrapper">
         <div class="brand-emblem">
@@ -36,11 +36,11 @@
       <p class="brand-tagline">ERP & Fidelización de Alta Gama</p>
     </header>
 
-    <!-- Main Authentication Glassmorphic Card -->
+    <!-- Tarjeta principal de autenticación con efecto glassmorphic -->
     <section class="auth-card" aria-labelledby="auth-heading">
       
       <!-- ================================================================= -->
-      <!-- VIEW 1: SIGN IN (Default)                                         -->
+      <!-- VISTA 1: INICIAR SESIÓN (Por defecto)                             -->
       <!-- ================================================================= -->
       @if (authMode() === 'login') {
         <div class="auth-form-wrapper fade-in">
@@ -50,7 +50,7 @@
           </header>
 
           <form [formGroup]="loginForm" (ngSubmit)="handleLogin()" class="form-fields" novalidate>
-            <!-- Email Input -->
+            <!-- Campo de correo electrónico -->
             <div class="field-group">
               <label class="field-label" for="login-email">Correo Electrónico</label>
               <div class="input-wrapper">
@@ -69,7 +69,7 @@
               }
             </div>
 
-            <!-- Password Input with Eye Toggle -->
+            <!-- Campo de contraseña con botón para alternar visibilidad -->
             <div class="field-group">
               <label class="field-label" for="login-password">Contraseña</label>
               <div class="input-wrapper has-trailing-action">
@@ -89,13 +89,13 @@
                   [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'"
                 >
                   @if (isPasswordVisible()) {
-                    <!-- Eye Off Icon -->
+                    <!-- Icono ojo tachado (ocultar) -->
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                       <line x1="1" y1="1" x2="23" y2="23"></line>
                     </svg>
                   } @else {
-                    <!-- Eye Icon -->
+                    <!-- Icono ojo (mostrar) -->
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                       <circle cx="12" cy="12" r="3"></circle>
@@ -108,7 +108,7 @@
               }
             </div>
 
-            <!-- Primary Submit Button -->
+            <!-- Botón principal de acceso de lujo -->
             <button
               type="submit"
               class="btn-submit-luxury"
@@ -123,7 +123,7 @@
             </button>
           </form>
 
-          <!-- Toggle to Registration -->
+          <!-- Enlace para conmutar a registro -->
           <div class="auth-switch-prompt">
             <span class="prompt-text">¿Eres un cliente nuevo?</span>
             <button type="button" class="btn-link-action" (click)="setAuthMode('register')">
@@ -131,7 +131,7 @@
             </button>
           </div>
 
-          <!-- Discrete Evaluation Demo Quick Access -->
+          <!-- Acceso rápido de evaluación para pruebas ágiles -->
           <div class="demo-eval-section">
             <div class="demo-divider">
               <span>ACCESO RÁPIDO EVALUACIÓN</span>
@@ -159,7 +159,7 @@
       }
 
       <!-- ================================================================= -->
-      <!-- VIEW 2: CUSTOMER SIGN UP (Clients Only)                           -->
+      <!-- VISTA 2: REGISTRO DE CLIENTES (Exclusivo Clientes)                -->
       <!-- ================================================================= -->
       @if (authMode() === 'register') {
         <div class="auth-form-wrapper fade-in">
@@ -169,7 +169,7 @@
           </header>
 
           <form [formGroup]="registerForm" (ngSubmit)="handleRegister()" class="form-fields" novalidate>
-            <!-- Full Name -->
+            <!-- Nombre y apellido -->
             <div class="field-group">
               <label class="field-label" for="reg-name">Nombre Completo</label>
               <div class="input-wrapper">
@@ -188,7 +188,7 @@
               }
             </div>
 
-            <!-- Email -->
+            <!-- Correo electrónico -->
             <div class="field-group">
               <label class="field-label" for="reg-email">Correo Electrónico</label>
               <div class="input-wrapper">
@@ -207,7 +207,7 @@
               }
             </div>
 
-            <!-- Password with Eye Toggle -->
+            <!-- Contraseña con botón de alternar visibilidad -->
             <div class="field-group">
               <label class="field-label" for="reg-password">Contraseña</label>
               <div class="input-wrapper has-trailing-action">
@@ -244,7 +244,7 @@
               }
             </div>
 
-            <!-- Phone (Optional) -->
+            <!-- Teléfono (Opcional) -->
             <div class="field-group">
               <label class="field-label" for="reg-phone">Teléfono (Opcional)</label>
               <div class="input-wrapper">
@@ -259,7 +259,7 @@
               </div>
             </div>
 
-            <!-- Primary Submit Button -->
+            <!-- Botón principal de registro -->
             <button
               type="submit"
               class="btn-submit-luxury"
@@ -274,7 +274,7 @@
             </button>
           </form>
 
-          <!-- Toggle back to Sign In -->
+          <!-- Enlace para volver a Iniciar Sesión -->
           <div class="auth-switch-prompt">
             <span class="prompt-text">¿Ya tienes una cuenta?</span>
             <button type="button" class="btn-link-action" (click)="setAuthMode('login')">
@@ -286,7 +286,7 @@
 
     </section>
 
-    <!-- Subtle Footer -->
+    <!-- Pie de página sutil -->
     <footer class="auth-footer">
       <p class="footer-note">BarberTrack Pro Enterprise &bull; Plataforma Segura</p>
     </footer>

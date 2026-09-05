@@ -39,10 +39,10 @@ export class LoginPage {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Active authentication mode: 'login' or 'register'
+  // Modo activo de autenticación: 'login' o 'register'
   readonly authMode = signal<AuthMode>('login');
 
-  // Interactive UI state signals
+  // Signals reactivos para estados de interacción en la UI
   readonly isLoading = signal(false);
   readonly isPasswordVisible = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -191,7 +191,7 @@ export class LoginPage {
   }
 
   /**
-   * Quick evaluation demo access (instant navigation without blocking test flow)
+   * Acceso rápido de evaluación para pruebas demo (navegación instantánea)
    */
   quickDemoLogin(role: 'barber' | 'customer'): void {
     this.haptics.selection();

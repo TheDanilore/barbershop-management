@@ -1,5 +1,5 @@
 /* ========================================================================= */
-/* BARBERTRACK - LUXURY STAGE LOGIN STYLES (CHAMELEON ARCHITECTURE)         */
+/* BARBERTRACK - ESTILOS DE LOGIN DE ALTA GAMA (ARQUITECTURA CAMALEÓNICA)   */
 /* ========================================================================= */
 
 :host {
@@ -12,7 +12,7 @@
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ---------------- VIEWPORT & AMBIENT STAGE ---------------- */
+/* ---------------- VIEWPORT Y ESCENARIO AMBIENTAL ---------------- */
 .auth-viewport {
   position: relative;
   min-height: 100vh;
@@ -41,7 +41,7 @@
   z-index: 0;
 }
 
-/* ---------------- FEEDBACK TOASTS ---------------- */
+/* ---------------- TOASTS DE FEEDBACK Y NOTIFICACIÓN ---------------- */
 .toast-feedback {
   position: fixed;
   top: calc(16px + var(--safe-top));
@@ -111,7 +111,7 @@
   opacity: 1;
 }
 
-/* ---------------- STAGE CONTAINER ---------------- */
+/* ---------------- CONTENEDOR DEL ESCENARIO CENTRAL ---------------- */
 .auth-stage-container {
   position: relative;
   z-index: 1;
@@ -124,7 +124,7 @@
   margin: auto 0;
 }
 
-/* ---------------- BRAND HEADER ---------------- */
+/* ---------------- CABECERA DE IDENTIDAD DE MARCA ---------------- */
 .brand-header {
   display: flex;
   flex-direction: column;
@@ -180,7 +180,7 @@
   margin: 0;
 }
 
-/* ---------------- MAIN GLASSMORPHIC CARD ---------------- */
+/* ---------------- TARJETA PRINCIPAL CON EFECTO GLASSMORPHIC ---------------- */
 .auth-card {
   width: 100%;
   background: rgba(24, 24, 30, 0.78);
@@ -219,7 +219,7 @@
   }
 }
 
-/* Card Header */
+/* Cabecera interior de la tarjeta */
 .card-header {
   text-align: center;
   display: flex;
@@ -243,7 +243,7 @@
   margin: 0;
 }
 
-/* Form Fields */
+/* Campos del formulario */
 .form-fields {
   display: flex;
   flex-direction: column;
@@ -276,7 +276,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   color: var(--text-main);
-  font-size: 1rem; /* 16px strictly avoids iOS Safari zoom */
+  font-size: 1rem; /* 16px evita estrictamente el zoom automático en iOS Safari */
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -295,6 +295,7 @@
   box-shadow: 0 0 0 3px rgba(229, 169, 60, 0.25);
 }
 
+/* Botón flotante para ver/ocultar contraseña */
 .btn-input-trailing {
   position: absolute;
   top: 50%;
@@ -329,7 +330,7 @@
   margin-top: 2px;
 }
 
-/* Luxury Submit Button */
+/* Botón principal de acceso de lujo */
 .btn-submit-luxury {
   width: 100%;
   height: 52px;
@@ -386,7 +387,7 @@
   to { transform: rotate(360deg); }
 }
 
-/* Switch Mode Prompt */
+/* Enlace para alternar entre Iniciar Sesión y Registro */
 .auth-switch-prompt {
   display: flex;
   align-items: center;
@@ -419,7 +420,7 @@
   border-radius: 4px;
 }
 
-/* Discrete Evaluation Demo Section */
+/* Sección de evaluación rápida para pruebas demo */
 .demo-eval-section {
   display: flex;
   flex-direction: column;
@@ -489,7 +490,7 @@
   outline-offset: 2px;
 }
 
-/* ---------------- FOOTER ---------------- */
+/* ---------------- PIE DE PÁGINA ---------------- */
 .auth-footer {
   text-align: center;
 }
@@ -501,7 +502,7 @@
   margin: 0;
 }
 
-/* ---------------- CHAMELEON RESPONSIVE MEDIA QUERIES ---------------- */
+/* ---------------- MEDIA QUERIES RESPONSIVAS CAMALEÓNICAS ---------------- */
 @media (max-width: 480px) {
   .auth-viewport {
     padding: 24px 12px calc(24px + var(--safe-bottom));

@@ -106,7 +106,7 @@
               Ver toda ({{ barberService.todayAppointments().length }})
             </button>
           </div>
-          <app-barber-agenda (actionFeedback)="showToast($event)"></app-barber-agenda>
+          <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
         </section>
 
         <!-- Fidelidad de Clientes (Top Recurrentes) -->
@@ -178,7 +178,7 @@
           </div>
           <button class="btn-primary-action" (click)="openBookAppointmentModal()">+ Cita</button>
         </div>
-        <app-barber-agenda (actionFeedback)="showToast($event)"></app-barber-agenda>
+        <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
       </div>
     }
 

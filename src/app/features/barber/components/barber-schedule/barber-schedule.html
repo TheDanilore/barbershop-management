@@ -1,4 +1,6 @@
+<!-- Contenedor principal de la línea de tiempo de citas -->
 <div class="timeline-container">
+  <!-- Estado vacío cuando no hay citas para hoy -->
   @if (barberService.todayAppointments().length === 0) {
     <div class="empty-state-card">
       <div class="empty-icon">📅</div>
@@ -6,22 +8,29 @@
       <p class="empty-desc">Las citas agendadas por los clientes aparecerán aquí</p>
     </div>
   } @else {
+    <!-- Listado cronológico de citas del día -->
     @for (apt of barberService.todayAppointments(); track apt.id) {
       <div class="timeline-row">
+        <!-- Columna de hora -->
         <div class="timeline-time">
           <span class="time-text">{{ apt.time }}</span>
         </div>
+
+        <!-- Tarjeta de detalle de la cita -->
         <div class="timeline-card" [class]="apt.status">
           <div class="t-card-header">
             <div class="t-client-name">{{ apt.clientName }}</div>
             <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
           </div>
+
           <div class="t-service-name">{{ apt.serviceName }} • ${{ apt.price }}</div>
           <div class="t-phone">📞 {{ apt.clientPhone }}</div>
+
           @if (apt.notes) {
             <div class="t-notes">Nota: {{ apt.notes }}</div>
           }
 
+          <!-- Acciones de gestión rápida -->
           <div class="t-actions">
             @if (apt.status !== 'completed' && apt.status !== 'cancelled') {
               <button class="btn-t-action success" (click)="markCompleted(apt)">

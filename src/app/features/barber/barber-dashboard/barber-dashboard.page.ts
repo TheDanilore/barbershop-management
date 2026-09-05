@@ -20,8 +20,8 @@ import { PaymentMethod } from '../../../core/models/barber.models';
 import { BarberService } from '../../../core/services/barber.service';
 import { HapticsService } from '../../../core/services/haptics.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
-import { BarberAgenda } from '../components/barber-agenda/barber-agenda';
 import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
+import { BarberSchedule } from '../components/barber-schedule/barber-schedule';
 
 @Component({
   selector: 'app-barber-dashboard',
@@ -31,7 +31,7 @@ import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
     FormsModule,
     ReactiveFormsModule,
     BarberMetrics,
-    BarberAgenda,
+    BarberSchedule,
   ],
   templateUrl: './barber-dashboard.page.html',
   styleUrl: './barber-dashboard.page.css',

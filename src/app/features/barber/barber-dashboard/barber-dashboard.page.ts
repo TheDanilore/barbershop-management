@@ -24,7 +24,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
 import { BarberSchedule } from '../components/barber-schedule/barber-schedule';
 
-export type BarberTabType = 'inicio' | 'agenda' | 'clientes' | 'servicios' | 'caja' | 'stats';
+export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'cash' | 'stats';
 
 @Component({
   selector: 'app-barber-dashboard',
@@ -49,8 +49,10 @@ export class BarberDashboardPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Pestaña activa: sincronizada con la URL
-  readonly barberTab = signal<BarberTabType>('inicio');
+  // Active tab synchronized with URL
+  readonly activeTab = signal<BarberTabType>('overview');
+  // Backwards compatibility alias
+  readonly barberTab = this.activeTab;
 
   // Modales principales
   readonly isRegisterCutModalOpen = signal(false);
@@ -182,13 +184,23 @@ export class BarberDashboardPage implements OnInit {
   }
 
   ngOnInit(): void {
-    // Sincronizar ruta activa con la pestaña
+    // Sincronizar ruta activa con la pestaña en inglés
     this.route.paramMap.subscribe((params) => {
-      const tabParam = params.get('tab') as BarberTabType;
-      if (tabParam && ['inicio', 'agenda', 'clientes', 'servicios', 'caja', 'stats'].includes(tabParam)) {
-        this.barberTab.set(tabParam);
+      const tabParam = params.get('tab') as string;
+      if (tabParam && ['overview', 'appointments', 'clients', 'services', 'cash', 'stats'].includes(tabParam)) {
+        this.activeTab.set(tabParam as BarberTabType);
+      } else if (tabParam === 'inicio') {
+        this.setTab('overview');
+      } else if (tabParam === 'agenda') {
+        this.setTab('appointments');
+      } else if (tabParam === 'clientes') {
+        this.setTab('clients');
+      } else if (tabParam === 'servicios') {
+        this.setTab('services');
+      } else if (tabParam === 'caja') {
+        this.setTab('cash');
       } else {
-        this.barberTab.set('inicio');
+        this.activeTab.set('overview');
       }
     });
 
@@ -234,8 +246,8 @@ export class BarberDashboardPage implements OnInit {
 
   setTab(tab: BarberTabType): void {
     this.haptics.lightTap();
-    this.barberTab.set(tab);
-    if (tab === 'inicio') {
+    this.activeTab.set(tab);
+    if (tab === 'overview') {
       this.router.navigate(['/barber']);
     } else {
       this.router.navigate(['/barber', tab]);
@@ -652,7 +664,7 @@ export class BarberDashboardPage implements OnInit {
   }
 
   openDailyCashModal(): void {
-    this.setTab('caja');
+    this.setTab('cash');
   }
 
   closeDailyCashModal(): void {

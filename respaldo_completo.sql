@@ -119,9 +119,11 @@ DECLARE
     v_new_tier text;
     v_stamps_threshold integer := 10;
 BEGIN
-    -- Leer umbral dinámico desde business_settings si existe
-    SELECT COALESCE(stamps_required, 10) INTO v_stamps_threshold 
-    FROM public.business_settings LIMIT 1;
+    -- Leer umbral dinámico desde app_settings si existe
+    SELECT COALESCE(value::integer, 10) INTO v_stamps_threshold 
+    FROM public.app_settings 
+    WHERE key = 'stamps_required' 
+    LIMIT 1;
     
     IF v_stamps_threshold IS NULL OR v_stamps_threshold < 2 THEN
         v_stamps_threshold := 10;
@@ -144,31 +146,29 @@ BEGIN
             now()
         )
         ON CONFLICT (customer_id) DO UPDATE SET
-            total_historical_cuts = loyalty_progress.total_historical_cuts + 1,
             current_stamps = CASE 
-                WHEN loyalty_progress.current_stamps >= (v_stamps_threshold - 1) THEN 0 
-                ELSE loyalty_progress.current_stamps + 1 
+                WHEN public.loyalty_progress.current_stamps + 1 >= v_stamps_threshold THEN 0
+                ELSE public.loyalty_progress.current_stamps + 1
             END,
             rewards_claimed = CASE 
-                WHEN loyalty_progress.current_stamps >= (v_stamps_threshold - 1) THEN loyalty_progress.rewards_claimed + 1 
-                ELSE loyalty_progress.rewards_claimed 
+                WHEN public.loyalty_progress.current_stamps + 1 >= v_stamps_threshold 
+                THEN public.loyalty_progress.rewards_claimed + 1
+                ELSE public.loyalty_progress.rewards_claimed
             END,
+            total_historical_cuts = public.loyalty_progress.total_historical_cuts + 1,
             updated_at = now()
-        RETURNING total_historical_cuts INTO v_total_cuts;
+        RETURNING current_stamps, total_historical_cuts INTO v_new_stamps, v_total_cuts;
 
-        -- Determinar el nivel de membresía basado en el historial consolidado
-        IF v_total_cuts >= 15 THEN
-            v_new_tier := 'VIP';
-        ELSIF v_total_cuts >= 8 THEN
-            v_new_tier := 'Gold';
-        ELSIF v_total_cuts >= 3 THEN
-            v_new_tier := 'Silver';
-        ELSE
-            v_new_tier := 'Bronze';
-        END IF;
+        -- Actualizar el nivel de membresía en profiles de acuerdo al histórico
+        v_new_tier := CASE 
+            WHEN v_total_cuts >= 50 THEN 'black'
+            WHEN v_total_cuts >= 20 THEN 'vip'
+            WHEN v_total_cuts >= 5  THEN 'premium'
+            ELSE 'regular'
+        END;
 
-        UPDATE public.profiles
-        SET membership_tier = v_new_tier
+        UPDATE public.profiles 
+        SET membership_level = v_new_tier::public.user_membership
         WHERE id = NEW.customer_id;
     END IF;
 
@@ -215,6 +215,22 @@ $$;
 ALTER FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE (auth_user_id = auth.uid() OR id = auth.uid()) 
+    AND role = 'admin'::public.user_role
+    AND is_active = true
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_admin"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."is_staff"() RETURNS boolean
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -253,6 +269,17 @@ CREATE TABLE IF NOT EXISTS "public"."account_movements" (
 
 
 ALTER TABLE "public"."account_movements" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."app_settings" (
+    "key" "text" NOT NULL,
+    "value" numeric NOT NULL,
+    "description" "text",
+    "updated_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."app_settings" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."appointments" (
@@ -419,7 +446,8 @@ CREATE TABLE IF NOT EXISTS "public"."services" (
     "base_price" numeric(10,2) NOT NULL,
     "duration_minutes" integer DEFAULT 30 NOT NULL,
     "is_active" boolean DEFAULT true NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "popular" boolean DEFAULT false
 );
 
 
@@ -428,6 +456,11 @@ ALTER TABLE "public"."services" OWNER TO "postgres";
 
 ALTER TABLE ONLY "public"."account_movements"
     ADD CONSTRAINT "account_movements_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."app_settings"
+    ADD CONSTRAINT "app_settings_pkey" PRIMARY KEY ("key");
 
 
 
@@ -555,6 +588,14 @@ CREATE INDEX "idx_sales_created_barber" ON "public"."sales_history" USING "btree
 
 
 CREATE INDEX "idx_sales_customer" ON "public"."sales_history" USING "btree" ("customer_id");
+
+
+
+CREATE INDEX "idx_sales_history_barber_date" ON "public"."sales_history" USING "btree" ("barber_id", "created_at");
+
+
+
+CREATE INDEX "idx_sales_history_customer" ON "public"."sales_history" USING "btree" ("customer_id");
 
 
 
@@ -759,6 +800,21 @@ CREATE POLICY "Usuarios actualizan su propio perfil" ON "public"."profiles" FOR 
 ALTER TABLE "public"."account_movements" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "account_movements_staff" ON "public"."account_movements" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
+
+
+ALTER TABLE "public"."app_settings" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "app_settings_select" ON "public"."app_settings" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "app_settings_staff" ON "public"."app_settings" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
+
+
 ALTER TABLE "public"."appointments" ENABLE ROW LEVEL SECURITY;
 
 
@@ -768,13 +824,43 @@ ALTER TABLE "public"."business_settings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."cash_shifts" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "cash_shifts_staff" ON "public"."cash_shifts" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
+
+
 ALTER TABLE "public"."customer_credit_movements" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "customer_credit_movements_owner_select" ON "public"."customer_credit_movements" FOR SELECT TO "authenticated" USING (("customer_credit_id" IN ( SELECT "customer_credits"."id"
+   FROM "public"."customer_credits"
+  WHERE ("customer_credits"."profile_id" = "auth"."uid"()))));
+
+
+
+CREATE POLICY "customer_credit_movements_staff" ON "public"."customer_credit_movements" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
 
 
 ALTER TABLE "public"."customer_credits" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "customer_credits_owner_select" ON "public"."customer_credits" FOR SELECT TO "authenticated" USING (("profile_id" = "auth"."uid"()));
+
+
+
+CREATE POLICY "customer_credits_staff" ON "public"."customer_credits" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
+
+
 ALTER TABLE "public"."financial_accounts" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "financial_accounts_modify" ON "public"."financial_accounts" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
+
+
+
+CREATE POLICY "financial_accounts_select" ON "public"."financial_accounts" FOR SELECT TO "authenticated" USING ("public"."is_staff"());
+
 
 
 ALTER TABLE "public"."loyalty_progress" ENABLE ROW LEVEL SECURITY;
@@ -790,6 +876,14 @@ ALTER TABLE "public"."sales_history" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."services" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "services_select_all" ON "public"."services" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "services_staff_modify" ON "public"."services" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
 
 
 
@@ -975,6 +1069,12 @@ GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid")
 
 
 
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."is_staff"() TO "anon";
 GRANT ALL ON FUNCTION "public"."is_staff"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_staff"() TO "service_role";
@@ -999,6 +1099,12 @@ GRANT ALL ON FUNCTION "public"."is_staff"() TO "service_role";
 GRANT ALL ON TABLE "public"."account_movements" TO "anon";
 GRANT ALL ON TABLE "public"."account_movements" TO "authenticated";
 GRANT ALL ON TABLE "public"."account_movements" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."app_settings" TO "anon";
+GRANT ALL ON TABLE "public"."app_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."app_settings" TO "service_role";
 
 
 

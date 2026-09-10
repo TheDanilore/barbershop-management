@@ -40,8 +40,8 @@
     <nav class="sidebar-nav">
       <button
         class="sidebar-nav-item"
-        [class.active]="barberTab() === 'inicio'"
-        (click)="setTab('inicio')"
+        [class.active]="activeTab() === 'overview'"
+        (click)="setTab('overview')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -52,8 +52,8 @@
 
       <button
         class="sidebar-nav-item"
-        [class.active]="barberTab() === 'agenda'"
-        (click)="setTab('agenda')"
+        [class.active]="activeTab() === 'appointments'"
+        (click)="setTab('appointments')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -69,8 +69,8 @@
 
       <button
         class="sidebar-nav-item"
-        [class.active]="barberTab() === 'clientes'"
-        (click)="setTab('clientes')"
+        [class.active]="activeTab() === 'clients'"
+        (click)="setTab('clients')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -78,7 +78,7 @@
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
-        <span class="nav-label">Clientes & Cuentas</span>
+        <span class="nav-label">Clientes</span>
         @if (clientsWithDebt().length > 0) {
           <span class="sidebar-counter-pill warning">{{ clientsWithDebt().length }} fiados</span>
         }
@@ -86,8 +86,8 @@
 
       <button
         class="sidebar-nav-item"
-        [class.active]="barberTab() === 'servicios'"
-        (click)="setTab('servicios')"
+        [class.active]="activeTab() === 'services'"
+        (click)="setTab('services')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
@@ -98,8 +98,8 @@
 
       <button
         class="sidebar-nav-item"
-        [class.active]="barberTab() === 'caja'"
-        (click)="setTab('caja')"
+        [class.active]="activeTab() === 'cash'"
+        (click)="setTab('cash')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="4" width="20" height="16" rx="2"></rect>
@@ -113,7 +113,7 @@
 
       <button
         class="sidebar-nav-item"
-        [class.active]="barberTab() === 'stats'"
+        [class.active]="activeTab() === 'stats'"
         (click)="setTab('stats')"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -126,7 +126,7 @@
     </nav>
 
     <!-- Mini-Widget Caja en Tiempo Real -->
-    <div class="sidebar-cash-card" (click)="setTab('caja')" title="Ver estado de caja y turnos">
+    <div class="sidebar-cash-card" (click)="setTab('cash')" title="Ver estado de caja y turnos">
       <div class="scc-top">
         <span class="scc-title">Caja del Día</span>
         @if (barberService.activeCashShift()) {
@@ -225,11 +225,11 @@
         <span class="tb-sep">/</span>
         <span class="tb-current">
           {{
-            barberTab() === 'inicio' ? 'Panel General' :
-            barberTab() === 'agenda' ? 'Agenda & Turnos' :
-            barberTab() === 'clientes' ? 'Clientes & Cuentas Corrientes' :
-            barberTab() === 'servicios' ? 'Catálogo de Servicios' :
-            barberTab() === 'caja' ? 'Caja & Cuentas Financieras' : 'Finanzas & Métricas'
+            activeTab() === 'overview' ? 'Panel General' :
+            activeTab() === 'appointments' ? 'Agenda & Turnos' :
+            activeTab() === 'clients' ? 'Directorio de Clientes' :
+            activeTab() === 'services' ? 'Catálogo de Servicios' :
+            activeTab() === 'cash' ? 'Caja & Cuentas Financieras' : 'Finanzas & Métricas'
           }}
         </span>
       </div>
@@ -264,8 +264,8 @@
 
     <!-- Contenido Principal -->
     <main class="main-content-area">
-      <!-- ---------------- TAB INICIO ---------------- -->
-      @if (barberTab() === 'inicio') {
+      <!-- ---------------- TAB OVERVIEW ---------------- -->
+      @if (activeTab() === 'overview') {
         <div class="tab-pane fade-in">
           <!-- Subcomponente de Métricas y KPIs -->
           <app-barber-metrics (viewStats)="setTab('stats')"></app-barber-metrics>
@@ -275,13 +275,13 @@
             <!-- Columna Primaria (Izquierda 65%) -->
             <div class="dashboard-primary-col">
               <!-- Agenda de Hoy -->
-              <section class="section-container">
+              <section class="section-container surface-card">
                 <div class="section-header-flex">
                   <div class="section-title-wrap">
                     <h2 class="section-title">Agenda de hoy</h2>
                     <span class="badge-count">{{ barberService.todayAppointments().length }} turnos</span>
                   </div>
-                  <button class="link-btn" (click)="setTab('agenda')">
+                  <button class="link-btn" (click)="setTab('appointments')">
                     Ver agenda completa →
                   </button>
                 </div>
@@ -291,7 +291,7 @@
               </section>
 
               <!-- Historial Reciente de Cortes -->
-              <section class="section-container">
+              <section class="section-container surface-card cuts-section-card">
                 <div class="section-header-flex">
                   <div class="section-title-wrap">
                     <h2 class="section-title">Últimos Servicios Cobrados</h2>
@@ -333,7 +333,14 @@
                       } @empty {
                         <tr>
                           <td colspan="6" class="table-empty-row">
-                            No hay cortes registrados el día de hoy. ¡Comienza haciendo clic en <strong>+ Nuevo Corte</strong>!
+                            <div class="table-empty-box">
+                              <div class="teb-icon">✂</div>
+                              <div class="teb-title">Sin cobros el día de hoy</div>
+                              <div class="teb-sub">Registra el primer servicio para alimentar las métricas en vivo.</div>
+                              <button class="btn-empty-action" (click)="openRegisterCutModal()">
+                                + Registrar Primer Corte (Alt+N)
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       }
@@ -365,7 +372,7 @@
                       </div>
                     }
                   </div>
-                  <button class="btn-view-all-debts" (click)="setTab('clientes')">
+                  <button class="btn-view-all-debts" (click)="setTab('clients')">
                     Ver todos los créditos en Clientes →
                   </button>
                 </div>
@@ -374,22 +381,30 @@
               <!-- Tarjeta de Estado de Caja -->
               <div class="action-card">
                 <div class="acc-header">
-                  <span class="acc-title">Estado de Caja & Turno</span>
+                  <div class="acc-title-group">
+                    <span class="acc-title">Estado de Caja & Turno</span>
+                  </div>
                   @if (barberService.activeCashShift()) {
-                    <span class="status-badge-open">Abierto</span>
+                    <span class="status-badge-open">
+                      <span class="status-dot"></span>
+                      Abierto
+                    </span>
                   } @else {
-                    <span class="status-badge-closed">Cerrado</span>
+                    <span class="status-badge-closed">
+                      <span class="status-dot"></span>
+                      Cerrado
+                    </span>
                   }
                 </div>
                 <div class="acc-body">
                   @if (barberService.activeCashShift(); as shift) {
                     <div class="shift-live-row">
-                      <span>Fondo Inicial:</span>
-                      <strong>${{ shift.initialCash.toFixed(2) }}</strong>
+                      <span class="slr-label">Fondo Inicial:</span>
+                      <strong class="slr-val">${{ shift.initialCash.toFixed(2) }}</strong>
                     </div>
                     <div class="shift-live-row">
-                      <span>Efectivo Esperado:</span>
-                      <strong class="gold">${{ shift.expectedCash.toFixed(2) }}</strong>
+                      <span class="slr-label">Efectivo Esperado:</span>
+                      <strong class="slr-val gold">${{ shift.expectedCash.toFixed(2) }}</strong>
                     </div>
                     <div class="acc-actions-row">
                       <button class="btn-outline-danger" (click)="openCloseShiftModal()">
@@ -399,7 +414,7 @@
                   } @else {
                     <p class="shift-closed-hint">Abre un turno para habilitar cobros en efectivo con arqueo diario.</p>
                     <button class="btn-primary-action full-width" (click)="openStartShiftModal()">
-                      Abrir Turno de Caja
+                      🟢 Abrir Turno de Caja
                     </button>
                   }
                 </div>
@@ -408,12 +423,14 @@
               <!-- Top Clientes en Fidelización Dinámica -->
               <div class="action-card">
                 <div class="acc-header">
-                  <span class="acc-title">Fidelización de Clientes</span>
+                  <div class="acc-title-group">
+                    <span class="acc-title">Fidelización de Clientes</span>
+                  </div>
                   <span class="acc-pill-gold">Meta: {{ barberService.stampsRequired() }} sellos</span>
                 </div>
                 <div class="top-loyalty-list">
                   @for (cli of topLoyaltyClients(); track cli.id) {
-                    <div class="tl-item">
+                    <div class="tl-item" (click)="openRegisterCutModal(cli.id)" title="Registrar corte rápido para {{ cli.name }}">
                       <div class="tl-avatar">{{ cli.name.charAt(0) }}</div>
                       <div class="tl-details">
                         <div class="tl-name-row">
@@ -439,8 +456,8 @@
         </div>
       }
 
-      <!-- ---------------- TAB AGENDA ---------------- -->
-      @if (barberTab() === 'agenda') {
+      <!-- ---------------- TAB APPOINTMENTS ---------------- -->
+      @if (activeTab() === 'appointments') {
         <div class="tab-pane fade-in full-width-pane">
           <div class="pane-header">
             <div>
@@ -455,12 +472,12 @@
         </div>
       }
 
-      <!-- ---------------- TAB CLIENTES & CRÉDITOS ---------------- -->
-      @if (barberTab() === 'clientes') {
+      <!-- ---------------- TAB CLIENTS ---------------- -->
+      @if (activeTab() === 'clients') {
         <div class="tab-pane fade-in full-width-pane">
           <div class="pane-header">
             <div>
-              <h2 class="pane-title">Directorio de Clientes & Cuentas Corrientes</h2>
+              <h2 class="pane-title">Directorio de Clientes</h2>
               <p class="pane-subtitle">{{ barberService.clients().length }} clientes registrados • Fidelización y gestión de fiados</p>
             </div>
             <button class="btn-primary-action" (click)="openNewClientModal()">+ Nuevo Cliente</button>
@@ -540,8 +557,8 @@
         </div>
       }
 
-      <!-- ---------------- TAB SERVICIOS & TARIFAS ---------------- -->
-      @if (barberTab() === 'servicios') {
+      <!-- ---------------- TAB SERVICES ---------------- -->
+      @if (activeTab() === 'services') {
         <div class="tab-pane fade-in full-width-pane">
           <div class="pane-header">
             <div>
@@ -587,13 +604,20 @@
                   </button>
                 </div>
               </div>
+            } @empty {
+              <div class="empty-state-card full-span">
+                <div class="empty-icon">✂</div>
+                <h3 class="empty-title">Sin servicios en el catálogo</h3>
+                <p class="empty-desc">Agrega servicios con sus tarifas para que tus clientes puedan agendar citas y cobrarse en caja.</p>
+                <button class="btn-primary-action" (click)="openCreateServiceModal()">+ Crear Primer Servicio</button>
+              </div>
             }
           </div>
         </div>
       }
 
-      <!-- ---------------- TAB CAJA & FINANZAS ---------------- -->
-      @if (barberTab() === 'caja') {
+      <!-- ---------------- TAB CASH ---------------- -->
+      @if (activeTab() === 'cash') {
         <div class="tab-pane fade-in full-width-pane">
           <div class="pane-header">
             <div>
@@ -714,7 +738,7 @@
       }
 
       <!-- ---------------- TAB STATS ---------------- -->
-      @if (barberTab() === 'stats') {
+      @if (activeTab() === 'stats') {
         <div class="tab-pane fade-in full-width-pane">
           <div class="pane-header">
             <div>
@@ -799,7 +823,7 @@
 
   <!-- Menú de Navegación Inferior (Móvil Únicamente) -->
   <nav class="bottom-nav">
-    <button class="nav-item" [class.active]="barberTab() === 'inicio'" (click)="setTab('inicio')">
+    <button class="nav-item" [class.active]="activeTab() === 'overview'" (click)="setTab('overview')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
         <polyline points="9 22 9 12 15 12 15 22"></polyline>
@@ -807,7 +831,7 @@
       <span>Inicio</span>
     </button>
 
-    <button class="nav-item" [class.active]="barberTab() === 'agenda'" (click)="setTab('agenda')">
+    <button class="nav-item" [class.active]="activeTab() === 'appointments'" (click)="setTab('appointments')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
         <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -817,7 +841,7 @@
       <span>Agenda</span>
     </button>
 
-    <button class="nav-item" [class.active]="barberTab() === 'clientes'" (click)="setTab('clientes')">
+    <button class="nav-item" [class.active]="activeTab() === 'clients'" (click)="setTab('clients')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
         <circle cx="9" cy="7" r="4"></circle>
@@ -827,14 +851,14 @@
       <span>Clientes</span>
     </button>
 
-    <button class="nav-item" [class.active]="barberTab() === 'servicios'" (click)="setTab('servicios')">
+    <button class="nav-item" [class.active]="activeTab() === 'services'" (click)="setTab('services')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
       </svg>
       <span>Servicios</span>
     </button>
 
-    <button class="nav-item" [class.active]="barberTab() === 'caja'" (click)="setTab('caja')">
+    <button class="nav-item" [class.active]="activeTab() === 'cash'" (click)="setTab('cash')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="2" y="4" width="20" height="16" rx="2"></rect>
         <line x1="2" y1="10" x2="22" y2="10"></line>
@@ -842,7 +866,7 @@
       <span>Caja</span>
     </button>
 
-    <button class="nav-item" [class.active]="barberTab() === 'stats'" (click)="setTab('stats')">
+    <button class="nav-item" [class.active]="activeTab() === 'stats'" (click)="setTab('stats')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="18" y1="20" x2="18" y2="10"></line>
         <line x1="12" y1="20" x2="12" y2="4"></line>

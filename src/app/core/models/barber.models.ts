@@ -161,14 +161,18 @@ export interface DashboardKpis {
   averageRating: number;
 }
 
-// -----------------------------------------------------------------------------
-// MODELOS FINANCIEROS Y DE NEGOCIO EMPRESARIAL
-// -----------------------------------------------------------------------------
 export interface BusinessSettings {
   id: string;
   stampsRequired: number;
   businessName: string;
   currencySymbol: string;
+}
+
+export interface AppSetting {
+  key: string;
+  value: number;
+  description?: string;
+  updated_at?: string;
 }
 
 export type AccountType = 'cash' | 'bank' | 'digital_wallet';

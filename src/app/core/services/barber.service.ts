@@ -54,247 +54,12 @@ const DEFAULT_KPIS: DashboardKpis = {
   averageRating: 5.0,
 };
 
-const INITIAL_SERVICES: ServiceItem[] = [
-  {
-    id: 'srv-1',
-    name: 'Corte + Barba Premium',
-    durationMinutes: 45,
-    price: 15.0,
-    description: 'Degradado a elección, perfilado con navaja, toalla caliente y bálsamo.',
-    popular: true,
-  },
-  {
-    id: 'srv-2',
-    name: 'Corte Clásico / Fade',
-    durationMinutes: 30,
-    price: 10.0,
-    description: 'Corte moderno o clásico, peinado con cera mate y acabado limpio.',
-    popular: true,
-  },
-  {
-    id: 'srv-3',
-    name: 'Perfilado de Barba Ritual',
-    durationMinutes: 25,
-    price: 8.0,
-    description: 'Afeitado al vapor, toalla caliente, aceites esenciales y navaja.',
-  },
-  {
-    id: 'srv-4',
-    name: 'Corte Niño (Hasta 12 años)',
-    durationMinutes: 25,
-    price: 8.0,
-    description: 'Paciencia, estilo moderno y producto de fijación suave.',
-  },
-  {
-    id: 'srv-5',
-    name: 'Diseño Freestyle / Líneas',
-    durationMinutes: 15,
-    price: 5.0,
-    description: 'Líneas personalizadas, tribales o detalles artísticos con navaja.',
-  },
-  {
-    id: 'srv-6',
-    name: 'Corte + Lavado y Exfoliación',
-    durationMinutes: 40,
-    price: 14.0,
-    description: 'Lavado revitalizante, masaje capilar y exfoliación facial.',
-  },
-];
-
-const INITIAL_BARBERS: Barber[] = [
-  {
-    id: 'barber-1',
-    name: 'Carlos "Fade" Mendez',
-    specialty: 'Master Barber & Skin Fade',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    rating: 4.9,
-    totalCuts: 1420,
-  },
-  {
-    id: 'barber-2',
-    name: 'Alejandro Rivera',
-    specialty: 'Especialista en Barbas y Navaja',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    rating: 4.8,
-    totalCuts: 980,
-  },
-  {
-    id: 'barber-3',
-    name: 'Mateo Silva',
-    specialty: 'Estilos Clásicos & Tijera',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    rating: 4.9,
-    totalCuts: 1150,
-  },
-];
-
-const INITIAL_CLIENTS: Client[] = [
-  {
-    id: 'cli-1',
-    name: 'Danilo Ramos',
-    phone: '+51 987 654 321',
-    email: 'danilo@ejemplo.com',
-    cutsCount: 8,
-    loyaltyStamps: 7,
-    membershipLevel: 'Gold',
-    lastVisitDate: '2026-09-01',
-    notes: 'Prefiere fade medio comprimido con textura arriba.',
-  },
-  {
-    id: 'cli-2',
-    name: 'Sebastián Morales',
-    phone: '+51 912 345 678',
-    email: 'sebas.m@ejemplo.com',
-    cutsCount: 14,
-    loyaltyStamps: 9,
-    membershipLevel: 'VIP',
-    lastVisitDate: '2026-08-28',
-    notes: 'Corte clásico tijera, barba perfilada natural.',
-  },
-  {
-    id: 'cli-3',
-    name: 'Rodrigo Cáceres',
-    phone: '+51 998 776 554',
-    cutsCount: 4,
-    loyaltyStamps: 4,
-    membershipLevel: 'Silver',
-    lastVisitDate: '2026-08-22',
-  },
-  {
-    id: 'cli-4',
-    name: 'Gabriel Torres',
-    phone: '+51 933 221 100',
-    cutsCount: 2,
-    loyaltyStamps: 2,
-    membershipLevel: 'Bronze',
-    lastVisitDate: '2026-08-15',
-  },
-  {
-    id: 'cli-5',
-    name: 'Lucas Villena',
-    phone: '+51 944 556 677',
-    cutsCount: 19,
-    loyaltyStamps: 3,
-    membershipLevel: 'VIP',
-    lastVisitDate: '2026-09-02',
-  },
-];
-
-const INITIAL_CUTS: CutRecord[] = [
-  {
-    id: 'cut-1',
-    clientId: 'cli-1',
-    clientName: 'Danilo Ramos',
-    barberId: 'barber-1',
-    barberName: 'Carlos "Fade" Mendez',
-    serviceId: 'srv-1',
-    serviceName: 'Corte + Barba Premium',
-    price: 15.0,
-    date: '2026-09-04T18:30:00',
-    paymentMethod: 'transfer',
-  },
-  {
-    id: 'cut-2',
-    clientId: 'cli-2',
-    clientName: 'Sebastián Morales',
-    barberId: 'barber-1',
-    barberName: 'Carlos "Fade" Mendez',
-    serviceId: 'srv-2',
-    serviceName: 'Corte Clásico / Fade',
-    price: 10.0,
-    date: '2026-09-04T16:00:00',
-    paymentMethod: 'cash',
-  },
-  {
-    id: 'cut-3',
-    clientId: 'cli-5',
-    clientName: 'Lucas Villena',
-    barberId: 'barber-2',
-    barberName: 'Alejandro Rivera',
-    serviceId: 'srv-3',
-    serviceName: 'Perfilado de Barba Ritual',
-    price: 8.0,
-    date: '2026-09-04T14:15:00',
-    paymentMethod: 'card',
-  },
-  {
-    id: 'cut-4',
-    clientId: 'cli-3',
-    clientName: 'Rodrigo Cáceres',
-    barberId: 'barber-1',
-    barberName: 'Carlos "Fade" Mendez',
-    serviceId: 'srv-2',
-    serviceName: 'Corte Clásico / Fade',
-    price: 10.0,
-    date: '2026-09-03T19:00:00',
-    paymentMethod: 'transfer',
-  },
-];
-
-const INITIAL_APPOINTMENTS: Appointment[] = [
-  {
-    id: 'apt-1',
-    clientId: 'cli-1',
-    clientName: 'Danilo Ramos',
-    clientPhone: '+51 987 654 321',
-    barberId: 'barber-1',
-    barberName: 'Carlos "Fade" Mendez',
-    serviceId: 'srv-1',
-    serviceName: 'Corte + Barba Premium',
-    date: '2026-09-05',
-    time: '10:00',
-    price: 15.0,
-    status: 'confirmed',
-    notes: 'Puntual, toalla caliente extra.',
-  },
-  {
-    id: 'apt-2',
-    clientId: 'cli-2',
-    clientName: 'Sebastián Morales',
-    clientPhone: '+51 912 345 678',
-    barberId: 'barber-1',
-    barberName: 'Carlos "Fade" Mendez',
-    serviceId: 'srv-2',
-    serviceName: 'Corte Clásico / Fade',
-    date: '2026-09-05',
-    time: '11:15',
-    price: 10.0,
-    status: 'in-progress',
-  },
-  {
-    id: 'apt-3',
-    clientId: 'cli-3',
-    clientName: 'Rodrigo Cáceres',
-    clientPhone: '+51 998 776 554',
-    barberId: 'barber-2',
-    barberName: 'Alejandro Rivera',
-    serviceId: 'srv-3',
-    serviceName: 'Perfilado de Barba Ritual',
-    date: '2026-09-05',
-    time: '14:30',
-    price: 8.0,
-    status: 'confirmed',
-  },
-];
-
-const INITIAL_REVIEWS: Review[] = [
-  {
-    id: 'rev-1',
-    clientName: 'Danilo Ramos',
-    barberName: 'Carlos "Fade" Mendez',
-    rating: 5,
-    comment: 'La mejor atención y el fade más pulido de la ciudad. El ritual de toalla caliente es de otro nivel.',
-    date: 'Hace 2 días',
-  },
-  {
-    id: 'rev-2',
-    clientName: 'Sebastián Morales',
-    barberName: 'Carlos "Fade" Mendez',
-    rating: 5,
-    comment: 'Excelente ambiente, puntualidad y precisión impecable en la barba.',
-    date: 'Hace 4 días',
-  },
-];
+const INITIAL_SERVICES: ServiceItem[] = [];
+const INITIAL_BARBERS: Barber[] = [];
+const INITIAL_CLIENTS: Client[] = [];
+const INITIAL_CUTS: CutRecord[] = [];
+const INITIAL_APPOINTMENTS: Appointment[] = [];
+const INITIAL_REVIEWS: Review[] = [];
 
 @Injectable({
   providedIn: 'root',
@@ -360,7 +125,17 @@ export class BarberService {
     }
 
     const found = this.clients().find((c) => c.id === this.currentClientId());
-    return found || this.clients()[0] || INITIAL_CLIENTS[0];
+    return (
+      found ||
+      this.clients()[0] || {
+        id: '',
+        name: 'Cliente General',
+        phone: '',
+        cutsCount: 0,
+        loyaltyStamps: 0,
+        membershipLevel: 'Bronze',
+      }
+    );
   });
 
   // Métricas consolidadas (Prefiere KPIs de la RPC de Supabase si existen, o calcula reactivamente)
@@ -475,22 +250,38 @@ export class BarberService {
     try {
       this.logger.info('BarberService', 'Iniciando sincronización con Supabase');
 
-      // 1. Cargar Configuración de Negocio (Fidelidad dinámica)
+      // 1. Cargar Configuración de Negocio (app_settings o business_settings)
       try {
-        const { data: bsData } = await this.supabaseService.supabase
-          .from('business_settings')
-          .select('id, stamps_required, business_name, currency_symbol')
-          .limit(1)
-          .maybeSingle();
+        const { data: appSettingsData } = await this.supabaseService.supabase
+          .from('app_settings')
+          .select('*');
 
-        if (bsData) {
-          this.businessSettings.set({
-            id: bsData.id,
-            stampsRequired: bsData.stamps_required ?? 10,
-            businessName: bsData.business_name ?? 'BarberTrack PRO',
-            currencySymbol: bsData.currency_symbol ?? '$',
-          });
-          this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
+        if (appSettingsData && appSettingsData.length > 0) {
+          const stampsSetting = appSettingsData.find((s: any) => s.key === 'stamps_required');
+          if (stampsSetting) {
+            this.businessSettings.update((prev) => ({
+              ...prev,
+              stampsRequired: Number(stampsSetting.value) || 10,
+            }));
+            this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
+          }
+        } else {
+          // Fallback a business_settings si existiera
+          const { data: bsData } = await this.supabaseService.supabase
+            .from('business_settings')
+            .select('id, stamps_required, business_name, currency_symbol')
+            .limit(1)
+            .maybeSingle();
+
+          if (bsData) {
+            this.businessSettings.set({
+              id: bsData.id,
+              stampsRequired: bsData.stamps_required ?? 10,
+              businessName: bsData.business_name ?? 'BarberTrack PRO',
+              currencySymbol: bsData.currency_symbol ?? '$',
+            });
+            this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
+          }
         }
       } catch {
         // Fallback a configuración local
@@ -604,25 +395,49 @@ export class BarberService {
       try {
         const { data: servicesData, error: srvError } = await this.supabaseService.supabase
           .from('services')
-          .select('id, name, base_price, duration_minutes, is_active')
+          .select('id, name, base_price, duration_minutes, is_active, popular')
           .order('name');
 
-        if (!srvError && servicesData && servicesData.length > 0) {
-          const mappedServices: ServiceItem[] = servicesData.map((s) => ({
+        if (!srvError && servicesData) {
+          const mappedServices: ServiceItem[] = servicesData.map((s: any) => ({
             id: s.id,
             name: s.name,
             durationMinutes: s.duration_minutes,
             price: Number(s.base_price),
             isActive: s.is_active ?? true,
+            popular: Boolean(s.popular),
           }));
           this.services.set(mappedServices);
           this.saveToStorage(STORAGE_KEYS.SERVICES, mappedServices);
         }
       } catch {
-        // Usar servicios predeterminados
+        // Fallback a servicios locales
       }
 
-      // 7. Proyección quirúrgica de Clientes con fidelidad y saldo de crédito/deuda
+      // 7. Proyección de Equipo de Barberos y Staff desde profiles
+      try {
+        const { data: barbersData } = await this.supabaseService.supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, role')
+          .in('role', ['barber', 'admin'])
+          .eq('is_active', true);
+
+        if (barbersData && barbersData.length > 0) {
+          const mappedBarbers: Barber[] = barbersData.map((b: any) => ({
+            id: b.id,
+            name: b.full_name || 'Barbero',
+            specialty: b.role === 'admin' ? 'Master Barber & Administrador' : 'Barbero Profesional',
+            avatarUrl: b.avatar_url || undefined,
+            rating: 5.0,
+            totalCuts: 0,
+          }));
+          this.barbers.set(mappedBarbers);
+        }
+      } catch {
+        // Fallback a barberos locales
+      }
+
+      // 8. Proyección quirúrgica de Clientes con fidelidad y saldo de crédito/deuda
       try {
         const { data: profilesData, error: profError } = await this.supabaseService.supabase
           .from('profiles')
@@ -638,7 +453,7 @@ export class BarberService {
           .eq('role', 'customer')
           .eq('is_active', true);
 
-        if (!profError && profilesData && profilesData.length > 0) {
+        if (!profError && profilesData) {
           const mappedClients: Client[] = profilesData.map((p) => {
             const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
             const cc = Array.isArray(p.customer_credits) ? p.customer_credits[0] : (p.customer_credits as any);
@@ -1457,7 +1272,24 @@ export class BarberService {
     if (typeof localStorage === 'undefined') return fallback;
     try {
       const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : fallback;
+      if (!data) return fallback;
+      const parsed = JSON.parse(data);
+      // Purgar datos mock heredados si se detectan en el almacenamiento local
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasLegacyMock = parsed.some(
+          (item: any) =>
+            item?.id === 'cli-1' ||
+            item?.id === 'srv-1' ||
+            item?.id === 'cut-1' ||
+            item?.id === 'apt-1' ||
+            item?.id === 'barber-1'
+        );
+        if (hasLegacyMock) {
+          localStorage.removeItem(key);
+          return fallback;
+        }
+      }
+      return parsed;
     } catch {
       return fallback;
     }

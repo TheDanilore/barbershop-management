@@ -163,7 +163,6 @@ export interface DashboardKpis {
 
 export interface BusinessSettings {
   id: string;
-  stampsRequired: number;
   businessName: string;
   currencySymbol: string;
 }

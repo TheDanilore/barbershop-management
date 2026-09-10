@@ -36,6 +36,7 @@ const STORAGE_KEYS = {
   CASH_SHIFTS: 'barbertrack_cash_shifts',
   ACCOUNT_MOVEMENTS: 'barbertrack_account_movements',
   BUSINESS_SETTINGS: 'barbertrack_business_settings',
+  APP_SETTINGS: 'barbertrack_app_settings',
 };
 
 const INITIAL_ACCOUNTS: FinancialAccount[] = [
@@ -84,17 +85,20 @@ export class BarberService {
   readonly serverKpis = signal<DashboardKpis | null>(null);
   readonly systemUsers = signal<SystemUser[]>([]);
 
-  // Configuración dinámica de negocio (Fidelidad, moneda, etc.)
+  // Configuración dinámica de negocio y aplicación
   readonly businessSettings = signal<BusinessSettings>(
     this.loadFromStorage(STORAGE_KEYS.BUSINESS_SETTINGS, {
       id: 'default',
-      stampsRequired: 10,
       businessName: 'BarberTrack PRO',
       currencySymbol: '$',
     })
   );
 
-  readonly stampsRequired = computed(() => this.businessSettings().stampsRequired);
+  readonly appSettings = signal<Record<string, number>>(
+    this.loadFromStorage(STORAGE_KEYS.APP_SETTINGS, { stamps_required: 10 })
+  );
+
+  readonly stampsRequired = computed(() => this.appSettings()['stamps_required'] ?? 10);
 
   // Módulo Financiero
   readonly financialAccounts = signal<FinancialAccount[]>(
@@ -253,41 +257,40 @@ export class BarberService {
     try {
       this.logger.info('BarberService', 'Iniciando sincronización con Supabase');
 
-      // 1. Cargar Configuración de Negocio (app_settings o business_settings)
+      // 1. Cargar Configuración de Aplicación (app_settings) y Negocio (business_settings)
       try {
-        const { data: appSettingsData } = await this.supabaseService.supabase
+        const { data: appSettingsData, error: appSettingsError } = await this.supabaseService.supabase
           .from('app_settings')
-          .select('*');
+          .select('key, value');
+
+        if (appSettingsError) throw appSettingsError;
 
         if (appSettingsData && appSettingsData.length > 0) {
-          const stampsSetting = appSettingsData.find((s: any) => s.key === 'stamps_required');
-          if (stampsSetting) {
-            this.businessSettings.update((prev) => ({
-              ...prev,
-              stampsRequired: Number(stampsSetting.value) || 10,
-            }));
-            this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
+          const settingsMap: Record<string, number> = {};
+          for (const s of appSettingsData) {
+            settingsMap[s.key] = Number(s.value);
           }
-        } else {
-          // Fallback a business_settings si existiera
-          const { data: bsData } = await this.supabaseService.supabase
-            .from('business_settings')
-            .select('id, stamps_required, business_name, currency_symbol')
-            .limit(1)
-            .maybeSingle();
-
-          if (bsData) {
-            this.businessSettings.set({
-              id: bsData.id,
-              stampsRequired: bsData.stamps_required ?? 10,
-              businessName: bsData.business_name ?? 'BarberTrack PRO',
-              currencySymbol: bsData.currency_symbol ?? '$',
-            });
-            this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
-          }
+          this.appSettings.set(settingsMap);
+          this.saveToStorage(STORAGE_KEYS.APP_SETTINGS, settingsMap);
         }
-      } catch {
-        // Fallback a configuración local
+
+        // Cargar business_settings (nombre, símbolo de moneda)
+        const { data: bsData, error: bsError } = await this.supabaseService.supabase
+          .from('business_settings')
+          .select('id, business_name, currency_symbol')
+          .limit(1)
+          .maybeSingle();
+
+        if (!bsError && bsData) {
+          this.businessSettings.set({
+            id: bsData.id,
+            businessName: bsData.business_name ?? 'BarberTrack PRO',
+            currencySymbol: bsData.currency_symbol ?? '$',
+          });
+          this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Error loading app or business settings from Supabase', err);
       }
 
       // 2. Cargar Cuentas Financieras

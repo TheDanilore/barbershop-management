@@ -25,6 +25,22 @@
       </div>
     </div>
 
+    <!-- Navegación Superior Desktop -->
+    <nav class="desktop-header-nav">
+      <button class="dhn-item" [class.active]="clientTab() === 'inicio'" (click)="setTab('inicio')">
+        📅 Próximo Turno
+      </button>
+      <button class="dhn-item" [class.active]="clientTab() === 'fidelidad'" (click)="setTab('fidelidad')">
+        ⭐ Tarjeta & Sellos
+      </button>
+      <button class="dhn-item" [class.active]="clientTab() === 'historial'" (click)="setTab('historial')">
+        ✂ Historial
+      </button>
+      <button class="dhn-item" [class.active]="clientTab() === 'perfil'" (click)="setTab('perfil')">
+        👤 Mi Perfil
+      </button>
+    </nav>
+
     <div class="header-actions">
       <button class="btn-icon-header" (click)="switchToBarber()" title="Cambiar a Vista Barbero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -49,93 +65,112 @@
     <!-- ---------------- TAB INICIO / RESERVA ---------------- -->
     @if (clientTab() === 'inicio') {
       <div class="tab-pane fade-in">
-        <!-- Tarjeta de Próximo Turno -->
-        <section class="section-container">
-          <h2 class="section-title">Tu Próximo Turno</h2>
+        <div class="customer-home-grid">
+          <!-- Columna Primaria (Izquierda) -->
+          <div class="ch-primary-col">
+            <!-- Tarjeta de Próximo Turno -->
+            <section class="section-container">
+              <h2 class="section-title">Tu Próximo Turno</h2>
 
-          @if (barberService.nextClientAppointment(); as apt) {
-            <div class="next-apt-card">
-              <div class="nac-glow"></div>
-              <div class="nac-header">
-                <div class="nac-date-badge">
-                  <span class="nac-time">{{ apt.time }}</span>
-                  <span class="nac-date">{{ apt.date }}</span>
+              @if (barberService.nextClientAppointment(); as apt) {
+                <div class="next-apt-card">
+                  <div class="nac-glow"></div>
+                  <div class="nac-header">
+                    <div class="nac-date-badge">
+                      <span class="nac-time">{{ apt.time }}</span>
+                      <span class="nac-date">{{ apt.date }}</span>
+                    </div>
+                    <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
+                  </div>
+
+                  <div class="nac-body">
+                    <h3 class="nac-service">{{ apt.serviceName }}</h3>
+                    <div class="nac-barber">
+                      <div class="nac-barber-avatar">✂</div>
+                      <span>Barbero: <strong>{{ apt.barberName }}</strong></span>
+                    </div>
+                    <div class="nac-price">Inversión: ${{ apt.price.toFixed(2) }}</div>
+                  </div>
+
+                  <div class="nac-actions">
+                    <button class="btn-nac-cancel" (click)="cancelAppointment(apt)">Cancelar</button>
+                    <button class="btn-nac-primary" (click)="openBookingModal()">Reprogramar</button>
+                  </div>
                 </div>
-                <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
-              </div>
-
-              <div class="nac-body">
-                <h3 class="nac-service">{{ apt.serviceName }}</h3>
-                <div class="nac-barber">
-                  <div class="nac-barber-avatar">✂</div>
-                  <span>Barbero: <strong>{{ apt.barberName }}</strong></span>
-                </div>
-                <div class="nac-price">Inversión: ${{ apt.price.toFixed(2) }}</div>
-              </div>
-
-              <div class="nac-actions">
-                <button class="btn-nac-cancel" (click)="cancelAppointment(apt)">Cancelar</button>
-                <button class="btn-nac-primary" (click)="openBookingModal()">Reprogramar</button>
-              </div>
-            </div>
-          } @else {
-            <div class="no-apt-card">
-              <div class="no-apt-icon">📅</div>
-              <h3 class="no-apt-title">No tienes citas pendientes</h3>
-              <p class="no-apt-desc">¡Agenda tu corte ahora y luce tu mejor estilo!</p>
-              <button class="btn-book-now" (click)="openBookingModal()">
-                Reservar mi Turno
-              </button>
-            </div>
-          }
-        </section>
-
-        <!-- Tarjeta Resumen de Fidelidad y Membresía -->
-        <section class="section-container">
-          <div class="section-header-flex">
-            <h2 class="section-title">Tu Fidelidad</h2>
-            <button class="link-btn" (click)="setTab('fidelidad')">Ver tarjeta</button>
-          </div>
-
-          <div class="loyalty-snapshot-card" (click)="setTab('fidelidad')">
-            <div class="lsc-top">
-              <span class="lsc-level">{{ barberService.currentClient().membershipLevel }} Member</span>
-              <span class="lsc-stamps-pill">{{ barberService.currentClient().loyaltyStamps }} / 10 sellos</span>
-            </div>
-            <div class="stamps-progress-bar">
-              <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
-            </div>
-            <p class="lsc-motivation">
-              @if (barberService.currentClient().loyaltyStamps >= 9) {
-                🎉 ¡Tu próximo corte es 100% GRATIS!
               } @else {
-                Faltan {{ 10 - barberService.currentClient().loyaltyStamps }} cortes para tu recompensa gratuita.
+                <div class="no-apt-card">
+                  <div class="no-apt-icon">📅</div>
+                  <h3 class="no-apt-title">No tienes citas pendientes</h3>
+                  <p class="no-apt-desc">¡Agenda tu corte ahora y luce tu mejor estilo!</p>
+                  <button class="btn-book-now" (click)="openBookingModal()">
+                    Reservar mi Turno
+                  </button>
+                </div>
               }
-            </p>
-          </div>
-        </section>
+            </section>
 
-        <!-- Beneficios de Membresía VIP -->
-        <section class="section-container">
-          <h2 class="section-title">Beneficios de tu Membresía</h2>
-          <div class="perks-grid">
-            <div class="perk-card">
-              <span class="perk-icon">☕</span>
-              <div class="perk-title">Bebida de Cortesía</div>
-              <div class="perk-desc">Café espresso o agua tónica en cada visita</div>
-            </div>
-            <div class="perk-card">
-              <span class="perk-icon">🏷️</span>
-              <div class="perk-title">10% Dto. en Ceras</div>
-              <div class="perk-desc">Descuento en productos de estilizado capilar</div>
-            </div>
-            <div class="perk-card">
-              <span class="perk-icon">⚡</span>
-              <div class="perk-title">Reserva Prioritaria</div>
-              <div class="perk-desc">Acceso a horarios preferenciales de fin de semana</div>
-            </div>
+            <!-- Beneficios de Membresía VIP -->
+            <section class="section-container">
+              <h2 class="section-title">Beneficios de tu Membresía</h2>
+              <div class="perks-grid">
+                <div class="perk-card">
+                  <span class="perk-icon">☕</span>
+                  <div class="perk-title">Bebida de Cortesía</div>
+                  <div class="perk-desc">Café espresso o agua tónica en cada visita</div>
+                </div>
+                <div class="perk-card">
+                  <span class="perk-icon">🏷️</span>
+                  <div class="perk-title">10% Dto. en Ceras</div>
+                  <div class="perk-desc">Descuento en productos de estilizado capilar</div>
+                </div>
+                <div class="perk-card">
+                  <span class="perk-icon">⚡</span>
+                  <div class="perk-title">Reserva Prioritaria</div>
+                  <div class="perk-desc">Acceso a horarios preferenciales de fin de semana</div>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
+
+          <!-- Columna Secundaria (Derecha) -->
+          <div class="ch-secondary-col">
+            <!-- Tarjeta Resumen de Fidelidad y Membresía -->
+            <section class="section-container">
+              <div class="section-header-flex">
+                <h2 class="section-title">Tu Fidelidad</h2>
+                <button class="link-btn" (click)="setTab('fidelidad')">Ver tarjeta completa →</button>
+              </div>
+
+              <div class="loyalty-snapshot-card" (click)="setTab('fidelidad')">
+                <div class="lsc-top">
+                  <span class="lsc-level">{{ barberService.currentClient().membershipLevel }} Member</span>
+                  <span class="lsc-stamps-pill">{{ barberService.currentClient().loyaltyStamps }} / 10 sellos</span>
+                </div>
+                <div class="stamps-progress-bar">
+                  <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+                </div>
+                <p class="lsc-motivation">
+                  @if (barberService.currentClient().loyaltyStamps >= 9) {
+                    🎉 ¡Tu próximo corte es 100% GRATIS!
+                  } @else {
+                    Faltan {{ 10 - barberService.currentClient().loyaltyStamps }} cortes para tu recompensa gratuita.
+                  }
+                </p>
+              </div>
+            </section>
+
+            <!-- CTA Rápido de Reserva para Desktop -->
+            <section class="section-container desktop-booking-cta-wrap">
+              <div class="desktop-cta-banner">
+                <div class="dcb-title">¿Listo para renovar tu estilo?</div>
+                <div class="dcb-desc">Elige a tu barbero de confianza y reserva en segundos sin esperas.</div>
+                <button class="btn-book-now" (click)="openBookingModal()">
+                  ✨ Agendar Nueva Cita
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
       </div>
     }
 
@@ -229,15 +264,6 @@
               <span class="p-val">{{ barberService.currentClient().notes || 'Degradado medio, navaja' }}</span>
             </div>
           </div>
-        </div>
-
-        <div class="demo-switch-client">
-          <label class="demo-label">Probar vista con otro cliente:</label>
-          <select [ngModel]="barberService.currentClientId()" (ngModelChange)="barberService.setCurrentClientId($event)">
-            @for (c of barberService.clients(); track c.id) {
-              <option [value]="c.id">{{ c.name }} ({{ c.membershipLevel }} - {{ c.loyaltyStamps }}/10 sellos)</option>
-            }
-          </select>
         </div>
       </div>
     }

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  HostListener,
   OnInit,
   computed,
   inject,
@@ -123,6 +124,43 @@ export class BarberDashboardPage implements OnInit {
     if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
       this.barberService.syncFromSupabase();
     }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (
+        this.isRegisterCutModalOpen() ||
+        this.isBookAppointmentModalOpen() ||
+        this.isNewClientModalOpen() ||
+        this.isDailyCashModalOpen()
+      ) {
+        this.closeAllModals();
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (event.altKey) {
+      const key = event.key.toLowerCase();
+      if (key === 'n') {
+        event.preventDefault();
+        this.openRegisterCutModal();
+      } else if (key === 'a') {
+        event.preventDefault();
+        this.openBookAppointmentModal();
+      } else if (key === 'c') {
+        event.preventDefault();
+        this.openNewClientModal();
+      }
+    }
+  }
+
+  closeAllModals(): void {
+    this.isRegisterCutModalOpen.set(false);
+    this.isBookAppointmentModalOpen.set(false);
+    this.isNewClientModalOpen.set(false);
+    this.isDailyCashModalOpen.set(false);
   }
 
   setTab(tab: 'inicio' | 'agenda' | 'clientes' | 'stats'): void {

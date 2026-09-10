@@ -11,6 +11,13 @@
   gap: 12px;
 }
 
+@media (min-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
 .kpi-card {
   background: #18181f;
   border: 1px solid #282833;

@@ -45,9 +45,13 @@
   --radius-lg: 20px;
   --radius-full: 9999px;
 
-  /* Safe Area */
+  /* Safe Area & Layout */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  --sidebar-width: 260px;
+  --header-height: 64px;
+  --bg-sidebar: #131317;
+  --bg-surface-elevated: #16161d;
 }
 
 *, *::before, *::after {

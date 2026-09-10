@@ -1,4 +1,4 @@
-<div class="view-container">
+<div class="erp-shell">
   <!-- Toast Notification -->
   @if (toastMessage()) {
     <div class="toast-banner">
@@ -7,10 +7,12 @@
     </div>
   }
 
-  <!-- Header Superior -->
-  <header class="app-header">
-    <div class="header-left">
-      <div class="header-logo-icon">
+  <!-- ========================================================================= -->
+  <!-- SIDEBAR PERMANENTE PARA ESCRITORIO (>= 1024px)                             -->
+  <!-- ========================================================================= -->
+  <aside class="desktop-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <circle cx="6" cy="6" r="3"></circle>
           <circle cx="6" cy="18" r="3"></circle>
@@ -19,314 +21,517 @@
           <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
         </svg>
       </div>
-      <div>
-        <h1 class="header-title">BarberTrack</h1>
-        <div class="header-subtitle-row">
-          <span class="role-badge">Admin / Barbero</span>
-          @if (supabaseService.isConfigured()) {
-            <span class="sync-badge online">● Supabase</span>
-          } @else {
-            <span class="sync-badge local">● Local PWA</span>
-          }
-        </div>
+      <div class="brand-text">
+        <div class="brand-name">BarberTrack <span class="enterprise-tag">PRO</span></div>
+        <div class="brand-sub">Sede Central • Gestión ERP</div>
       </div>
     </div>
 
-    <div class="header-actions">
-      <button class="btn-icon-header" (click)="switchToCustomer()" title="Cambiar a Vista Cliente">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="8.5" cy="7" r="4"></circle>
-          <line x1="18" y1="8" x2="23" y2="13"></line>
-          <line x1="23" y1="8" x2="18" y2="13"></line>
-        </svg>
-      </button>
-
-      <button class="btn-icon-header" (click)="logout()" title="Cerrar sesión">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
+    <!-- Botón de Acción Principal Desktop -->
+    <div class="sidebar-cta-wrap">
+      <button class="sidebar-cta-btn" (click)="openRegisterCutModal()" title="Registrar Corte (Alt+N)">
+        <span class="cta-icon">✂</span>
+        <span class="cta-text">Nuevo Corte</span>
+        <span class="kbd-badge">Alt+N</span>
       </button>
     </div>
-  </header>
 
-  <!-- Banner de sincronización y estado de error -->
-  @if (barberService.isLoading()) {
-    <div class="sync-loading-banner">
-      <div class="spinner-mini"></div>
-      <span>Sincronizando con Supabase...</span>
+    <!-- Navegación Vertical -->
+    <nav class="sidebar-nav">
+      <button
+        class="sidebar-nav-item"
+        [class.active]="barberTab() === 'inicio'"
+        (click)="setTab('inicio')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span class="nav-label">Panel General</span>
+      </button>
+
+      <button
+        class="sidebar-nav-item"
+        [class.active]="barberTab() === 'agenda'"
+        (click)="setTab('agenda')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span class="nav-label">Agenda & Turnos</span>
+        @if (barberService.todayAppointments().length > 0) {
+          <span class="sidebar-counter-pill">{{ barberService.todayAppointments().length }}</span>
+        }
+      </button>
+
+      <button
+        class="sidebar-nav-item"
+        [class.active]="barberTab() === 'clientes'"
+        (click)="setTab('clientes')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span class="nav-label">Clientes & VIP</span>
+      </button>
+
+      <button
+        class="sidebar-nav-item"
+        [class.active]="barberTab() === 'stats'"
+        (click)="setTab('stats')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span class="nav-label">Finanzas & Stats</span>
+      </button>
+    </nav>
+
+    <!-- Mini-Widget Caja en Tiempo Real -->
+    <div class="sidebar-cash-card" (click)="openDailyCashModal()" title="Ver desglose de caja del día">
+      <div class="scc-top">
+        <span class="scc-title">Caja del Día</span>
+        <span class="live-pill">En Vivo</span>
+      </div>
+      <div class="scc-amount">${{ barberService.revenueToday().toFixed(2) }}</div>
+      <div class="scc-footer">{{ barberService.cutsToday() }} cortes finalizados</div>
     </div>
-  }
 
-  @if (barberService.errorMessage()) {
-    <div class="error-banner">
-      <span>⚠️ {{ barberService.errorMessage() }}</span>
-      <button class="btn-retry" (click)="barberService.syncFromSupabase()">Reintentar</button>
+    <!-- Perfil y Acciones Inferiores -->
+    <div class="sidebar-user-footer">
+      <div class="suf-user-info">
+        <div class="suf-avatar">
+          {{ (supabaseService.userProfile()?.full_name || 'A').charAt(0).toUpperCase() }}
+        </div>
+        <div class="suf-details">
+          <div class="suf-name">{{ supabaseService.userProfile()?.full_name || 'Administrador' }}</div>
+          <div class="suf-role">Master Barber • Admin</div>
+        </div>
+      </div>
+      <div class="suf-actions">
+        <button class="btn-suf-action" (click)="switchToCustomer()" title="Ver como Cliente">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="18" y1="8" x2="23" y2="13"></line>
+            <line x1="23" y1="8" x2="18" y2="13"></line>
+          </svg>
+          <span>Cliente</span>
+        </button>
+        <button class="btn-suf-action logout" (click)="logout()" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Salir</span>
+        </button>
+      </div>
     </div>
-  }
+  </aside>
 
-  <!-- Contenido Principal -->
-  <main class="main-content-area">
-    <!-- ---------------- TAB INICIO ---------------- -->
-    @if (barberTab() === 'inicio') {
-      <div class="tab-pane fade-in">
-        <!-- Subcomponente de Métricas y KPIs -->
-        <app-barber-metrics (viewStats)="setTab('stats')"></app-barber-metrics>
-
-        <!-- Accesos Rápidos -->
-        <section class="section-container">
-          <h2 class="section-title">Accesos rápidos</h2>
-          <div class="quick-actions-row">
-            <button class="quick-action-btn primary" (click)="openRegisterCutModal()">
-              <span class="qa-icon">+✂</span>
-              <span class="qa-label">Nuevo Corte</span>
-            </button>
-            <button class="quick-action-btn" (click)="openBookAppointmentModal()">
-              <span class="qa-icon">📅</span>
-              <span class="qa-label">Agendar Cita</span>
-            </button>
-            <button class="quick-action-btn" (click)="openNewClientModal()">
-              <span class="qa-icon">👤+</span>
-              <span class="qa-label">Nuevo Cliente</span>
-            </button>
-            <button class="quick-action-btn" (click)="openDailyCashModal()">
-              <span class="qa-icon">💵</span>
-              <span class="qa-label">Caja del Día</span>
-            </button>
+  <!-- ========================================================================= -->
+  <!-- MAIN STAGE (OCUPA EL RESTO DE LA PANTALLA)                                 -->
+  <!-- ========================================================================= -->
+  <div class="erp-main-stage">
+    <!-- Header Móvil (< 1024px) -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="header-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header-title">BarberTrack <span class="enterprise-tag">PRO</span></h1>
+          <div class="header-subtitle-row">
+            <span class="role-badge">Panel Ejecutivo</span>
           </div>
-        </section>
+        </div>
+      </div>
 
-        <!-- Agenda de Hoy (Subcomponente Resumido) -->
-        <section class="section-container">
-          <div class="section-header-flex">
-            <h2 class="section-title">Agenda de hoy</h2>
-            <button class="link-btn" (click)="setTab('agenda')">
-              Ver toda ({{ barberService.todayAppointments().length }})
-            </button>
-          </div>
-          <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
-        </section>
+      <div class="header-actions">
+        <button class="btn-icon-header" (click)="switchToCustomer()" title="Cambiar a Vista Cliente">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="8.5" cy="7" r="4"></circle>
+            <line x1="18" y1="8" x2="23" y2="13"></line>
+            <line x1="23" y1="8" x2="18" y2="13"></line>
+          </svg>
+        </button>
 
-        <!-- Fidelidad de Clientes (Top Recurrentes) -->
-        <section class="section-container">
-          <div class="section-header-flex">
-            <h2 class="section-title">Fidelidad de clientes</h2>
-            <button class="link-btn" (click)="setTab('clientes')">Gestionar</button>
-          </div>
+        <button class="btn-icon-header" (click)="logout()" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
 
-          <div class="loyalty-cards-horizontal">
-            @for (client of topLoyaltyClients(); track client.id) {
-              <div class="client-loyalty-card" (click)="openRegisterCutModal(client.id)">
-                <div class="clc-top">
-                  <div class="clc-avatar">{{ client.name.charAt(0) }}</div>
-                  <span class="clc-level-badge" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+    <!-- Header Superior para Escritorio (>= 1024px) -->
+    <header class="desktop-topbar">
+      <div class="topbar-breadcrumb">
+        <span class="tb-root">BarberTrack</span>
+        <span class="tb-sep">/</span>
+        <span class="tb-section">Administración</span>
+        <span class="tb-sep">/</span>
+        <span class="tb-current">
+          {{
+            barberTab() === 'inicio' ? 'Panel General' :
+            barberTab() === 'agenda' ? 'Agenda & Turnos' :
+            barberTab() === 'clientes' ? 'Directorio de Clientes' : 'Finanzas & Métricas'
+          }}
+        </span>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="tb-action-btn" (click)="openBookAppointmentModal()" title="Agendar Cita (Alt+A)">
+          <span>📅 Agendar Cita</span>
+          <span class="kbd-badge">Alt+A</span>
+        </button>
+        <button class="tb-action-btn" (click)="openNewClientModal()" title="Nuevo Cliente (Alt+C)">
+          <span>👤+ Nuevo Cliente</span>
+          <span class="kbd-badge">Alt+C</span>
+        </button>
+        <button class="tb-action-btn primary" (click)="openRegisterCutModal()" title="Nuevo Corte (Alt+N)">
+          <span>✂ Nuevo Corte</span>
+          <span class="kbd-badge">Alt+N</span>
+        </button>
+
+        <div class="topbar-status-badge" [class.syncing]="barberService.isLoading()">
+          <span class="status-pulse-dot"></span>
+          <span>{{ barberService.isLoading() ? 'Sincronizando...' : 'Online' }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Barra de progreso de sincronización -->
+    @if (barberService.isLoading()) {
+      <div class="sync-progress-line" role="progressbar" aria-label="Sincronizando datos"></div>
+    }
+
+    @if (barberService.errorMessage()) {
+      <div class="error-banner">
+        <span>⚠️ {{ barberService.errorMessage() }}</span>
+        <button class="btn-retry" (click)="barberService.syncFromSupabase()">Reintentar</button>
+      </div>
+    }
+
+    <!-- Contenido Principal -->
+    <main class="main-content-area">
+      <!-- ---------------- TAB INICIO ---------------- -->
+      @if (barberTab() === 'inicio') {
+        <div class="tab-pane fade-in">
+          <!-- Subcomponente de Métricas y KPIs (Ocupa todo el ancho en desktop) -->
+          <app-barber-metrics (viewStats)="setTab('stats')"></app-barber-metrics>
+
+          <!-- Grid Ejecutivo de 2 Columnas para Desktop -->
+          <div class="dashboard-grid-2col">
+            <!-- Columna Primaria (Izquierda 65%) -->
+            <div class="dashboard-primary-col">
+              <!-- Agenda de Hoy (Subcomponente Resumido) -->
+              <section class="section-container">
+                <div class="section-header-flex">
+                  <div class="section-title-wrap">
+                    <h2 class="section-title">Agenda de hoy</h2>
+                    <span class="badge-count">{{ barberService.todayAppointments().length }} turnos</span>
+                  </div>
+                  <button class="link-btn" (click)="setTab('agenda')">
+                    Ver agenda completa →
+                  </button>
                 </div>
-                <div class="clc-name">{{ client.name }}</div>
-                <div class="clc-stamps-info">
-                  <span class="clc-stamps-count">{{ client.loyaltyStamps }} / 10 cortes</span>
-                  @if (client.loyaltyStamps >= 9) {
-                    <span class="clc-free-badge">¡Próximo GRATIS!</span>
+                <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
+              </section>
+
+              <!-- Cortes Recientes -->
+              <section class="section-container">
+                <div class="section-header-flex">
+                  <h2 class="section-title">Cortes recientes</h2>
+                  <span class="section-caption">{{ barberService.cuts().length }} servicios registrados</span>
+                </div>
+                @if (barberService.cuts().length === 0) {
+                  <div class="empty-state-card">
+                    <div class="empty-icon">✂</div>
+                    <h3 class="empty-title">Aún no hay cortes registrados</h3>
+                    <p class="empty-desc">Registra un corte usando el botón + o presiona Alt+N</p>
+                  </div>
+                } @else {
+                  <div class="cuts-feed">
+                    @for (cut of barberService.cuts().slice(0, 8); track cut.id) {
+                      <div class="cut-feed-item">
+                        <div class="cut-item-icon">✂</div>
+                        <div class="cut-item-info">
+                          <div class="cut-item-title">{{ cut.serviceName }}</div>
+                          <div class="cut-item-meta">{{ cut.clientName }} • {{ formatDate(cut.date) }}</div>
+                        </div>
+                        <div class="cut-item-price-col">
+                          <div class="cut-item-price">+${{ cut.price.toFixed(2) }}</div>
+                          <div class="cut-item-method">{{ getPaymentLabel(cut.paymentMethod) }}</div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
+            </div>
+
+            <!-- Columna Secundaria (Derecha 35%) -->
+            <div class="dashboard-secondary-col">
+              <!-- Widget de Accesos Rápidos Desktop -->
+              <section class="section-container sidebar-widget-card">
+                <h2 class="section-title">Acciones Inmediatas</h2>
+                <div class="quick-actions-column">
+                  <button class="quick-action-btn primary" (click)="openRegisterCutModal()" title="Registrar Corte (Alt+N)">
+                    <span class="qa-icon">✂</span>
+                    <div class="qa-text-col">
+                      <span class="qa-label-bold">Registrar Corte</span>
+                      <span class="qa-label-sub">Cobro y asignación de sellos</span>
+                    </div>
+                    <span class="kbd-badge">Alt+N</span>
+                  </button>
+
+                  <button class="quick-action-btn" (click)="openBookAppointmentModal()" title="Agendar Cita (Alt+A)">
+                    <span class="qa-icon">📅</span>
+                    <div class="qa-text-col">
+                      <span class="qa-label-bold">Agendar Turno</span>
+                      <span class="qa-label-sub">Nueva cita con recordatorio</span>
+                    </div>
+                    <span class="kbd-badge">Alt+A</span>
+                  </button>
+
+                  <button class="quick-action-btn" (click)="openNewClientModal()" title="Nuevo Cliente (Alt+C)">
+                    <span class="qa-icon">👤+</span>
+                    <div class="qa-text-col">
+                      <span class="qa-label-bold">Nuevo Cliente</span>
+                      <span class="qa-label-sub">Alta en directorio & fidelidad</span>
+                    </div>
+                    <span class="kbd-badge">Alt+C</span>
+                  </button>
+
+                  <button class="quick-action-btn" (click)="openDailyCashModal()" title="Caja del Día">
+                    <span class="qa-icon">💵</span>
+                    <div class="qa-text-col">
+                      <span class="qa-label-bold">Cierre de Caja</span>
+                      <span class="qa-label-sub">Auditoría de ingresos del día</span>
+                    </div>
+                  </button>
+                </div>
+              </section>
+
+              <!-- Widget Fidelidad de Clientes (Top Recurrentes) -->
+              <section class="section-container sidebar-widget-card">
+                <div class="section-header-flex">
+                  <h2 class="section-title">Club VIP & Fidelidad</h2>
+                  <button class="link-btn" (click)="setTab('clientes')">Ver todos</button>
+                </div>
+
+                <div class="loyalty-ranking-list">
+                  @for (client of topLoyaltyClients(); track client.id) {
+                    <div class="client-loyalty-item" (click)="openRegisterCutModal(client.id)" title="Registrar corte para {{ client.name }}">
+                      <div class="cli-avatar">{{ client.name.charAt(0) }}</div>
+                      <div class="cli-info">
+                        <div class="cli-name-row">
+                          <span class="cli-name">{{ client.name }}</span>
+                          <span class="clc-level-badge" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+                        </div>
+                        <div class="stamps-progress-bar">
+                          <div class="stamps-fill" [style.width.%]="(client.loyaltyStamps / 10) * 100"></div>
+                        </div>
+                        <div class="cli-meta">
+                          <span class="clc-stamps-count">{{ client.loyaltyStamps }} / 10 sellos</span>
+                          @if (client.loyaltyStamps >= 9) {
+                            <span class="clc-free-badge">¡Próximo GRATIS!</span>
+                          }
+                        </div>
+                      </div>
+                      <button class="btn-quick-cut-row" title="Corte directo">+</button>
+                    </div>
                   }
                 </div>
-                <div class="stamps-progress-bar">
-                  <div class="stamps-fill" [style.width.%]="(client.loyaltyStamps / 10) * 100"></div>
-                </div>
-              </div>
-            }
+              </section>
+            </div>
           </div>
-        </section>
+        </div>
+      }
 
-        <!-- Cortes Recientes -->
-        <section class="section-container">
-          <h2 class="section-title">Cortes recientes</h2>
-          @if (barberService.cuts().length === 0) {
+      <!-- ---------------- TAB AGENDA ---------------- -->
+      @if (barberTab() === 'agenda') {
+        <div class="tab-pane fade-in full-width-pane">
+          <div class="pane-header">
+            <div>
+              <h2 class="pane-title">Agenda Integral de Turnos</h2>
+              <p class="pane-subtitle">Control horario, cancelaciones y reasignación de clientes</p>
+            </div>
+            <button class="btn-primary-action" (click)="openBookAppointmentModal()">+ Agendar Cita</button>
+          </div>
+          <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
+        </div>
+      }
+
+      <!-- ---------------- TAB CLIENTES ---------------- -->
+      @if (barberTab() === 'clientes') {
+        <div class="tab-pane fade-in full-width-pane">
+          <div class="pane-header">
+            <div>
+              <h2 class="pane-title">Directorio de Clientes</h2>
+              <p class="pane-subtitle">{{ barberService.clients().length }} clientes registrados en el sistema</p>
+            </div>
+            <button class="btn-primary-action" (click)="openNewClientModal()">+ Nuevo Cliente</button>
+          </div>
+
+          <div class="search-bar-container">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Buscar por nombre, teléfono o membresía..."
+                [ngModel]="clientSearchQuery()"
+                (ngModelChange)="clientSearchQuery.set($event)"
+              />
+            </div>
+          </div>
+
+          @if (filteredClients().length === 0) {
             <div class="empty-state-card">
-              <div class="empty-icon">✂</div>
-              <h3 class="empty-title">Aún no hay cortes registrados</h3>
-              <p class="empty-desc">Toca el botón + para registrar el primer corte</p>
+              <div class="empty-icon">🔍</div>
+              <h3 class="empty-title">Sin clientes coincidentes</h3>
+              <p class="empty-desc">No se encontraron clientes con el criterio "{{ clientSearchQuery() }}"</p>
             </div>
           } @else {
-            <div class="cuts-feed">
-              @for (cut of barberService.cuts().slice(0, 6); track cut.id) {
-                <div class="cut-feed-item">
-                  <div class="cut-item-icon">✂</div>
-                  <div class="cut-item-info">
-                    <div class="cut-item-title">{{ cut.serviceName }}</div>
-                    <div class="cut-item-meta">{{ cut.clientName }} • {{ formatDate(cut.date) }}</div>
+            <div class="clients-desktop-grid">
+              @for (client of filteredClients(); track client.id) {
+                <div class="client-card-item">
+                  <div class="client-avatar-col">
+                    <div class="client-avatar-circle">{{ client.name.charAt(0) }}</div>
                   </div>
-                  <div class="cut-item-price-col">
-                    <div class="cut-item-price">+${{ cut.price.toFixed(2) }}</div>
-                    <div class="cut-item-method">{{ getPaymentLabel(cut.paymentMethod) }}</div>
+                  <div class="client-details-col">
+                    <div class="client-name-row">
+                      <span class="c-name">{{ client.name }}</span>
+                      <span class="membership-tag" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+                    </div>
+                    <div class="c-phone">📞 {{ client.phone }}</div>
+                    <div class="c-stamps-pill">
+                      Sellos: <strong>{{ client.loyaltyStamps }}/10</strong>
+                      @if (client.loyaltyStamps >= 9) {
+                        <span class="tag-gold-alert">¡Próximo GRATIS!</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="client-action-col">
+                    <button class="btn-add-cut-direct" (click)="openRegisterCutModal(client.id)" title="Registrar corte rápido">
+                      + ✂ Corte
+                    </button>
                   </div>
                 </div>
               }
             </div>
           }
-        </section>
-      </div>
-    }
-
-    <!-- ---------------- TAB AGENDA ---------------- -->
-    @if (barberTab() === 'agenda') {
-      <div class="tab-pane fade-in">
-        <div class="pane-header">
-          <div>
-            <h2 class="pane-title">Agenda de Turnos</h2>
-            <p class="pane-subtitle">Organización y horarios del día</p>
-          </div>
-          <button class="btn-primary-action" (click)="openBookAppointmentModal()">+ Cita</button>
         </div>
-        <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
-      </div>
-    }
+      }
 
-    <!-- ---------------- TAB CLIENTES ---------------- -->
-    @if (barberTab() === 'clientes') {
-      <div class="tab-pane fade-in">
-        <div class="pane-header">
-          <div>
-            <h2 class="pane-title">Clientes</h2>
-            <p class="pane-subtitle">{{ barberService.clients().length }} clientes registrados</p>
+      <!-- ---------------- TAB STATS ---------------- -->
+      @if (barberTab() === 'stats') {
+        <div class="tab-pane fade-in full-width-pane">
+          <div class="pane-header">
+            <div>
+              <h2 class="pane-title">Rendimiento Financiero & Estadísticas</h2>
+              <p class="pane-subtitle">Métricas en tiempo real, ingresos consolidados y satisfacción de clientes</p>
+            </div>
           </div>
-          <button class="btn-primary-action" (click)="openNewClientModal()">+ Cliente</button>
-        </div>
 
-        <div class="search-input-wrapper">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Buscar por nombre o teléfono..."
-            [ngModel]="clientSearchQuery()"
-            (ngModelChange)="clientSearchQuery.set($event)"
-          />
-        </div>
-
-        @if (filteredClients().length === 0) {
-          <div class="empty-state-card">
-            <div class="empty-icon">🔍</div>
-            <h3 class="empty-title">Sin resultados</h3>
-            <p class="empty-desc">No se encontraron clientes con ese criterio</p>
-          </div>
-        } @else {
-          <div class="clients-list">
-            @for (client of filteredClients(); track client.id) {
-              <div class="client-card-item">
-                <div class="client-avatar-col">
-                  <div class="client-avatar-circle">{{ client.name.charAt(0) }}</div>
+          <div class="stats-desktop-grid">
+            <div class="stats-card">
+              <h3 class="stats-card-title">Resumen Financiero Consolidado</h3>
+              <div class="stats-breakdown-grid">
+                <div class="sb-item">
+                  <span class="sb-label">Ingresos Hoy</span>
+                  <span class="sb-val gold">${{ barberService.revenueToday().toFixed(2) }}</span>
                 </div>
-                <div class="client-details-col">
-                  <div class="client-name-row">
-                    <span class="c-name">{{ client.name }}</span>
-                    <span class="membership-tag" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
-                  </div>
-                  <div class="c-phone">📞 {{ client.phone }}</div>
-                  <div class="c-stamps-pill">
-                    Sellos de fidelidad: <strong>{{ client.loyaltyStamps }}/10</strong>
-                    @if (client.loyaltyStamps >= 9) {
-                      <span class="tag-gold-alert">¡Gratis próximo!</span>
-                    }
-                  </div>
+                <div class="sb-item">
+                  <span class="sb-label">Últimos 7 Días</span>
+                  <span class="sb-val">${{ barberService.revenueThisWeek().toFixed(2) }}</span>
                 </div>
-                <div class="client-action-col">
-                  <button class="btn-add-cut-direct" (click)="openRegisterCutModal(client.id)" title="Registrar corte directo">
-                    + ✂
-                  </button>
+                <div class="sb-item">
+                  <span class="sb-label">Total Histórico</span>
+                  <span class="sb-val">${{ barberService.totalRevenue().toFixed(2) }}</span>
+                </div>
+                <div class="sb-item">
+                  <span class="sb-label">Total Cortes</span>
+                  <span class="sb-val">{{ barberService.cuts().length }}</span>
                 </div>
               </div>
-            }
-          </div>
-        }
-      </div>
-    }
-
-    <!-- ---------------- TAB STATS ---------------- -->
-    @if (barberTab() === 'stats') {
-      <div class="tab-pane fade-in">
-        <div class="pane-header">
-          <div>
-            <h2 class="pane-title">Estadísticas & Reportes</h2>
-            <p class="pane-subtitle">Rendimiento e ingresos</p>
-          </div>
-        </div>
-
-        <div class="stats-card">
-          <h3 class="stats-card-title">Resumen Financiero</h3>
-          <div class="stats-breakdown-grid">
-            <div class="sb-item">
-              <span class="sb-label">Ingresos Hoy</span>
-              <span class="sb-val gold">${{ barberService.revenueToday().toFixed(2) }}</span>
             </div>
-            <div class="sb-item">
-              <span class="sb-label">Últimos 7 Días</span>
-              <span class="sb-val">${{ barberService.revenueThisWeek().toFixed(2) }}</span>
-            </div>
-            <div class="sb-item">
-              <span class="sb-label">Total Histórico</span>
-              <span class="sb-val">${{ barberService.totalRevenue().toFixed(2) }}</span>
-            </div>
-            <div class="sb-item">
-              <span class="sb-label">Total Cortes</span>
-              <span class="sb-val">{{ barberService.cuts().length }}</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="stats-card">
-          <h3 class="stats-card-title">Servicios más Solicitados</h3>
-          <div class="services-stats-list">
-            @for (srv of barberService.services().slice(0, 4); track srv.id) {
-              <div class="service-stat-row">
-                <div class="ssr-info">
-                  <span class="ssr-name">{{ srv.name }}</span>
-                  <span class="ssr-price">${{ srv.price }}</span>
-                </div>
-                <div class="ssr-progress-bar">
-                  <div class="ssr-fill" [style.width.%]="srv.popular ? 85 : 50"></div>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-
-        <div class="stats-card">
-          <div class="section-header-flex">
-            <h3 class="stats-card-title">Reseñas de Clientes</h3>
-            <span class="gold-rating-text">{{ barberService.averageRating() }} ★</span>
-          </div>
-
-          <div class="reviews-list">
-            @for (rev of barberService.reviews(); track rev.id) {
-              <div class="review-item">
-                <div class="review-top">
-                  <div class="reviewer-name">{{ rev.clientName }}</div>
-                  <div class="review-stars">
-                    @for (star of [1,2,3,4,5]; track star) {
-                      <span [class.filled]="star <= rev.rating">★</span>
-                    }
+            <div class="stats-card">
+              <h3 class="stats-card-title">Servicios más Solicitados</h3>
+              <div class="services-stats-list">
+                @for (srv of barberService.services().slice(0, 5); track srv.id) {
+                  <div class="service-stat-row">
+                    <div class="ssr-info">
+                      <span class="ssr-name">{{ srv.name }}</span>
+                      <span class="ssr-price">${{ srv.price }}</span>
+                    </div>
+                    <div class="ssr-progress-bar">
+                      <div class="ssr-fill" [style.width.%]="srv.popular ? 85 : 50"></div>
+                    </div>
                   </div>
-                </div>
-                <p class="review-comment">"{{ rev.comment }}"</p>
-                <div class="review-date">{{ rev.date }} • Barbero: {{ rev.barberName }}</div>
+                }
               </div>
-            }
+            </div>
+
+            <div class="stats-card stats-full-span">
+              <div class="section-header-flex">
+                <h3 class="stats-card-title">Reseñas y Satisfacción de Clientes</h3>
+                <span class="gold-rating-text">{{ barberService.averageRating() }} ★ Promedio</span>
+              </div>
+
+              <div class="reviews-desktop-grid">
+                @for (rev of barberService.reviews(); track rev.id) {
+                  <div class="review-item">
+                    <div class="review-top">
+                      <span class="reviewer-name">{{ rev.clientName }}</span>
+                      <div class="review-stars">
+                        @for (star of [1, 2, 3, 4, 5]; track star) {
+                          <span [class.filled]="star <= rev.rating">★</span>
+                        }
+                      </div>
+                    </div>
+                    <p class="review-comment">"{{ rev.comment }}"</p>
+                    <div class="review-date">{{ rev.date }} • Barbero: {{ rev.barberName }}</div>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    }
-  </main>
+      }
+    </main>
+  </div>
 
-  <!-- Botón Flotante para Registrar Corte (FAB) -->
+  <!-- Botón Flotante para Registrar Corte (FAB - Móvil Únicamente) -->
   <button class="fab-register-cut" (click)="openRegisterCutModal()" title="Registrar nuevo corte">
     <span class="fab-plus">+</span>
   </button>
 
-  <!-- Menú de Navegación Inferior -->
+  <!-- Menú de Navegación Inferior (Móvil Únicamente) -->
   <nav class="bottom-nav">
     <button class="nav-item" [class.active]="barberTab() === 'inicio'" (click)="setTab('inicio')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -377,8 +582,11 @@
         <div class="sheet-drag-handle"></div>
 
         <div class="sheet-header">
-          <h2 class="sheet-title">Registrar corte</h2>
-          <button class="btn-close-sheet" (click)="closeRegisterCutModal()">✕</button>
+          <div class="sheet-title-group">
+            <h2 class="sheet-title">Registrar Cobro de Corte</h2>
+            <span class="sheet-shortcut-tag">Alt+N</span>
+          </div>
+          <button class="btn-close-sheet" (click)="closeRegisterCutModal()" title="Cerrar (Esc)">✕</button>
         </div>
 
         <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="sheet-body">
@@ -404,27 +612,30 @@
                   [class.selected]="cutForm.get('serviceId')?.value === srv.id"
                   (click)="selectService(srv.id)"
                 >
-                  <div class="soc-left">
-                    <div class="soc-name">{{ srv.name }}</div>
-                    <div class="soc-duration">{{ srv.durationMinutes }} min</div>
-                  </div>
-                  <div class="soc-price">${{ srv.price.toFixed(2) }}</div>
+                  <div class="soc-name">{{ srv.name }}</div>
+                  <div class="soc-price">${{ srv.price }}</div>
+                  <div class="soc-dur">{{ srv.durationMinutes }} min</div>
                 </div>
               }
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Precio personalizado (opcional)</label>
-            <input type="number" step="0.5" placeholder="Dejar vacío para precio del servicio" formControlName="customPrice" />
+            <label class="form-label">Precio Final ($)</label>
+            <input
+              type="number"
+              step="0.5"
+              placeholder="Precio sugerido por servicio..."
+              formControlName="customPrice"
+            />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Método de pago *</label>
-            <div class="payment-pills-row">
+            <label class="form-label">Método de Pago *</label>
+            <div class="payment-methods-grid">
               <button
                 type="button"
-                class="payment-pill"
+                class="pm-btn"
                 [class.selected]="cutForm.get('paymentMethod')?.value === 'cash'"
                 (click)="selectPaymentMethod('cash')"
               >
@@ -432,7 +643,7 @@
               </button>
               <button
                 type="button"
-                class="payment-pill"
+                class="pm-btn"
                 [class.selected]="cutForm.get('paymentMethod')?.value === 'card'"
                 (click)="selectPaymentMethod('card')"
               >
@@ -440,25 +651,25 @@
               </button>
               <button
                 type="button"
-                class="payment-pill"
+                class="pm-btn"
                 [class.selected]="cutForm.get('paymentMethod')?.value === 'transfer'"
                 (click)="selectPaymentMethod('transfer')"
               >
-                📱 Yape / Transf.
+                📱 Transferencia
               </button>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Notas del corte</label>
-            <input type="text" placeholder="Ej: Degradado medio, navaja..." formControlName="notes" />
+            <label class="form-label">Notas Adicionales</label>
+            <input type="text" placeholder="Ej: Degradado alto, barba con navaja..." formControlName="notes" />
           </div>
 
           <button type="submit" class="btn-confirm-primary" [disabled]="cutForm.invalid || isSubmitting()">
             @if (isSubmitting()) {
-              <span>Guardando en Supabase...</span>
+              <span>Guardando corte...</span>
             } @else {
-              <span>Confirmar y Registrar Corte</span>
+              <span>Cobrar & Asignar Sello ✨</span>
             }
           </button>
         </form>
@@ -473,8 +684,11 @@
         <div class="sheet-drag-handle"></div>
 
         <div class="sheet-header">
-          <h2 class="sheet-title">Agendar cita</h2>
-          <button class="btn-close-sheet" (click)="closeBookAppointmentModal()">✕</button>
+          <div class="sheet-title-group">
+            <h2 class="sheet-title">Agendar Turno</h2>
+            <span class="sheet-shortcut-tag">Alt+A</span>
+          </div>
+          <button class="btn-close-sheet" (click)="closeBookAppointmentModal()" title="Cerrar (Esc)">✕</button>
         </div>
 
         <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()" class="sheet-body">
@@ -521,7 +735,7 @@
             @if (isSubmitting()) {
               <span>Agendando...</span>
             } @else {
-              <span>Confirmar Reserva</span>
+              <span>Confirmar Turno</span>
             }
           </button>
         </form>
@@ -536,8 +750,11 @@
         <div class="sheet-drag-handle"></div>
 
         <div class="sheet-header">
-          <h2 class="sheet-title">Nuevo Cliente</h2>
-          <button class="btn-close-sheet" (click)="closeNewClientModal()">✕</button>
+          <div class="sheet-title-group">
+            <h2 class="sheet-title">Alta de Cliente</h2>
+            <span class="sheet-shortcut-tag">Alt+C</span>
+          </div>
+          <button class="btn-close-sheet" (click)="closeNewClientModal()" title="Cerrar (Esc)">✕</button>
         </div>
 
         <form [formGroup]="newClientForm" (ngSubmit)="submitNewClient()" class="sheet-body">
@@ -553,11 +770,11 @@
 
           <div class="form-group">
             <label class="form-label">Notas</label>
-            <input type="text" placeholder="Ej: Piel sensible..." formControlName="notes" />
+            <input type="text" placeholder="Ej: Piel sensible, prefiere tijera..." formControlName="notes" />
           </div>
 
           <button type="submit" class="btn-confirm-primary" [disabled]="newClientForm.invalid || isSubmitting()">
-            Guardar Cliente
+            Guardar en Directorio
           </button>
         </form>
       </div>
@@ -571,7 +788,7 @@
         <div class="sheet-drag-handle"></div>
 
         <div class="sheet-header">
-          <h2 class="sheet-title">Caja del Día</h2>
+          <h2 class="sheet-title">Caja & Auditoría Diaria</h2>
           <button class="btn-close-sheet" (click)="closeDailyCashModal()">✕</button>
         </div>
 
@@ -579,11 +796,11 @@
           <div class="cash-summary-card">
             <div class="csc-total-label">Total Recaudado Hoy</div>
             <div class="csc-total-val">${{ barberService.revenueToday().toFixed(2) }}</div>
-            <div class="csc-count">{{ barberService.cutsToday() }} cortes completados</div>
+            <div class="csc-count">{{ barberService.cutsToday() }} servicios completados</div>
           </div>
 
           <button type="button" class="btn-confirm-primary" (click)="closeDailyCashModal()">
-            Entendido
+            Cerrar Resumen
           </button>
         </div>
       </div>

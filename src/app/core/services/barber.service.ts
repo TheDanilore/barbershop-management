@@ -513,35 +513,64 @@ export class BarberService {
         // Usar clientes locales
       }
 
-      // 4. Proyección quirúrgica de Ventas recientes con Join relacional
+      // 4. Proyección quirúrgica de Ventas recientes con Join relacional seguro
       try {
-        const { data: salesData, error: salesError } = await this.supabaseService.supabase
+        let salesData: any = null;
+        let salesError: any = null;
+
+        const res = await this.supabaseService.supabase
           .from('sales_history')
           .select(`
             id,
             final_price,
             payment_method,
             created_at,
+            customer_id,
+            barber_id,
+            service_id,
             customer:profiles!sales_history_customer_id_fkey (id, full_name),
-            barber:profiles!sales_history_barber_id_fkey (id, full_name),
-            service:services!sales_history_service_id_fkey (id, name)
+            barber:profiles!sales_history_barber_id_fkey (id, full_name)
           `)
           .order('created_at', { ascending: false })
           .limit(20);
 
+        salesData = res.data;
+        salesError = res.error;
+
+        // Fallback a select plano si las restricciones foráneas están en actualización
+        if (salesError) {
+          const fallbackRes = await this.supabaseService.supabase
+            .from('sales_history')
+            .select('id, final_price, payment_method, created_at, customer_id, barber_id, service_id')
+            .order('created_at', { ascending: false })
+            .limit(20);
+          salesData = fallbackRes.data;
+          salesError = fallbackRes.error;
+        }
+
         if (!salesError && salesData && salesData.length > 0) {
-          const mappedCuts: CutRecord[] = (salesData as unknown as SaleHistoryRow[]).map((s) => ({
-            id: s.id,
-            clientId: s.customer?.id || '',
-            clientName: s.customer?.full_name || 'Cliente General',
-            barberId: s.barber?.id || '',
-            barberName: s.barber?.full_name || 'Barbero',
-            serviceId: s.service?.id || '',
-            serviceName: s.service?.name || 'Corte',
-            price: Number(s.final_price),
-            date: s.created_at,
-            paymentMethod: (s.payment_method as PaymentMethod) || 'cash',
-          }));
+          const currentServices = this.services();
+          const currentClients = this.clients();
+          const currentBarbers = this.barbers();
+
+          const mappedCuts: CutRecord[] = salesData.map((s: any) => {
+            const cli = currentClients.find((c) => c.id === s.customer_id);
+            const brb = currentBarbers.find((b) => b.id === s.barber_id);
+            const srv = currentServices.find((sv) => sv.id === s.service_id);
+
+            return {
+              id: s.id,
+              clientId: s.customer_id || '',
+              clientName: s.customer?.full_name || cli?.name || 'Cliente General',
+              barberId: s.barber_id || '',
+              barberName: s.barber?.full_name || brb?.name || 'Barbero',
+              serviceId: s.service_id || '',
+              serviceName: srv?.name || 'Corte',
+              price: Number(s.final_price),
+              date: s.created_at,
+              paymentMethod: (s.payment_method as PaymentMethod) || 'cash',
+            };
+          });
           this.cuts.set(mappedCuts);
           this.saveToStorage(STORAGE_KEYS.CUTS, mappedCuts);
         } else if (!salesError && salesData && salesData.length === 0) {

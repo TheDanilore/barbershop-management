@@ -166,6 +166,22 @@ $$;
 
 ALTER FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") OWNER TO "postgres";
 
+
+CREATE OR REPLACE FUNCTION "public"."is_staff"() RETURNS boolean
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE (auth_user_id = auth.uid() OR id = auth.uid()) 
+    AND role IN ('admin'::public.user_role, 'barber'::public.user_role)
+    AND is_active = true
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_staff"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -365,23 +381,48 @@ ALTER TABLE ONLY "public"."sales_history"
 
 
 
-CREATE POLICY "Barberos y admins gestionan fidelidad" ON "public"."loyalty_progress" USING ((EXISTS ( SELECT 1
+ALTER TABLE ONLY "public"."sales_history"
+    ADD CONSTRAINT "sales_history_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id") ON DELETE SET NULL;
+
+
+
+CREATE POLICY "Acceso a citas" ON "public"."appointments" USING ((("customer_id" IN ( SELECT "profiles"."id"
    FROM "public"."profiles"
-  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"public"."user_role", 'barber'::"public"."user_role"]))))));
+  WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))) OR ("public"."is_staff"() = true)));
 
 
 
-CREATE POLICY "Clientes ven su propio progreso" ON "public"."loyalty_progress" FOR SELECT USING (("auth"."uid"() = "customer_id"));
+CREATE POLICY "Acceso a fidelidad" ON "public"."loyalty_progress" USING ((("customer_id" IN ( SELECT "profiles"."id"
+   FROM "public"."profiles"
+  WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))) OR ("public"."is_staff"() = true)));
 
 
 
-CREATE POLICY "Clientes ven sus propios recibos" ON "public"."sales_history" FOR SELECT USING (("auth"."uid"() = "customer_id"));
+CREATE POLICY "Acceso a ventas" ON "public"."sales_history" USING ((("customer_id" IN ( SELECT "profiles"."id"
+   FROM "public"."profiles"
+  WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))) OR ("public"."is_staff"() = true)));
 
 
 
 CREATE POLICY "Gestión completa de ventas para personal" ON "public"."sales_history" USING ((EXISTS ( SELECT 1
    FROM "public"."profiles"
   WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"public"."user_role", 'barber'::"public"."user_role"]))))));
+
+
+
+CREATE POLICY "Lectura de perfiles autorizados" ON "public"."profiles" FOR SELECT USING ((("auth_user_id" = "auth"."uid"()) OR ("id" = "auth"."uid"()) OR ("public"."is_staff"() = true)));
+
+
+
+CREATE POLICY "Lectura publica de servicios activos" ON "public"."services" FOR SELECT USING (("is_active" = true));
+
+
+
+CREATE POLICY "Permitir insercion inicial de perfiles" ON "public"."profiles" FOR INSERT WITH CHECK ((("auth_user_id" = "auth"."uid"()) OR ("auth"."uid"() IS NOT NULL)));
+
+
+
+CREATE POLICY "Usuarios actualizan su propio perfil" ON "public"."profiles" FOR UPDATE USING ((("auth_user_id" = "auth"."uid"()) OR ("id" = "auth"."uid"()) OR ("public"."is_staff"() = true)));
 
 
 
@@ -571,6 +612,12 @@ GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_staff"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_staff"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_staff"() TO "service_role";
 
 
 

@@ -3,6 +3,7 @@ import { LoggerService } from './logger.service';
 import { SupabaseService } from './supabase.service';
 import {
   AccountMovement,
+  AccountType,
   Appointment,
   AppointmentRow,
   Barber,
@@ -145,39 +146,105 @@ export class BarberService {
     );
   });
 
-  // Métricas consolidadas (Prefiere KPIs de la RPC de Supabase si existen, o calcula reactivamente)
+  // Métricas consolidadas (Prefiere datos en vivo locales o KPIs de la RPC de Supabase)
   readonly cutsToday = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.cutsToday;
     const todayStr = new Date().toISOString().slice(0, 10);
-    return this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
+    const localCutsToday = this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
+    if (localCutsToday > 0) return localCutsToday;
+    if (this.serverKpis()) return this.serverKpis()!.cutsToday;
+    return 0;
   });
 
   readonly cutsThisMonth = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.cutsThisMonth;
     const currentYearMonth = new Date().toISOString().slice(0, 7);
-    return this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
+    const localMonthCuts = this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
+    if (localMonthCuts > 0) return localMonthCuts;
+    if (this.serverKpis()) return this.serverKpis()!.cutsThisMonth;
+    return 0;
   });
 
   readonly revenueToday = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.revenueToday;
     const todayStr = new Date().toISOString().slice(0, 10);
-    return this.cuts().filter((c) => c.date.startsWith(todayStr)).reduce((sum, c) => sum + c.price, 0);
+    const localRevenueToday = this.cuts().filter((c) => c.date.startsWith(todayStr)).reduce((sum, c) => sum + c.price, 0);
+    if (localRevenueToday > 0) return localRevenueToday;
+    if (this.serverKpis()) return this.serverKpis()!.revenueToday;
+    return 0;
   });
 
   readonly revenueThisWeek = computed(() => {
+    const localWeek = this.cuts().slice(0, 15).reduce((sum, c) => sum + c.price, 0);
+    if (localWeek > 0) return localWeek;
     if (this.serverKpis()) return this.serverKpis()!.revenueThisWeek;
-    return this.cuts().slice(0, 15).reduce((sum, c) => sum + c.price, 0);
+    return 0;
   });
 
   readonly revenueThisMonth = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.revenueThisMonth;
     const currentYearMonth = new Date().toISOString().slice(0, 7);
-    return this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).reduce((sum, c) => sum + c.price, 0);
+    const localMonthRevenue = this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).reduce((sum, c) => sum + c.price, 0);
+    if (localMonthRevenue > 0) return localMonthRevenue;
+    if (this.serverKpis()) return this.serverKpis()!.revenueThisMonth;
+    return 0;
   });
 
   readonly totalRevenue = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.totalRevenue;
-    return this.cuts().reduce((sum, c) => sum + c.price, 0);
+    const localTotal = this.cuts().reduce((sum, c) => sum + c.price, 0);
+    if (this.serverKpis() && this.serverKpis()!.totalRevenue > localTotal) {
+      return this.serverKpis()!.totalRevenue;
+    }
+    return localTotal;
+  });
+
+  // Saldo total consolidado en todas las cuentas financieras activas (Tesorería / Liquidez)
+  readonly totalFinancialBalance = computed(() => {
+    return this.financialAccounts()
+      .filter((a) => a.isActive)
+      .reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
+  });
+
+  // Saldo específico en caja de efectivo (efectivo físico en gaveta)
+  readonly cashDrawerBalance = computed(() => {
+    const cashAcc = this.financialAccounts().find((a) => a.type === 'cash' && a.isActive);
+    return cashAcc ? Number(cashAcc.currentBalance) || 0 : 0;
+  });
+
+  // Servicios más solicitados computados reactivamente desde el historial de cortes
+  readonly topRequestedServices = computed(() => {
+    const cutsList = this.cuts();
+    const allServices = this.services();
+
+    const countsMap = new Map<string, { id: string; name: string; price: number; count: number; revenue: number }>();
+
+    for (const s of allServices) {
+      countsMap.set(s.id, { id: s.id, name: s.name, price: s.price, count: 0, revenue: 0 });
+    }
+
+    for (const cut of cutsList) {
+      const existing = countsMap.get(cut.serviceId);
+      if (existing) {
+        existing.count += 1;
+        existing.revenue += cut.price;
+      } else {
+        countsMap.set(cut.serviceId, {
+          id: cut.serviceId,
+          name: cut.serviceName,
+          price: cut.price,
+          count: 1,
+          revenue: cut.price,
+        });
+      }
+    }
+
+    const list = Array.from(countsMap.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return b.revenue - a.revenue;
+    });
+
+    const maxCount = Math.max(...list.map((l) => l.count), 1);
+
+    return list.slice(0, 5).map((item) => ({
+      ...item,
+      percentage: item.count > 0 ? Math.round((item.count / maxCount) * 100) : 0,
+    }));
   });
 
   readonly activeClientsCount = computed(() => {
@@ -566,8 +633,11 @@ export class BarberService {
           this.cuts.set(mappedCuts);
           this.saveToStorage(STORAGE_KEYS.CUTS, mappedCuts);
         } else if (!salesError && salesData && salesData.length === 0) {
-          this.cuts.set([]);
-          this.saveToStorage(STORAGE_KEYS.CUTS, []);
+          const localUnsynced = this.cuts().filter((c) => c.id.startsWith('cut-'));
+          if (localUnsynced.length === 0) {
+            this.cuts.set([]);
+            this.saveToStorage(STORAGE_KEYS.CUTS, []);
+          }
         }
       } catch (err) {
         this.logger.warn('BarberService', 'Aviso sincronizando ventas', err);
@@ -709,16 +779,26 @@ export class BarberService {
     if (this.supabaseService.isConfigured()) {
       try {
         const isClientReal = !params.clientId.startsWith('cli-');
-        const isBarberReal = !params.barberId.startsWith('barber-');
-        const isServiceReal = !params.serviceId.startsWith('srv-');
+        const activeProfile = this.supabaseService.userProfile();
+        const availableBarbers = this.barbers();
+        const availableServices = this.services();
+
+        const realBarberId = (!params.barberId.startsWith('barber-') && params.barberId)
+          ? params.barberId
+          : (activeProfile?.id || availableBarbers[0]?.id || null);
+
+        const realServiceId = (!params.serviceId.startsWith('srv-') && params.serviceId)
+          ? params.serviceId
+          : (availableServices[0]?.id || null);
+
         const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
 
         const { data: saleData, error } = await this.supabaseService.supabase
           .from('sales_history')
           .insert({
             customer_id: isClientReal ? params.clientId : null,
-            barber_id: isBarberReal ? params.barberId : null,
-            service_id: isServiceReal ? params.serviceId : null,
+            barber_id: realBarberId,
+            service_id: realServiceId,
             final_price: finalPrice,
             payment_method: actualPaymentMethod,
             amount_paid: params.isCredit ? 0 : finalPrice,
@@ -729,6 +809,13 @@ export class BarberService {
           .single();
 
         const saleId = saleData?.id;
+
+        if (saleId) {
+          newCut.id = saleId;
+          const currentCuts = this.cuts().map((c) => (c.id === newCut.id ? newCut : c));
+          this.cuts.set(currentCuts);
+          this.saveToStorage(STORAGE_KEYS.CUTS, currentCuts);
+        }
 
         if (error) {
           this.logger.error('BarberService', 'Error al insertar venta en Supabase', error);
@@ -1113,6 +1200,113 @@ export class BarberService {
       description: `Transferencia desde ${fromAcc.name}: ${description}`,
       referenceType: 'transfer',
     });
+  }
+
+  /**
+   * Crear nueva Cuenta Financiera (Caja, Banco, Billetera Digital)
+   */
+  async createFinancialAccount(params: {
+    name: string;
+    type: AccountType;
+    initialBalance?: number;
+  }): Promise<FinancialAccount> {
+    const cleanName = params.name.trim();
+    const balance = Number(params.initialBalance) || 0;
+
+    const newAccount: FinancialAccount = {
+      id: 'acc-' + Date.now(),
+      name: cleanName,
+      type: params.type,
+      currentBalance: balance,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Actualización local inmediata
+    const updatedAccounts = [...this.financialAccounts(), newAccount];
+    this.financialAccounts.set(updatedAccounts);
+    this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, updatedAccounts);
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const { data, error } = await this.supabaseService.supabase
+          .from('financial_accounts')
+          .insert({
+            name: cleanName,
+            type: params.type,
+            current_balance: balance,
+            is_active: true,
+          })
+          .select('id, name, type, current_balance, is_active, created_at')
+          .single();
+
+        if (error) {
+          this.logger.error('BarberService', 'Error creando cuenta en Supabase', error);
+        } else if (data) {
+          newAccount.id = data.id;
+          newAccount.currentBalance = Number(data.current_balance);
+          const finalAccounts = this.financialAccounts().map((a) => (a.id === newAccount.id ? newAccount : a));
+          this.financialAccounts.set(finalAccounts);
+          this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, finalAccounts);
+
+          // Si se indicó un saldo inicial mayor a cero, registrar movimiento contable
+          if (balance > 0) {
+            try {
+              await this.supabaseService.supabase.from('account_movements').insert({
+                account_id: data.id,
+                movement_type: 'income',
+                amount: balance,
+                description: 'Saldo inicial de apertura de cuenta',
+                reference_type: 'manual',
+              });
+            } catch (movErr) {
+              this.logger.warn('BarberService', 'Aviso al registrar movimiento inicial de cuenta', movErr);
+            }
+          }
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Excepción creando cuenta', err);
+      }
+    }
+
+    return newAccount;
+  }
+
+  /**
+   * Actualizar Cuenta Financiera existente
+   */
+  async updateFinancialAccount(id: string, updates: {
+    name?: string;
+    isActive?: boolean;
+  }): Promise<void> {
+    const accounts = this.financialAccounts();
+    const target = accounts.find((a) => a.id === id);
+    if (!target) return;
+
+    if (updates.name !== undefined) target.name = updates.name.trim();
+    if (updates.isActive !== undefined) target.isActive = updates.isActive;
+
+    this.financialAccounts.set([...accounts]);
+    this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, accounts);
+
+    if (this.supabaseService.isConfigured() && !id.startsWith('acc-')) {
+      try {
+        const payload: any = {};
+        if (updates.name !== undefined) payload.name = updates.name.trim();
+        if (updates.isActive !== undefined) payload.is_active = updates.isActive;
+
+        const { error } = await this.supabaseService.supabase
+          .from('financial_accounts')
+          .update(payload)
+          .eq('id', id);
+
+        if (error) {
+          this.logger.error('BarberService', 'Error actualizando cuenta en Supabase', error);
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Excepción actualizando cuenta', err);
+      }
+    }
   }
 
   /**

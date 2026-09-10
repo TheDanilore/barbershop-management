@@ -18,7 +18,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Client, MovementType, PaymentMethod, ServiceItem, SystemUser, UserRole } from '../../../core/models/barber.models';
+import { AccountType, Client, FinancialAccount, MovementType, PaymentMethod, ServiceItem, SystemUser, UserRole } from '../../../core/models/barber.models';
 import { BarberService } from '../../../core/services/barber.service';
 import { HapticsService } from '../../../core/services/haptics.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
@@ -77,6 +77,9 @@ export class BarberDashboardPage implements OnInit {
   readonly isUserModalOpen = signal(false);
   readonly editingUserId = signal<string | null>(null);
 
+  readonly isAccountModalOpen = signal(false);
+  readonly editingAccountId = signal<string | null>(null);
+
   // Prevención multi-tap
   readonly isSubmitting = signal(false);
 
@@ -99,7 +102,7 @@ export class BarberDashboardPage implements OnInit {
   // ---------------------------------------------------------------------------
   readonly cutForm: FormGroup = this.fb.group({
     clientId: ['', [Validators.required]],
-    serviceId: ['srv-1', [Validators.required]],
+    serviceId: ['', [Validators.required]],
     customPrice: [null, [Validators.min(0.01), Validators.max(9999)]],
     paymentMethod: ['cash', [Validators.required]],
     isCredit: [false],
@@ -162,6 +165,13 @@ export class BarberDashboardPage implements OnInit {
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
     phone: ['', [Validators.pattern(/^[+0-9\s-]{7,20}$/)]],
     role: ['barber', [Validators.required]],
+    isActive: [true],
+  });
+
+  readonly accountForm: FormGroup = this.fb.group({
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+    type: ['cash', [Validators.required]],
+    initialBalance: [0, [Validators.min(0)]],
     isActive: [true],
   });
 
@@ -265,6 +275,7 @@ export class BarberDashboardPage implements OnInit {
     this.isTransferModalOpen.set(false);
     this.isDebtPaymentModalOpen.set(false);
     this.isUserModalOpen.set(false);
+    this.isAccountModalOpen.set(false);
   }
 
   setTab(tab: BarberTabType): void {
@@ -295,9 +306,10 @@ export class BarberDashboardPage implements OnInit {
   openRegisterCutModal(preselectedClientId?: string): void {
     this.haptics.lightTap();
     const clientId = preselectedClientId || this.cutForm.get('clientId')?.value || this.barberService.clients()[0]?.id || '';
+    const firstService = this.barberService.services()[0];
     this.cutForm.reset({
       clientId,
-      serviceId: this.barberService.services()[0]?.id || 'srv-1',
+      serviceId: firstService?.id || '',
       customPrice: null,
       paymentMethod: 'cash',
       isCredit: false,
@@ -347,9 +359,13 @@ export class BarberDashboardPage implements OnInit {
 
     this.isSubmitting.set(true);
     try {
+      const activeBarber = this.supabaseService.userProfile();
+      const fallbackBarber = this.barberService.barbers()[0];
+      const realBarberId = activeBarber?.id || fallbackBarber?.id || '';
+
       const cut = await this.barberService.registerCut({
         clientId,
-        barberId: 'barber-1',
+        barberId: realBarberId,
         serviceId,
         customPrice: customPrice ? Number(customPrice) : undefined,
         paymentMethod,
@@ -636,6 +652,73 @@ export class BarberDashboardPage implements OnInit {
       this.haptics.success();
       this.closeTransferModal();
       this.showToast(`Transferencia de $${amount} completada`);
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // GESTIÓN DE CUENTAS FINANCIERAS (CREAR Y EDITAR)
+  // ---------------------------------------------------------------------------
+  openCreateAccountModal(): void {
+    this.haptics.lightTap();
+    this.editingAccountId.set(null);
+    this.accountForm.reset({
+      name: '',
+      type: 'cash',
+      initialBalance: 0,
+      isActive: true,
+    });
+    this.isAccountModalOpen.set(true);
+  }
+
+  openEditAccountModal(account: FinancialAccount): void {
+    this.haptics.lightTap();
+    this.editingAccountId.set(account.id);
+    this.accountForm.reset({
+      name: account.name,
+      type: account.type,
+      initialBalance: account.currentBalance,
+      isActive: account.isActive,
+    });
+    this.isAccountModalOpen.set(true);
+  }
+
+  closeAccountModal(): void {
+    this.haptics.lightTap();
+    this.isAccountModalOpen.set(false);
+    this.editingAccountId.set(null);
+  }
+
+  async submitAccount(): Promise<void> {
+    if (this.accountForm.invalid || this.isSubmitting()) {
+      this.accountForm.markAllAsTouched();
+      this.haptics.warning();
+      this.showToast('Por favor completa los campos obligatorios');
+      return;
+    }
+
+    const { name, type, initialBalance, isActive } = this.accountForm.value;
+    this.isSubmitting.set(true);
+
+    try {
+      if (this.editingAccountId()) {
+        await this.barberService.updateFinancialAccount(this.editingAccountId()!, {
+          name: name.trim(),
+          isActive: Boolean(isActive),
+        });
+        this.haptics.success();
+        this.showToast(`Cuenta "${name.trim()}" actualizada`);
+      } else {
+        await this.barberService.createFinancialAccount({
+          name: name.trim(),
+          type: type as AccountType,
+          initialBalance: Number(initialBalance) || 0,
+        });
+        this.haptics.success();
+        this.showToast(`Cuenta "${name.trim()}" creada con éxito`);
+      }
+      this.closeAccountModal();
     } finally {
       this.isSubmitting.set(false);
     }

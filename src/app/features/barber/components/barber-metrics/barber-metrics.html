@@ -38,6 +38,17 @@
     <div class="kpi-label">Ingresos totales</div>
   </div>
 
+  <div class="kpi-card highlight-liquidity" (click)="onViewStats()" style="cursor: pointer;" title="Ver Cuentas y Finanzas">
+    <div class="kpi-icon-wrapper green-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+        <line x1="2" y1="10" x2="22" y2="10"></line>
+      </svg>
+    </div>
+    <div class="kpi-value green-val">${{ barberService.totalFinancialBalance().toFixed(2) }}</div>
+    <div class="kpi-label">Saldo en Cuentas</div>
+  </div>
+
   <div class="kpi-card">
     <div class="kpi-icon-wrapper">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

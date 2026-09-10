@@ -3374,3 +3374,62 @@
   text-decoration: underline; text-underline-offset: 2px; display: inline;
 }
 .ccw-link-btn:hover { color: var(--gold-primary); }
+
+/* ========================================================================= */
+/* FINANCIAL ACCOUNTS & STATS ENHANCEMENTS                                   */
+/* ========================================================================= */
+.fac-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fac-edit-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  padding: 3px 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.fac-edit-btn:hover {
+  background: rgba(229, 169, 60, 0.15);
+  border-color: var(--gold-primary);
+  color: var(--gold-light);
+  transform: scale(1.08);
+}
+
+.ssr-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ssr-count-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  background: rgba(229, 169, 60, 0.12);
+  border: 1px solid rgba(229, 169, 60, 0.25);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.2px;
+}
+
+.highlight-green {
+  color: #2ed573 !important;
+}
+
+.empty-state-mini {
+  padding: 20px 12px;
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+}

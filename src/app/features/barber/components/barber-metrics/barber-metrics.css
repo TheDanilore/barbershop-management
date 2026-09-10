@@ -13,7 +13,14 @@
 
 @media (min-width: 768px) {
   .kpi-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
     gap: 16px;
   }
 }
@@ -32,6 +39,17 @@
   background: linear-gradient(145deg, #1f1d16 0%, #18181f 100%);
 }
 
+.kpi-card.highlight-liquidity {
+  border-color: rgba(46, 213, 115, 0.35);
+  background: linear-gradient(145deg, rgba(46, 213, 115, 0.08) 0%, #18181f 100%);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.kpi-card.highlight-liquidity:hover {
+  transform: translateY(-2px);
+  border-color: rgba(46, 213, 115, 0.6);
+}
+
 .kpi-icon-wrapper {
   width: 32px;
   height: 32px;
@@ -42,6 +60,11 @@
   justify-content: center;
   color: var(--gold-primary);
   margin-bottom: 12px;
+}
+
+.kpi-icon-wrapper.green-icon {
+  background: rgba(46, 213, 115, 0.12);
+  color: #2ed573;
 }
 
 .kpi-icon-wrapper svg {
@@ -60,6 +83,10 @@
 
 .kpi-card.highlight .kpi-value {
   color: var(--gold-light);
+}
+
+.kpi-value.green-val {
+  color: #2ed573;
 }
 
 .kpi-label {

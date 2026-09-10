@@ -155,17 +155,17 @@
     </nav>
 
     <!-- Mini-Widget Caja en Tiempo Real -->
-    <div class="sidebar-cash-card" (click)="setTab('cash')" title="Ver estado de caja y turnos">
+    <div class="sidebar-cash-card" (click)="setTab('cash')" title="Ver estado de caja y cuentas">
       <div class="scc-top">
-        <span class="scc-title">Caja del Día</span>
+        <span class="scc-title">Caja Efectivo</span>
         @if (barberService.activeCashShift()) {
           <span class="live-pill active">Turno Abierto</span>
         } @else {
           <span class="live-pill">Turno Cerrado</span>
         }
       </div>
-      <div class="scc-amount">${{ barberService.revenueToday().toFixed(2) }}</div>
-      <div class="scc-footer">{{ barberService.cutsToday() }} cortes finalizados</div>
+      <div class="scc-amount">${{ barberService.cashDrawerBalance().toFixed(2) }}</div>
+      <div class="scc-footer">Total en Cuentas: ${{ barberService.totalFinancialBalance().toFixed(2) }}</div>
     </div>
 
     <!-- Perfil y Acciones Inferiores -->
@@ -695,13 +695,16 @@
               <p class="pane-subtitle">Control de liquidez en tiempo real, cuentas bancarias, billeteras y arqueo de turnos</p>
             </div>
             <div class="pane-header-actions">
+              <button class="btn-primary-action" (click)="openCreateAccountModal()">
+                + Nueva Cuenta
+              </button>
               <button class="btn-secondary-action" (click)="openTransferModal()">
                 ⇄ Transferir entre Cuentas
               </button>
               <button class="btn-secondary-action" (click)="openMovementModal('expense')">
                 - Registrar Gasto
               </button>
-              <button class="btn-primary-action" (click)="openMovementModal('income')">
+              <button class="btn-secondary-action" (click)="openMovementModal('income')">
                 + Registrar Ingreso
               </button>
             </div>
@@ -749,11 +752,18 @@
                     @else if (acc.type === 'bank') { 🏦 }
                     @else { 📱 }
                   </div>
-                  <span class="fac-type-badge">{{ acc.type === 'cash' ? 'Efectivo' : acc.type === 'bank' ? 'Banco' : 'Billetera Digital' }}</span>
+                  <div class="fac-top-actions">
+                    <span class="fac-type-badge">{{ acc.type === 'cash' ? 'Efectivo' : acc.type === 'bank' ? 'Banco' : 'Billetera Digital' }}</span>
+                    <button class="fac-edit-btn" (click)="openEditAccountModal(acc)" title="Editar Cuenta">
+                      ✏️
+                    </button>
+                  </div>
                 </div>
                 <div class="fac-name">{{ acc.name }}</div>
                 <div class="fac-balance">${{ acc.currentBalance.toFixed(2) }}</div>
-                <div class="fac-footer">Saldo disponible</div>
+                <div class="fac-footer">
+                  <span>{{ acc.isActive ? 'Saldo disponible' : 'Cuenta inactiva' }}</span>
+                </div>
               </div>
             }
           </div>
@@ -834,6 +844,10 @@
                   <span class="sb-val">${{ barberService.totalRevenue().toFixed(2) }}</span>
                 </div>
                 <div class="sb-item">
+                  <span class="sb-label">Saldo en Cuentas</span>
+                  <span class="sb-val highlight-green">${{ barberService.totalFinancialBalance().toFixed(2) }}</span>
+                </div>
+                <div class="sb-item">
                   <span class="sb-label">Total Cortes</span>
                   <span class="sb-val">{{ barberService.cuts().length }}</span>
                 </div>
@@ -843,15 +857,22 @@
             <div class="stats-card">
               <h3 class="stats-card-title">Servicios más Solicitados</h3>
               <div class="services-stats-list">
-                @for (srv of barberService.services().slice(0, 5); track srv.id) {
+                @for (srv of barberService.topRequestedServices(); track srv.id) {
                   <div class="service-stat-row">
                     <div class="ssr-info">
-                      <span class="ssr-name">{{ srv.name }}</span>
-                      <span class="ssr-price">${{ srv.price }}</span>
+                      <div class="ssr-name-wrap">
+                        <span class="ssr-name">{{ srv.name }}</span>
+                        <span class="ssr-count-badge">{{ srv.count }} cortes</span>
+                      </div>
+                      <span class="ssr-price">${{ srv.revenue.toFixed(2) }}</span>
                     </div>
                     <div class="ssr-progress-bar">
-                      <div class="ssr-fill" [style.width.%]="srv.popular ? 85 : 50"></div>
+                      <div class="ssr-fill" [style.width.%]="srv.percentage"></div>
                     </div>
+                  </div>
+                } @empty {
+                  <div class="empty-state-mini">
+                    <span>Sin servicios registrados en el historial</span>
                   </div>
                 }
               </div>
@@ -1698,6 +1719,75 @@
             <button type="button" class="btn-secondary" (click)="closeUserModal()">Cancelar</button>
             <button type="submit" class="btn-primary-action" [disabled]="userForm.invalid || isSubmitting()">
               {{ isSubmitting() ? 'Guardando...' : editingUserId() ? 'Guardar Cambios' : 'Crear Colaborador' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CREAR / EDITAR CUENTA FINANCIERA -->
+  @if (isAccountModalOpen()) {
+    <div class="modal-backdrop" (click)="closeAccountModal()">
+      <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <div class="sheet-title-group">
+            <h2 class="sheet-title">
+              {{ editingAccountId() ? 'Editar Cuenta Financiera' : 'Nueva Cuenta Financiera' }}
+            </h2>
+          </div>
+          <button class="btn-close-sheet" (click)="closeAccountModal()" title="Cerrar (Esc)">✕</button>
+        </div>
+
+        <form [formGroup]="accountForm" (ngSubmit)="submitAccount()" class="sheet-body">
+          <div class="form-group">
+            <label class="form-label" for="accountName">Nombre de la Cuenta *</label>
+            <input
+              id="accountName"
+              type="text"
+              class="form-input"
+              formControlName="name"
+              placeholder="Ej. BCP Operativo, BBVA, Billetera Yape 2"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="accountType">Tipo de Cuenta *</label>
+            <select id="accountType" class="form-input form-select" formControlName="type" [attr.disabled]="editingAccountId() ? true : null">
+              <option value="cash">💵 Efectivo (Caja Chica / Gaveta)</option>
+              <option value="bank">🏦 Cuenta Bancaria / Tarjetas (POS)</option>
+              <option value="digital_wallet">📱 Billetera Digital (Yape / Plin / Transfer)</option>
+            </select>
+          </div>
+
+          @if (!editingAccountId()) {
+            <div class="form-group">
+              <label class="form-label" for="accountInitialBalance">Saldo Inicial de Apertura ($)</label>
+              <input
+                id="accountInitialBalance"
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-input"
+                formControlName="initialBalance"
+                placeholder="0.00"
+              />
+            </div>
+          }
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isActive" />
+              <span>Cuenta Activa (Disponible para recibir pagos y transferencias)</span>
+            </label>
+          </div>
+
+          <div class="sheet-footer">
+            <button type="button" class="btn-secondary" (click)="closeAccountModal()">Cancelar</button>
+            <button type="submit" class="btn-primary-action" [disabled]="accountForm.invalid || isSubmitting()">
+              {{ isSubmitting() ? 'Guardando...' : editingAccountId() ? 'Guardar Cambios' : 'Crear Cuenta' }}
             </button>
           </div>
         </form>

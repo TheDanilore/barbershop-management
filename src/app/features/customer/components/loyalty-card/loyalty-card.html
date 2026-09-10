@@ -17,17 +17,17 @@
   <div class="vlc-client-name">{{ barberService.currentClient().name }}</div>
   <div class="vlc-card-number">•••• •••• •••• 2026</div>
 
-  <!-- Grid de 10 Sellos -->
+  <!-- Grid Dinámico de Sellos de Fidelización -->
   <div class="stamps-grid-10">
-    @for (slot of [1,2,3,4,5,6,7,8,9,10]; track slot) {
+    @for (slot of stampSlots(); track slot) {
       <div
         class="stamp-slot"
         [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
-        [class.reward-slot]="slot === 10"
+        [class.reward-slot]="slot === barberService.stampsRequired()"
       >
         @if (slot <= barberService.currentClient().loyaltyStamps) {
           <span class="stamp-icon">✂</span>
-        } @else if (slot === 10) {
+        } @else if (slot === barberService.stampsRequired()) {
           <span class="stamp-icon reward">🎁</span>
         } @else {
           <span class="stamp-number">{{ slot }}</span>
@@ -38,11 +38,11 @@
 
   <div class="vlc-footer">
     <div class="vlc-progress-text">
-      <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de 10 cortes</span>
-      <strong>{{ (barberService.currentClient().loyaltyStamps * 10) }}%</strong>
+      <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de {{ barberService.stampsRequired() }} cortes</span>
+      <strong>{{ progressPercentage() }}%</strong>
     </div>
     <div class="stamps-progress-bar light">
-      <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+      <div class="stamps-fill" [style.width.%]="progressPercentage()"></div>
     </div>
   </div>
 </div>
@@ -52,7 +52,7 @@
   <h3 class="rules-title">¿Cómo funciona tu tarjeta?</h3>
   <ul class="rules-list">
     <li><span class="bullet">✓</span> Recibes 1 sello por cada corte registrado en BarberTrack.</li>
-    <li><span class="bullet">✓</span> Al completar los 10 sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
+    <li><span class="bullet">✓</span> Al completar los {{ barberService.stampsRequired() }} sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
     <li><span class="bullet">✓</span> Tus sellos no vencen y son válidos con cualquier barbero del staff.</li>
   </ul>
 </div>

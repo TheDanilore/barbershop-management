@@ -144,16 +144,16 @@
               <div class="loyalty-snapshot-card" (click)="setTab('fidelidad')">
                 <div class="lsc-top">
                   <span class="lsc-level">{{ barberService.currentClient().membershipLevel }} Member</span>
-                  <span class="lsc-stamps-pill">{{ barberService.currentClient().loyaltyStamps }} / 10 sellos</span>
+                  <span class="lsc-stamps-pill">{{ barberService.currentClient().loyaltyStamps }} / {{ barberService.stampsRequired() }} sellos</span>
                 </div>
                 <div class="stamps-progress-bar">
-                  <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / 10) * 100"></div>
+                  <div class="stamps-fill" [style.width.%]="(barberService.currentClient().loyaltyStamps / barberService.stampsRequired()) * 100"></div>
                 </div>
                 <p class="lsc-motivation">
-                  @if (barberService.currentClient().loyaltyStamps >= 9) {
+                  @if (barberService.currentClient().loyaltyStamps >= barberService.stampsRequired() - 1) {
                     🎉 ¡Tu próximo corte es 100% GRATIS!
                   } @else {
-                    Faltan {{ 10 - barberService.currentClient().loyaltyStamps }} cortes para tu recompensa gratuita.
+                    Faltan {{ barberService.stampsRequired() - barberService.currentClient().loyaltyStamps }} cortes para tu recompensa gratuita.
                   }
                 </p>
               </div>

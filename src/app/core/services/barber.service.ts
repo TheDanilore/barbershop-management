@@ -2,13 +2,21 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { LoggerService } from './logger.service';
 import { SupabaseService } from './supabase.service';
 import {
+  AccountMovement,
   Appointment,
   AppointmentRow,
   Barber,
+  BusinessSettings,
+  CashShift,
   Client,
+  CustomerCredit,
+  CustomerCreditMovement,
   CutRecord,
   DashboardKpis,
+  FinancialAccount,
+  MovementType,
   PaymentMethod,
+  ReferenceType,
   Review,
   SaleHistoryRow,
   ServiceItem,
@@ -22,7 +30,17 @@ const STORAGE_KEYS = {
   REVIEWS: 'barbertrack_reviews',
   ROLE: 'barbertrack_role',
   CURRENT_CLIENT_ID: 'barbertrack_current_client_id',
+  FINANCIAL_ACCOUNTS: 'barbertrack_financial_accounts',
+  CASH_SHIFTS: 'barbertrack_cash_shifts',
+  ACCOUNT_MOVEMENTS: 'barbertrack_account_movements',
+  BUSINESS_SETTINGS: 'barbertrack_business_settings',
 };
+
+const INITIAL_ACCOUNTS: FinancialAccount[] = [
+  { id: 'acc-cash', name: 'Caja Principal (Efectivo)', type: 'cash', currentBalance: 0.0, isActive: true },
+  { id: 'acc-bank', name: 'Cuenta Banco / POS Tarjetas', type: 'bank', currentBalance: 0.0, isActive: true },
+  { id: 'acc-digital', name: 'Billetera Digital (Yape / Plin)', type: 'digital_wallet', currentBalance: 0.0, isActive: true },
+];
 
 const DEFAULT_KPIS: DashboardKpis = {
   cutsToday: 0,
@@ -298,6 +316,27 @@ export class BarberService {
   readonly reviews = signal<Review[]>(this.loadFromStorage(STORAGE_KEYS.REVIEWS, INITIAL_REVIEWS));
   readonly serverKpis = signal<DashboardKpis | null>(null);
 
+  // Configuración dinámica de negocio (Fidelidad, moneda, etc.)
+  readonly businessSettings = signal<BusinessSettings>(
+    this.loadFromStorage(STORAGE_KEYS.BUSINESS_SETTINGS, {
+      id: 'default',
+      stampsRequired: 10,
+      businessName: 'BarberTrack PRO',
+      currencySymbol: '$',
+    })
+  );
+
+  readonly stampsRequired = computed(() => this.businessSettings().stampsRequired);
+
+  // Módulo Financiero
+  readonly financialAccounts = signal<FinancialAccount[]>(
+    this.loadFromStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, INITIAL_ACCOUNTS)
+  );
+  readonly activeCashShift = signal<CashShift | null>(null);
+  readonly accountMovements = signal<AccountMovement[]>(
+    this.loadFromStorage(STORAGE_KEYS.ACCOUNT_MOVEMENTS, [])
+  );
+
   readonly currentClientId = signal<string>(this.loadFromStorage(STORAGE_KEYS.CURRENT_CLIENT_ID, 'cli-1'));
 
   // Cliente activo computado ligado al perfil real o fallback a demo
@@ -436,7 +475,112 @@ export class BarberService {
     try {
       this.logger.info('BarberService', 'Iniciando sincronización con Supabase');
 
-      // 1. Cargar KPIs agregados vía RPC si la función existe en la base de datos
+      // 1. Cargar Configuración de Negocio (Fidelidad dinámica)
+      try {
+        const { data: bsData } = await this.supabaseService.supabase
+          .from('business_settings')
+          .select('id, stamps_required, business_name, currency_symbol')
+          .limit(1)
+          .maybeSingle();
+
+        if (bsData) {
+          this.businessSettings.set({
+            id: bsData.id,
+            stampsRequired: bsData.stamps_required ?? 10,
+            businessName: bsData.business_name ?? 'BarberTrack PRO',
+            currencySymbol: bsData.currency_symbol ?? '$',
+          });
+          this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
+        }
+      } catch {
+        // Fallback a configuración local
+      }
+
+      // 2. Cargar Cuentas Financieras
+      try {
+        const { data: faData } = await this.supabaseService.supabase
+          .from('financial_accounts')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+
+        if (faData && faData.length > 0) {
+          const mappedAccounts: FinancialAccount[] = faData.map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+            currentBalance: Number(a.current_balance),
+            isActive: a.is_active,
+            createdAt: a.created_at,
+          }));
+          this.financialAccounts.set(mappedAccounts);
+          this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, mappedAccounts);
+        }
+      } catch {
+        // Fallback a cuentas locales
+      }
+
+      // 3. Cargar Turno de Caja Activo
+      try {
+        const { data: shiftData } = await this.supabaseService.supabase
+          .from('cash_shifts')
+          .select('*, barber:profiles(full_name)')
+          .eq('status', 'open')
+          .order('opened_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (shiftData) {
+          this.activeCashShift.set({
+            id: shiftData.id,
+            accountId: shiftData.account_id,
+            barberId: shiftData.barber_id,
+            openedAt: shiftData.opened_at,
+            initialCash: Number(shiftData.initial_cash),
+            cashSales: Number(shiftData.cash_sales),
+            cashExpenses: Number(shiftData.cash_expenses),
+            expectedCash: Number(shiftData.expected_cash),
+            status: 'open',
+            notes: shiftData.notes,
+            barberName: shiftData.barber?.full_name || 'Barbero',
+          });
+        } else {
+          this.activeCashShift.set(null);
+        }
+      } catch {
+        // Ignorar si no existe tabla aún
+      }
+
+      // 4. Cargar Movimientos de Cuentas
+      try {
+        const { data: movsData } = await this.supabaseService.supabase
+          .from('account_movements')
+          .select('*, account:financial_accounts(name)')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (movsData) {
+          const mappedMovs: AccountMovement[] = movsData.map((m: any) => ({
+            id: m.id,
+            accountId: m.account_id,
+            movementType: m.movement_type,
+            amount: Number(m.amount),
+            description: m.description,
+            referenceType: m.reference_type,
+            referenceId: m.reference_id,
+            createdBy: m.created_by,
+            createdAt: m.created_at,
+            shiftId: m.shift_id,
+            accountName: m.account?.name || 'Cuenta',
+          }));
+          this.accountMovements.set(mappedMovs);
+          this.saveToStorage(STORAGE_KEYS.ACCOUNT_MOVEMENTS, mappedMovs);
+        }
+      } catch {
+        // Fallback a movimientos locales
+      }
+
+      // 5. Cargar KPIs agregados vía RPC si la función existe
       try {
         const { data: kpisData, error: kpisError } = await this.supabaseService.supabase.rpc('get_barber_dashboard_kpis');
         if (!kpisError && kpisData) {
@@ -456,12 +600,11 @@ export class BarberService {
         // RPC no disponible aún, cálculos reactivos locales activos
       }
 
-      // 2. Proyección quirúrgica de Servicios
+      // 6. Proyección quirúrgica de Servicios (Activos e Inactivos para Catálogo Admin)
       try {
         const { data: servicesData, error: srvError } = await this.supabaseService.supabase
           .from('services')
           .select('id, name, base_price, duration_minutes, is_active')
-          .eq('is_active', true)
           .order('name');
 
         if (!srvError && servicesData && servicesData.length > 0) {
@@ -470,6 +613,7 @@ export class BarberService {
             name: s.name,
             durationMinutes: s.duration_minutes,
             price: Number(s.base_price),
+            isActive: s.is_active ?? true,
           }));
           this.services.set(mappedServices);
           this.saveToStorage(STORAGE_KEYS.SERVICES, mappedServices);
@@ -478,7 +622,7 @@ export class BarberService {
         // Usar servicios predeterminados
       }
 
-      // 3. Proyección quirúrgica de Clientes con su progreso de fidelidad
+      // 7. Proyección quirúrgica de Clientes con fidelidad y saldo de crédito/deuda
       try {
         const { data: profilesData, error: profError } = await this.supabaseService.supabase
           .from('profiles')
@@ -488,7 +632,8 @@ export class BarberService {
             phone,
             membership_tier,
             avatar_url,
-            loyalty_progress (current_stamps, total_historical_cuts)
+            loyalty_progress (current_stamps, total_historical_cuts),
+            customer_credits (current_debt, credit_limit)
           `)
           .eq('role', 'customer')
           .eq('is_active', true);
@@ -496,6 +641,7 @@ export class BarberService {
         if (!profError && profilesData && profilesData.length > 0) {
           const mappedClients: Client[] = profilesData.map((p) => {
             const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
+            const cc = Array.isArray(p.customer_credits) ? p.customer_credits[0] : (p.customer_credits as any);
             return {
               id: p.id,
               name: p.full_name,
@@ -504,6 +650,8 @@ export class BarberService {
               loyaltyStamps: lp?.current_stamps ?? 0,
               membershipLevel: (p.membership_tier as any) || 'Bronze',
               avatarUrl: p.avatar_url || undefined,
+              currentDebt: Number(cc?.current_debt ?? 0),
+              creditLimit: Number(cc?.credit_limit ?? 0),
             };
           });
           this.clients.set(mappedClients);
@@ -640,7 +788,7 @@ export class BarberService {
   /**
    * Registro atómico de corte:
    * En Supabase: inserta en `sales_history` y el Trigger de PostgreSQL actualiza fidelidad atómicamente.
-   * En Angular: actualiza el estado reactivo con Signals al instante.
+   * Soporta cobro de contado (efectivo, tarjeta, transferencia) o Al Crédito (Fiar).
    */
   async registerCut(params: {
     clientId: string;
@@ -649,6 +797,7 @@ export class BarberService {
     customPrice?: number;
     paymentMethod: PaymentMethod;
     notes?: string;
+    isCredit?: boolean;
   }): Promise<CutRecord> {
     const client = this.clients().find((c) => c.id === params.clientId);
     const barber = this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0];
@@ -658,6 +807,8 @@ export class BarberService {
       params.customPrice !== undefined && params.customPrice !== null && !isNaN(params.customPrice)
         ? Number(params.customPrice)
         : service.price;
+
+    const actualPaymentMethod: PaymentMethod = params.isCredit ? 'credit' : params.paymentMethod;
 
     const newCut: CutRecord = {
       id: 'cut-' + Date.now(),
@@ -669,7 +820,7 @@ export class BarberService {
       serviceName: service.name,
       price: finalPrice,
       date: new Date().toISOString(),
-      paymentMethod: params.paymentMethod,
+      paymentMethod: actualPaymentMethod,
       notes: params.notes,
     };
 
@@ -678,15 +829,19 @@ export class BarberService {
     this.cuts.set(updatedCuts);
     this.saveToStorage(STORAGE_KEYS.CUTS, updatedCuts);
 
+    const threshold = this.stampsRequired();
+
     if (client) {
       const newCutsCount = client.cutsCount + 1;
       let newStamps = client.loyaltyStamps + 1;
       let newLevel = client.membershipLevel;
 
-      if (newStamps >= 10) newStamps = 0;
+      if (newStamps >= threshold) newStamps = 0;
       if (newCutsCount >= 15) newLevel = 'VIP';
       else if (newCutsCount >= 8) newLevel = 'Gold';
       else if (newCutsCount >= 3) newLevel = 'Silver';
+
+      const newDebt = params.isCredit ? (client.currentDebt || 0) + finalPrice : (client.currentDebt || 0);
 
       const updatedClients = this.clients().map((c) =>
         c.id === client.id
@@ -695,6 +850,7 @@ export class BarberService {
               cutsCount: newCutsCount,
               loyaltyStamps: newStamps,
               membershipLevel: newLevel,
+              currentDebt: newDebt,
               lastVisitDate: new Date().toISOString().slice(0, 10),
             }
           : c
@@ -703,21 +859,111 @@ export class BarberService {
       this.saveToStorage(STORAGE_KEYS.CLIENTS, updatedClients);
     }
 
-    // Persistir atómicamente en Supabase si está activo
+    const activeShift = this.activeCashShift();
+
+    // Persistir en Supabase
     if (this.supabaseService.isConfigured()) {
       try {
-        const { error } = await this.supabaseService.supabase.from('sales_history').insert({
-          customer_id: params.clientId.startsWith('cli-') ? null : params.clientId,
-          barber_id: params.barberId.startsWith('barber-') ? null : params.barberId,
-          service_id: params.serviceId.startsWith('srv-') ? null : params.serviceId,
-          final_price: finalPrice,
-          payment_method: params.paymentMethod,
-        });
+        const isClientReal = !params.clientId.startsWith('cli-');
+        const isBarberReal = !params.barberId.startsWith('barber-');
+        const isServiceReal = !params.serviceId.startsWith('srv-');
+        const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
+
+        const { data: saleData, error } = await this.supabaseService.supabase
+          .from('sales_history')
+          .insert({
+            customer_id: isClientReal ? params.clientId : null,
+            barber_id: isBarberReal ? params.barberId : null,
+            service_id: isServiceReal ? params.serviceId : null,
+            final_price: finalPrice,
+            payment_method: actualPaymentMethod,
+            amount_paid: params.isCredit ? 0 : finalPrice,
+            amount_debt: params.isCredit ? finalPrice : 0,
+            shift_id: shiftIdReal,
+          })
+          .select('id')
+          .single();
+
+        const saleId = saleData?.id;
 
         if (error) {
           this.logger.error('BarberService', 'Error al insertar venta en Supabase', error);
         } else {
-          this.logger.info('BarberService', 'Venta persistida en Supabase con Trigger de fidelidad');
+          this.logger.info('BarberService', 'Venta persistida con éxito en Supabase');
+        }
+
+        // Si es crédito, registrar en customer_credit_movements (CHARGE)
+        if (params.isCredit && isClientReal) {
+          try {
+            // Asegurar cuenta de crédito
+            let creditAccId: string | null = null;
+            const { data: cData } = await this.supabaseService.supabase
+              .from('customer_credits')
+              .select('id')
+              .eq('profile_id', params.clientId)
+              .maybeSingle();
+
+            if (cData) {
+              creditAccId = cData.id;
+            } else {
+              const { data: newC } = await this.supabaseService.supabase
+                .from('customer_credits')
+                .insert({ profile_id: params.clientId, current_debt: 0, credit_limit: 0 })
+                .select('id')
+                .single();
+              creditAccId = newC?.id || null;
+            }
+
+            if (creditAccId) {
+              await this.supabaseService.supabase.from('customer_credit_movements').insert({
+                customer_credit_id: creditAccId,
+                sale_id: saleId || null,
+                movement_type: 'CHARGE',
+                amount: finalPrice,
+                payment_method: 'credit',
+                notes: `Corte fiado: ${service.name}`,
+                shift_id: shiftIdReal,
+              });
+            }
+          } catch (cErr) {
+            this.logger.warn('BarberService', 'Aviso al registrar movimiento de crédito', cErr);
+          }
+        } else if (!params.isCredit) {
+          // Si es dinero real, registrar en account_movements hacia la cuenta correspondiente
+          const targetType = actualPaymentMethod === 'cash' ? 'cash' : actualPaymentMethod === 'card' ? 'bank' : 'digital_wallet';
+          const targetAcc = this.financialAccounts().find((a) => a.type === targetType) || this.financialAccounts()[0];
+
+          if (targetAcc && !targetAcc.id.startsWith('acc-')) {
+            try {
+              await this.supabaseService.supabase.from('account_movements').insert({
+                account_id: targetAcc.id,
+                movement_type: 'income',
+                amount: finalPrice,
+                description: `Cobro: ${service.name} (${client?.name || 'Cliente'})`,
+                reference_type: 'sale',
+                reference_id: saleId || null,
+                shift_id: actualPaymentMethod === 'cash' ? shiftIdReal : null,
+              });
+            } catch (mErr) {
+              this.logger.warn('BarberService', 'Aviso al registrar movimiento de cuenta', mErr);
+            }
+          }
+
+          // Si es efectivo y hay turno de caja abierto, sumar a cashSales
+          if (actualPaymentMethod === 'cash' && activeShift) {
+            activeShift.cashSales += finalPrice;
+            activeShift.expectedCash += finalPrice;
+            this.activeCashShift.set({ ...activeShift });
+            if (!activeShift.id.startsWith('shift-')) {
+              await this.supabaseService.supabase
+                .from('cash_shifts')
+                .update({
+                  cash_sales: activeShift.cashSales,
+                  expected_cash: activeShift.expectedCash,
+                })
+                .eq('id', activeShift.id);
+            }
+          }
         }
       } catch (e) {
         this.logger.error('BarberService', 'Excepción de red en registerCut', e);
@@ -728,19 +974,24 @@ export class BarberService {
   }
 
   /**
-   * Crear nuevo cliente
+   * Crear nuevo cliente (Solo nombre obligatorio)
    */
-  async createClient(name: string, phone: string, email?: string, notes?: string): Promise<Client> {
+  async createClient(name: string, phone: string = '', email?: string, notes?: string): Promise<Client> {
+    const cleanName = name.trim();
+    const cleanPhone = phone && phone.trim() ? phone.trim() : '';
+
     const newClient: Client = {
       id: 'cli-' + Date.now(),
-      name,
-      phone,
-      email,
+      name: cleanName,
+      phone: cleanPhone,
+      email: email?.trim(),
       cutsCount: 0,
       loyaltyStamps: 0,
       membershipLevel: 'Bronze',
       lastVisitDate: new Date().toISOString().slice(0, 10),
       notes,
+      currentDebt: 0,
+      creditLimit: 0,
     };
 
     const updated = [newClient, ...this.clients()];
@@ -753,8 +1004,8 @@ export class BarberService {
         const { data, error } = await this.supabaseService.supabase
           .from('profiles')
           .insert({
-            full_name: name,
-            phone,
+            full_name: cleanName,
+            phone: cleanPhone || null,
             role: 'customer',
             membership_tier: 'Bronze',
           })
@@ -766,6 +1017,14 @@ export class BarberService {
         } else if (data) {
           newClient.id = data.id;
           this.clients.set([newClient, ...this.clients().filter((c) => c.id !== newClient.id)]);
+          this.saveToStorage(STORAGE_KEYS.CLIENTS, this.clients());
+
+          // Inicializar cuenta de crédito
+          await this.supabaseService.supabase.from('customer_credits').insert({
+            profile_id: data.id,
+            current_debt: 0,
+            credit_limit: 0,
+          });
         }
       } catch (e) {
         this.logger.error('BarberService', 'Excepción al crear cliente en Supabase', e);
@@ -773,6 +1032,321 @@ export class BarberService {
     }
 
     return newClient;
+  }
+
+  /**
+   * Registrar Abono de Deuda de un Cliente
+   */
+  async registerCreditPayment(params: {
+    clientId: string;
+    amount: number;
+    accountId: string;
+    paymentMethod: string;
+    notes?: string;
+  }): Promise<void> {
+    const client = this.clients().find((c) => c.id === params.clientId);
+    if (!client) return;
+
+    const amount = Number(params.amount);
+    client.currentDebt = Math.max(0, (client.currentDebt || 0) - amount);
+    this.clients.set([...this.clients()]);
+    this.saveToStorage(STORAGE_KEYS.CLIENTS, this.clients());
+
+    const acc = this.financialAccounts().find((a) => a.id === params.accountId) || this.financialAccounts()[0];
+    if (acc) {
+      acc.currentBalance += amount;
+      this.financialAccounts.set([...this.financialAccounts()]);
+    }
+
+    const activeShift = this.activeCashShift();
+    if (acc?.type === 'cash' && activeShift) {
+      activeShift.cashSales += amount;
+      activeShift.expectedCash += amount;
+      this.activeCashShift.set({ ...activeShift });
+    }
+
+    // Registrar en Supabase
+    if (this.supabaseService.isConfigured() && !params.clientId.startsWith('cli-')) {
+      try {
+        const { data: cData } = await this.supabaseService.supabase
+          .from('customer_credits')
+          .select('id')
+          .eq('profile_id', params.clientId)
+          .maybeSingle();
+
+        const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
+
+        if (cData) {
+          await this.supabaseService.supabase.from('customer_credit_movements').insert({
+            customer_credit_id: cData.id,
+            movement_type: 'PAYMENT',
+            amount: amount,
+            payment_method: params.paymentMethod,
+            notes: params.notes || `Abono de deuda: ${client.name}`,
+            shift_id: shiftIdReal,
+          });
+        }
+
+        if (acc && !acc.id.startsWith('acc-')) {
+          await this.supabaseService.supabase.from('account_movements').insert({
+            account_id: acc.id,
+            movement_type: 'income',
+            amount: amount,
+            description: `Abono de deuda: ${client.name}`,
+            reference_type: 'credit_payment',
+            shift_id: acc.type === 'cash' ? shiftIdReal : null,
+          });
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Error al registrar abono de crédito', err);
+      }
+    }
+  }
+
+  /**
+   * Apertura de Turno de Caja
+   */
+  async openCashShift(initialCash: number, notes?: string): Promise<CashShift> {
+    const cashAcc = this.financialAccounts().find((a) => a.type === 'cash') || this.financialAccounts()[0];
+    const profile = this.supabaseService.userProfile();
+    const barberId = profile?.id || this.barbers()[0].id;
+
+    const newShift: CashShift = {
+      id: 'shift-' + Date.now(),
+      accountId: cashAcc.id,
+      barberId: barberId,
+      openedAt: new Date().toISOString(),
+      initialCash: Number(initialCash),
+      cashSales: 0,
+      cashExpenses: 0,
+      expectedCash: Number(initialCash),
+      status: 'open',
+      notes: notes || null,
+      barberName: profile?.full_name || 'Master Barber',
+    };
+
+    this.activeCashShift.set(newShift);
+
+    if (this.supabaseService.isConfigured() && !cashAcc.id.startsWith('acc-') && !barberId.startsWith('barber-')) {
+      try {
+        const { data } = await this.supabaseService.supabase
+          .from('cash_shifts')
+          .insert({
+            account_id: cashAcc.id,
+            barber_id: barberId,
+            initial_cash: Number(initialCash),
+            cash_sales: 0,
+            cash_expenses: 0,
+            expected_cash: Number(initialCash),
+            status: 'open',
+            notes: notes || null,
+          })
+          .select('id')
+          .single();
+
+        if (data) {
+          newShift.id = data.id;
+          this.activeCashShift.set(newShift);
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Error al abrir turno en Supabase', err);
+      }
+    }
+
+    return newShift;
+  }
+
+  /**
+   * Cierre y Arqueo de Turno de Caja
+   */
+  async closeCashShift(actualCash: number, notes?: string): Promise<void> {
+    const current = this.activeCashShift();
+    if (!current) return;
+
+    const actual = Number(actualCash);
+    const diff = actual - current.expectedCash;
+    const closedAt = new Date().toISOString();
+
+    if (this.supabaseService.isConfigured() && !current.id.startsWith('shift-')) {
+      try {
+        await this.supabaseService.supabase
+          .from('cash_shifts')
+          .update({
+            closed_at: closedAt,
+            actual_cash: actual,
+            difference: diff,
+            status: 'closed',
+            notes: notes || current.notes,
+          })
+          .eq('id', current.id);
+      } catch (err) {
+        this.logger.error('BarberService', 'Error al cerrar turno en Supabase', err);
+      }
+    }
+
+    this.activeCashShift.set(null);
+  }
+
+  /**
+   * Crear Movimiento de Cuenta Manual (Ingreso o Egreso)
+   */
+  async createAccountMovement(params: {
+    accountId: string;
+    movementType: MovementType;
+    amount: number;
+    description: string;
+    referenceType?: ReferenceType;
+  }): Promise<void> {
+    const acc = this.financialAccounts().find((a) => a.id === params.accountId) || this.financialAccounts()[0];
+    const amount = Number(params.amount);
+    const activeShift = this.activeCashShift();
+
+    const newMov: AccountMovement = {
+      id: 'mov-' + Date.now(),
+      accountId: acc.id,
+      movementType: params.movementType,
+      amount: amount,
+      description: params.description.trim(),
+      referenceType: params.referenceType || 'manual',
+      createdAt: new Date().toISOString(),
+      accountName: acc.name,
+      shiftId: activeShift?.id,
+    };
+
+    this.accountMovements.set([newMov, ...this.accountMovements()]);
+    this.saveToStorage(STORAGE_KEYS.ACCOUNT_MOVEMENTS, this.accountMovements());
+
+    // Actualizar saldo de cuenta local
+    const delta = params.movementType === 'income' || params.movementType === 'transfer_in' ? amount : -amount;
+    acc.currentBalance += delta;
+    this.financialAccounts.set([...this.financialAccounts()]);
+    this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, this.financialAccounts());
+
+    // Si es egreso en efectivo con turno abierto, registrar en cashExpenses
+    if (acc.type === 'cash' && params.movementType === 'expense' && activeShift) {
+      activeShift.cashExpenses += amount;
+      activeShift.expectedCash -= amount;
+      this.activeCashShift.set({ ...activeShift });
+    }
+
+    if (this.supabaseService.isConfigured() && !acc.id.startsWith('acc-')) {
+      try {
+        const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
+        await this.supabaseService.supabase.from('account_movements').insert({
+          account_id: acc.id,
+          movement_type: params.movementType,
+          amount: amount,
+          description: params.description.trim(),
+          reference_type: params.referenceType || 'manual',
+          shift_id: acc.type === 'cash' ? shiftIdReal : null,
+        });
+      } catch (err) {
+        this.logger.error('BarberService', 'Error al crear movimiento en Supabase', err);
+      }
+    }
+  }
+
+  /**
+   * Transferencia entre Cuentas
+   */
+  async transferBetweenAccounts(fromId: string, toId: string, amount: number, description: string): Promise<void> {
+    const fromAcc = this.financialAccounts().find((a) => a.id === fromId);
+    const toAcc = this.financialAccounts().find((a) => a.id === toId);
+    if (!fromAcc || !toAcc) return;
+
+    await this.createAccountMovement({
+      accountId: fromId,
+      movementType: 'transfer_out',
+      amount: amount,
+      description: `Transferencia a ${toAcc.name}: ${description}`,
+      referenceType: 'transfer',
+    });
+
+    await this.createAccountMovement({
+      accountId: toId,
+      movementType: 'transfer_in',
+      amount: amount,
+      description: `Transferencia desde ${fromAcc.name}: ${description}`,
+      referenceType: 'transfer',
+    });
+  }
+
+  /**
+   * Crear Servicio en Catálogo
+   */
+  async createService(name: string, price: number, durationMinutes: number): Promise<ServiceItem> {
+    const newSrv: ServiceItem = {
+      id: 'srv-' + Date.now(),
+      name: name.trim(),
+      price: Number(price),
+      durationMinutes: Number(durationMinutes),
+      isActive: true,
+    };
+
+    const updated = [...this.services(), newSrv];
+    this.services.set(updated);
+    this.saveToStorage(STORAGE_KEYS.SERVICES, updated);
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const { data, error } = await this.supabaseService.supabase
+          .from('services')
+          .insert({
+            name: newSrv.name,
+            base_price: newSrv.price,
+            duration_minutes: newSrv.durationMinutes,
+            is_active: true,
+          })
+          .select('id')
+          .single();
+
+        if (data) {
+          newSrv.id = data.id;
+          this.services.set([...this.services().filter((s) => s.id !== newSrv.id), newSrv]);
+          this.saveToStorage(STORAGE_KEYS.SERVICES, this.services());
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Error al insertar servicio en Supabase', err);
+      }
+    }
+
+    return newSrv;
+  }
+
+  /**
+   * Actualizar Servicio en Catálogo
+   */
+  async updateService(id: string, name: string, price: number, durationMinutes: number, isActive: boolean): Promise<void> {
+    const updated = this.services().map((s) =>
+      s.id === id ? { ...s, name: name.trim(), price: Number(price), durationMinutes: Number(durationMinutes), isActive } : s
+    );
+    this.services.set(updated);
+    this.saveToStorage(STORAGE_KEYS.SERVICES, updated);
+
+    if (this.supabaseService.isConfigured() && !id.startsWith('srv-')) {
+      try {
+        await this.supabaseService.supabase
+          .from('services')
+          .update({
+            name: name.trim(),
+            base_price: Number(price),
+            duration_minutes: Number(durationMinutes),
+            is_active: isActive,
+          })
+          .eq('id', id);
+      } catch (err) {
+        this.logger.error('BarberService', 'Error al actualizar servicio en Supabase', err);
+      }
+    }
+  }
+
+  /**
+   * Alternar estado activo de un Servicio
+   */
+  async toggleServiceStatus(id: string, isActive: boolean): Promise<void> {
+    const srv = this.services().find((s) => s.id === id);
+    if (!srv) return;
+    await this.updateService(id, srv.name, srv.price, srv.durationMinutes, isActive);
   }
 
   /**

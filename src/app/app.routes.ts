@@ -23,7 +23,25 @@ export const routes: Routes = [
     title: 'BarberTrack - Panel de Barbero',
   },
   {
+    path: 'barber/:tab',
+    canActivate: [authGuard(['barber', 'admin'])],
+    loadComponent: () =>
+      import('./features/barber/barber-dashboard/barber-dashboard.page').then(
+        (m) => m.BarberDashboardPage
+      ),
+    title: 'BarberTrack - Panel de Barbero',
+  },
+  {
     path: 'customer',
+    canActivate: [authGuard(['customer'])],
+    loadComponent: () =>
+      import(
+        './features/customer/customer-dashboard/customer-dashboard.page'
+      ).then((m) => m.CustomerDashboardPage),
+    title: 'BarberTrack - Experiencia Cliente',
+  },
+  {
+    path: 'customer/:tab',
     canActivate: [authGuard(['customer'])],
     loadComponent: () =>
       import(

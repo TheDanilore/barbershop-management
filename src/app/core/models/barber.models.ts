@@ -5,7 +5,7 @@
 export type UserRole = 'customer' | 'barber' | 'admin';
 export type MembershipTier = 'Bronze' | 'Silver' | 'Gold' | 'VIP';
 export type AppointmentStatus = 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
-export type PaymentMethod = 'cash' | 'card' | 'transfer';
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'credit';
 
 // Tipos reflejo de la base de datos Supabase (PostgreSQL)
 export interface ProfileRow {
@@ -82,11 +82,13 @@ export interface Client {
   phone: string;
   email?: string;
   cutsCount: number;
-  loyaltyStamps: number; // 0 a 10
+  loyaltyStamps: number; // 0 a stampsRequired
   membershipLevel: MembershipTier;
   lastVisitDate?: string;
   avatarUrl?: string;
   notes?: string;
+  currentDebt?: number;
+  creditLimit?: number;
 }
 
 export interface Barber {
@@ -105,6 +107,7 @@ export interface ServiceItem {
   price: number;
   description?: string;
   popular?: boolean;
+  isActive?: boolean;
 }
 
 export interface CutRecord {
@@ -157,3 +160,84 @@ export interface DashboardKpis {
   activeClients: number;
   averageRating: number;
 }
+
+// -----------------------------------------------------------------------------
+// MODELOS FINANCIEROS Y DE NEGOCIO EMPRESARIAL
+// -----------------------------------------------------------------------------
+export interface BusinessSettings {
+  id: string;
+  stampsRequired: number;
+  businessName: string;
+  currencySymbol: string;
+}
+
+export type AccountType = 'cash' | 'bank' | 'digital_wallet';
+
+export interface FinancialAccount {
+  id: string;
+  name: string;
+  type: AccountType;
+  currentBalance: number;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export type ShiftStatus = 'open' | 'closed';
+
+export interface CashShift {
+  id: string;
+  accountId: string;
+  barberId: string;
+  openedAt: string;
+  closedAt?: string | null;
+  initialCash: number;
+  cashSales: number;
+  cashExpenses: number;
+  expectedCash: number;
+  actualCash?: number | null;
+  difference?: number | null;
+  status: ShiftStatus;
+  notes?: string | null;
+  barberName?: string;
+}
+
+export type MovementType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+export type ReferenceType = 'sale' | 'credit_payment' | 'manual' | 'expense' | 'transfer' | 'shift_adjustment';
+
+export interface AccountMovement {
+  id: string;
+  accountId: string;
+  movementType: MovementType;
+  amount: number;
+  description: string;
+  referenceType?: ReferenceType | null;
+  referenceId?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  shiftId?: string | null;
+  accountName?: string;
+}
+
+export interface CustomerCredit {
+  id: string;
+  profileId: string;
+  creditLimit: number;
+  currentDebt: number;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export type CreditMovementType = 'CHARGE' | 'PAYMENT';
+
+export interface CustomerCreditMovement {
+  id: string;
+  customerCreditId: string;
+  saleId?: string | null;
+  movementType: CreditMovementType;
+  amount: number;
+  paymentMethod?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  createdBy?: string | null;
+}
+

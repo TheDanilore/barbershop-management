@@ -66,65 +66,113 @@ CREATE TYPE "public"."user_role" AS ENUM (
 ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."fn_on_account_movement"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    IF NEW.movement_type IN ('income', 'transfer_in') THEN
+        UPDATE public.financial_accounts
+        SET current_balance = current_balance + NEW.amount
+        WHERE id = NEW.account_id;
+    ELSIF NEW.movement_type IN ('expense', 'transfer_out') THEN
+        UPDATE public.financial_accounts
+        SET current_balance = current_balance - NEW.amount
+        WHERE id = NEW.account_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."fn_on_account_movement"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."fn_on_credit_movement"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    IF NEW.movement_type = 'CHARGE' THEN
+        UPDATE public.customer_credits
+        SET current_debt = current_debt + NEW.amount,
+            updated_at = now()
+        WHERE id = NEW.customer_credit_id;
+    ELSIF NEW.movement_type = 'PAYMENT' THEN
+        UPDATE public.customer_credits
+        SET current_debt = GREATEST(0, current_debt - NEW.amount),
+            updated_at = now()
+        WHERE id = NEW.customer_credit_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."fn_on_credit_movement"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."fn_on_sale_loyalty_update"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
-  v_new_stamps integer;
-  v_new_rewards integer;
-  v_total_cuts integer;
-  v_new_tier text;
+    v_new_stamps integer;
+    v_total_cuts integer;
+    v_new_tier text;
+    v_stamps_threshold integer := 10;
 BEGIN
-  -- Solo procesar si la venta está asociada a un cliente (customer_id no es nulo)
-  IF NEW.customer_id IS NOT NULL THEN
+    -- Leer umbral dinámico desde business_settings si existe
+    SELECT COALESCE(stamps_required, 10) INTO v_stamps_threshold 
+    FROM public.business_settings LIMIT 1;
     
-    -- Insertar o actualizar atómicamente el registro en loyalty_progress
-    INSERT INTO public.loyalty_progress (
-      customer_id,
-      current_stamps,
-      total_historical_cuts,
-      rewards_claimed,
-      updated_at
-    )
-    VALUES (
-      NEW.customer_id,
-      1,
-      1,
-      0,
-      now()
-    )
-    ON CONFLICT (customer_id) DO UPDATE SET
-      total_historical_cuts = loyalty_progress.total_historical_cuts + 1,
-      current_stamps = CASE 
-        WHEN loyalty_progress.current_stamps >= 9 THEN 0 
-        ELSE loyalty_progress.current_stamps + 1 
-      END,
-      rewards_claimed = CASE 
-        WHEN loyalty_progress.current_stamps >= 9 THEN loyalty_progress.rewards_claimed + 1 
-        ELSE loyalty_progress.rewards_claimed 
-      END,
-      updated_at = now()
-    RETURNING total_historical_cuts INTO v_total_cuts;
-
-    -- Determinar el nivel de membresía basado en el historial consolidado
-    IF v_total_cuts >= 15 THEN
-      v_new_tier := 'VIP';
-    ELSIF v_total_cuts >= 8 THEN
-      v_new_tier := 'Gold';
-    ELSIF v_total_cuts >= 3 THEN
-      v_new_tier := 'Silver';
-    ELSE
-      v_new_tier := 'Bronze';
+    IF v_stamps_threshold IS NULL OR v_stamps_threshold < 2 THEN
+        v_stamps_threshold := 10;
     END IF;
 
-    -- Actualizar el tier en profiles
-    UPDATE public.profiles
-    SET membership_tier = v_new_tier
-    WHERE id = NEW.customer_id;
+    IF NEW.customer_id IS NOT NULL THEN
+        -- Insertar o actualizar atómicamente el registro en loyalty_progress
+        INSERT INTO public.loyalty_progress (
+            customer_id,
+            current_stamps,
+            total_historical_cuts,
+            rewards_claimed,
+            updated_at
+        )
+        VALUES (
+            NEW.customer_id,
+            1,
+            1,
+            0,
+            now()
+        )
+        ON CONFLICT (customer_id) DO UPDATE SET
+            total_historical_cuts = loyalty_progress.total_historical_cuts + 1,
+            current_stamps = CASE 
+                WHEN loyalty_progress.current_stamps >= (v_stamps_threshold - 1) THEN 0 
+                ELSE loyalty_progress.current_stamps + 1 
+            END,
+            rewards_claimed = CASE 
+                WHEN loyalty_progress.current_stamps >= (v_stamps_threshold - 1) THEN loyalty_progress.rewards_claimed + 1 
+                ELSE loyalty_progress.rewards_claimed 
+            END,
+            updated_at = now()
+        RETURNING total_historical_cuts INTO v_total_cuts;
 
-  END IF;
+        -- Determinar el nivel de membresía basado en el historial consolidado
+        IF v_total_cuts >= 15 THEN
+            v_new_tier := 'VIP';
+        ELSIF v_total_cuts >= 8 THEN
+            v_new_tier := 'Gold';
+        ELSIF v_total_cuts >= 3 THEN
+            v_new_tier := 'Silver';
+        ELSE
+            v_new_tier := 'Bronze';
+        END IF;
 
-  RETURN NEW;
+        UPDATE public.profiles
+        SET membership_tier = v_new_tier
+        WHERE id = NEW.customer_id;
+    END IF;
+
+    RETURN NEW;
 END;
 $$;
 
@@ -187,6 +235,26 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
+CREATE TABLE IF NOT EXISTS "public"."account_movements" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "account_id" "uuid" NOT NULL,
+    "movement_type" "text" NOT NULL,
+    "amount" numeric(10,2) NOT NULL,
+    "description" "text" NOT NULL,
+    "reference_type" "text",
+    "reference_id" "uuid",
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "shift_id" "uuid",
+    CONSTRAINT "account_movements_amount_check" CHECK (("amount" > (0)::numeric)),
+    CONSTRAINT "account_movements_movement_type_check" CHECK (("movement_type" = ANY (ARRAY['income'::"text", 'expense'::"text", 'transfer_in'::"text", 'transfer_out'::"text"]))),
+    CONSTRAINT "account_movements_reference_type_check" CHECK (("reference_type" = ANY (ARRAY['sale'::"text", 'credit_payment'::"text", 'manual'::"text", 'expense'::"text", 'transfer'::"text", 'shift_adjustment'::"text"])))
+);
+
+
+ALTER TABLE "public"."account_movements" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."appointments" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "customer_id" "uuid" NOT NULL,
@@ -199,6 +267,90 @@ CREATE TABLE IF NOT EXISTS "public"."appointments" (
 
 
 ALTER TABLE "public"."appointments" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."business_settings" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "stamps_required" integer DEFAULT 10 NOT NULL,
+    "business_name" "text" DEFAULT 'BarberTrack PRO'::"text" NOT NULL,
+    "currency_symbol" "text" DEFAULT '$'::"text" NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "business_settings_stamps_required_check" CHECK (("stamps_required" >= 2))
+);
+
+
+ALTER TABLE "public"."business_settings" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."cash_shifts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "account_id" "uuid" NOT NULL,
+    "barber_id" "uuid" NOT NULL,
+    "opened_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "closed_at" timestamp with time zone,
+    "initial_cash" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "cash_sales" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "cash_expenses" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "expected_cash" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "actual_cash" numeric(10,2),
+    "difference" numeric(10,2),
+    "status" "text" DEFAULT 'open'::"text" NOT NULL,
+    "notes" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "cash_shifts_status_check" CHECK (("status" = ANY (ARRAY['open'::"text", 'closed'::"text"])))
+);
+
+
+ALTER TABLE "public"."cash_shifts" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."customer_credit_movements" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "customer_credit_id" "uuid" NOT NULL,
+    "sale_id" "uuid",
+    "movement_type" "text" NOT NULL,
+    "amount" numeric(10,2) NOT NULL,
+    "payment_method" "text",
+    "notes" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "created_by" "uuid",
+    "shift_id" "uuid",
+    CONSTRAINT "customer_credit_movements_amount_check" CHECK (("amount" > (0)::numeric)),
+    CONSTRAINT "customer_credit_movements_movement_type_check" CHECK (("movement_type" = ANY (ARRAY['CHARGE'::"text", 'PAYMENT'::"text"])))
+);
+
+
+ALTER TABLE "public"."customer_credit_movements" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."customer_credits" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "profile_id" "uuid" NOT NULL,
+    "credit_limit" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "current_debt" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "created_by" "uuid",
+    CONSTRAINT "customer_credits_current_debt_check" CHECK (("current_debt" >= (0)::numeric))
+);
+
+
+ALTER TABLE "public"."customer_credits" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."financial_accounts" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "type" "text" NOT NULL,
+    "current_balance" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "financial_accounts_type_check" CHECK (("type" = ANY (ARRAY['cash'::"text", 'bank'::"text", 'digital_wallet'::"text"])))
+);
+
+
+ALTER TABLE "public"."financial_accounts" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."loyalty_progress" (
@@ -251,7 +403,10 @@ CREATE TABLE IF NOT EXISTS "public"."sales_history" (
     "appointment_id" "uuid",
     "final_price" numeric(10,2) NOT NULL,
     "payment_method" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "amount_paid" numeric(10,2) DEFAULT NULL::numeric,
+    "amount_debt" numeric(10,2) DEFAULT 0.00,
+    "shift_id" "uuid"
 );
 
 
@@ -271,8 +426,43 @@ CREATE TABLE IF NOT EXISTS "public"."services" (
 ALTER TABLE "public"."services" OWNER TO "postgres";
 
 
+ALTER TABLE ONLY "public"."account_movements"
+    ADD CONSTRAINT "account_movements_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."appointments"
     ADD CONSTRAINT "appointments_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."business_settings"
+    ADD CONSTRAINT "business_settings_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."cash_shifts"
+    ADD CONSTRAINT "cash_shifts_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."customer_credit_movements"
+    ADD CONSTRAINT "credit_movements_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."customer_credits"
+    ADD CONSTRAINT "customer_credits_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."customer_credits"
+    ADD CONSTRAINT "customer_credits_profile_id_key" UNIQUE ("profile_id");
+
+
+
+ALTER TABLE ONLY "public"."financial_accounts"
+    ADD CONSTRAINT "financial_accounts_pkey" PRIMARY KEY ("id");
 
 
 
@@ -316,7 +506,43 @@ ALTER TABLE ONLY "public"."services"
 
 
 
+CREATE INDEX "account_movements_account_id_idx" ON "public"."account_movements" USING "btree" ("account_id");
+
+
+
+CREATE INDEX "account_movements_created_by_idx" ON "public"."account_movements" USING "btree" ("created_by");
+
+
+
+CREATE INDEX "account_movements_shift_id_idx" ON "public"."account_movements" USING "btree" ("shift_id");
+
+
+
+CREATE INDEX "customer_credits_created_by_idx" ON "public"."customer_credits" USING "btree" ("created_by");
+
+
+
+CREATE INDEX "customer_credits_profile_id_idx" ON "public"."customer_credits" USING "btree" ("profile_id");
+
+
+
 CREATE INDEX "idx_appointments_scheduled_status" ON "public"."appointments" USING "btree" ("scheduled_at", "status");
+
+
+
+CREATE INDEX "idx_cash_shifts_barber" ON "public"."cash_shifts" USING "btree" ("barber_id", "status");
+
+
+
+CREATE INDEX "idx_customer_credit_movements_created_by" ON "public"."customer_credit_movements" USING "btree" ("created_by");
+
+
+
+CREATE INDEX "idx_customer_credit_movements_customer_credit_id" ON "public"."customer_credit_movements" USING "btree" ("customer_credit_id");
+
+
+
+CREATE INDEX "idx_customer_credit_movements_sale_id" ON "public"."customer_credit_movements" USING "btree" ("sale_id");
 
 
 
@@ -332,7 +558,30 @@ CREATE INDEX "idx_sales_customer" ON "public"."sales_history" USING "btree" ("cu
 
 
 
+CREATE OR REPLACE TRIGGER "trg_account_movement_balance" AFTER INSERT ON "public"."account_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_account_movement"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_customer_credit_balance" AFTER INSERT ON "public"."customer_credit_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_credit_movement"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_sale_loyalty_update" AFTER INSERT ON "public"."sales_history" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_sale_loyalty_update"();
+
+
+
+ALTER TABLE ONLY "public"."account_movements"
+    ADD CONSTRAINT "account_movements_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "public"."financial_accounts"("id");
+
+
+
+ALTER TABLE ONLY "public"."account_movements"
+    ADD CONSTRAINT "account_movements_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."account_movements"
+    ADD CONSTRAINT "account_movements_shift_id_fkey" FOREIGN KEY ("shift_id") REFERENCES "public"."cash_shifts"("id") ON DELETE SET NULL;
 
 
 
@@ -348,6 +597,46 @@ ALTER TABLE ONLY "public"."appointments"
 
 ALTER TABLE ONLY "public"."appointments"
     ADD CONSTRAINT "appointments_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id");
+
+
+
+ALTER TABLE ONLY "public"."cash_shifts"
+    ADD CONSTRAINT "cash_shifts_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "public"."financial_accounts"("id");
+
+
+
+ALTER TABLE ONLY "public"."cash_shifts"
+    ADD CONSTRAINT "cash_shifts_barber_id_fkey" FOREIGN KEY ("barber_id") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."customer_credit_movements"
+    ADD CONSTRAINT "customer_credit_movements_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."customer_credit_movements"
+    ADD CONSTRAINT "customer_credit_movements_customer_credit_id_fkey" FOREIGN KEY ("customer_credit_id") REFERENCES "public"."customer_credits"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."customer_credit_movements"
+    ADD CONSTRAINT "customer_credit_movements_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "public"."sales_history"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."customer_credit_movements"
+    ADD CONSTRAINT "customer_credit_movements_shift_id_fkey" FOREIGN KEY ("shift_id") REFERENCES "public"."cash_shifts"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."customer_credits"
+    ADD CONSTRAINT "customer_credits_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."customer_credits"
+    ADD CONSTRAINT "customer_credits_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
@@ -386,6 +675,11 @@ ALTER TABLE ONLY "public"."sales_history"
 
 
 
+ALTER TABLE ONLY "public"."sales_history"
+    ADD CONSTRAINT "sales_history_shift_id_fkey" FOREIGN KEY ("shift_id") REFERENCES "public"."cash_shifts"("id") ON DELETE SET NULL;
+
+
+
 CREATE POLICY "Acceso a citas" ON "public"."appointments" USING ((("customer_id" IN ( SELECT "profiles"."id"
    FROM "public"."profiles"
   WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))) OR ("public"."is_staff"() = true)));
@@ -404,6 +698,10 @@ CREATE POLICY "Acceso a ventas" ON "public"."sales_history" USING ((("customer_i
 
 
 
+CREATE POLICY "Clientes leen su propio credito" ON "public"."customer_credits" FOR SELECT TO "authenticated" USING (("profile_id" = "auth"."uid"()));
+
+
+
 CREATE POLICY "Gestión completa de ventas para personal" ON "public"."sales_history" USING ((EXISTS ( SELECT 1
    FROM "public"."profiles"
   WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"public"."user_role", 'barber'::"public"."user_role"]))))));
@@ -411,6 +709,10 @@ CREATE POLICY "Gestión completa de ventas para personal" ON "public"."sales_his
 
 
 CREATE POLICY "Lectura de perfiles autorizados" ON "public"."profiles" FOR SELECT USING ((("auth_user_id" = "auth"."uid"()) OR ("id" = "auth"."uid"()) OR ("public"."is_staff"() = true)));
+
+
+
+CREATE POLICY "Lectura publica de configuracion" ON "public"."business_settings" FOR SELECT TO "authenticated", "anon" USING (true);
 
 
 
@@ -422,11 +724,57 @@ CREATE POLICY "Permitir insercion inicial de perfiles" ON "public"."profiles" FO
 
 
 
+CREATE POLICY "Staff gestiona catalogo de servicios" ON "public"."services" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
+CREATE POLICY "Staff gestiona configuracion" ON "public"."business_settings" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
+CREATE POLICY "Staff gestiona creditos de clientes" ON "public"."customer_credits" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
+CREATE POLICY "Staff gestiona cuentas financieras" ON "public"."financial_accounts" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
+CREATE POLICY "Staff gestiona movimientos de credito" ON "public"."customer_credit_movements" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
+CREATE POLICY "Staff gestiona movimientos de cuenta" ON "public"."account_movements" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
+CREATE POLICY "Staff gestiona turnos de caja" ON "public"."cash_shifts" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
 CREATE POLICY "Usuarios actualizan su propio perfil" ON "public"."profiles" FOR UPDATE USING ((("auth_user_id" = "auth"."uid"()) OR ("id" = "auth"."uid"()) OR ("public"."is_staff"() = true)));
 
 
 
+ALTER TABLE "public"."account_movements" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."appointments" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."business_settings" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."cash_shifts" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."customer_credit_movements" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."customer_credits" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."financial_accounts" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."loyalty_progress" ENABLE ROW LEVEL SECURITY;
@@ -603,6 +951,18 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."fn_on_credit_movement"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_on_credit_movement"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_on_credit_movement"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "anon";
 GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "service_role";
@@ -636,9 +996,45 @@ GRANT ALL ON FUNCTION "public"."is_staff"() TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."account_movements" TO "anon";
+GRANT ALL ON TABLE "public"."account_movements" TO "authenticated";
+GRANT ALL ON TABLE "public"."account_movements" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."appointments" TO "anon";
 GRANT ALL ON TABLE "public"."appointments" TO "authenticated";
 GRANT ALL ON TABLE "public"."appointments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."business_settings" TO "anon";
+GRANT ALL ON TABLE "public"."business_settings" TO "authenticated";
+GRANT ALL ON TABLE "public"."business_settings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."cash_shifts" TO "anon";
+GRANT ALL ON TABLE "public"."cash_shifts" TO "authenticated";
+GRANT ALL ON TABLE "public"."cash_shifts" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."customer_credit_movements" TO "anon";
+GRANT ALL ON TABLE "public"."customer_credit_movements" TO "authenticated";
+GRANT ALL ON TABLE "public"."customer_credit_movements" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."customer_credits" TO "anon";
+GRANT ALL ON TABLE "public"."customer_credits" TO "authenticated";
+GRANT ALL ON TABLE "public"."customer_credits" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."financial_accounts" TO "anon";
+GRANT ALL ON TABLE "public"."financial_accounts" TO "authenticated";
+GRANT ALL ON TABLE "public"."financial_accounts" TO "service_role";
 
 
 

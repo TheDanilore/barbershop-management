@@ -119,7 +119,6 @@ DECLARE
     v_new_tier text;
     v_stamps_threshold integer := 10;
 BEGIN
-    -- Leer umbral dinámico desde app_settings si existe
     SELECT COALESCE(value::integer, 10) INTO v_stamps_threshold 
     FROM public.app_settings 
     WHERE key = 'stamps_required' 
@@ -130,7 +129,6 @@ BEGIN
     END IF;
 
     IF NEW.customer_id IS NOT NULL THEN
-        -- Insertar o actualizar atómicamente el registro en loyalty_progress
         INSERT INTO public.loyalty_progress (
             customer_id,
             current_stamps,
@@ -159,16 +157,15 @@ BEGIN
             updated_at = now()
         RETURNING current_stamps, total_historical_cuts INTO v_new_stamps, v_total_cuts;
 
-        -- Actualizar el nivel de membresía en profiles de acuerdo al histórico
         v_new_tier := CASE 
-            WHEN v_total_cuts >= 50 THEN 'black'
-            WHEN v_total_cuts >= 20 THEN 'vip'
-            WHEN v_total_cuts >= 5  THEN 'premium'
-            ELSE 'regular'
+            WHEN v_total_cuts >= 50 THEN 'Diamond'
+            WHEN v_total_cuts >= 20 THEN 'Gold'
+            WHEN v_total_cuts >= 5  THEN 'Silver'
+            ELSE 'Bronze'
         END;
 
         UPDATE public.profiles 
-        SET membership_level = v_new_tier::public.user_membership
+        SET membership_tier = v_new_tier
         WHERE id = NEW.customer_id;
     END IF;
 

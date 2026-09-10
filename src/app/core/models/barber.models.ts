@@ -245,3 +245,15 @@ export interface CustomerCreditMovement {
   createdBy?: string | null;
 }
 
+export interface SystemUser {
+  id: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  role: UserRole;
+  isActive: boolean;
+  avatarUrl?: string;
+  createdAt?: string;
+}
+
+

@@ -20,6 +20,8 @@ import {
   Review,
   SaleHistoryRow,
   ServiceItem,
+  SystemUser,
+  UserRole,
 } from '../models/barber.models';
 
 const STORAGE_KEYS = {
@@ -80,6 +82,7 @@ export class BarberService {
   readonly appointments = signal<Appointment[]>(this.loadFromStorage(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS));
   readonly reviews = signal<Review[]>(this.loadFromStorage(STORAGE_KEYS.REVIEWS, INITIAL_REVIEWS));
   readonly serverKpis = signal<DashboardKpis | null>(null);
+  readonly systemUsers = signal<SystemUser[]>([]);
 
   // Configuración dinámica de negocio (Fidelidad, moneda, etc.)
   readonly businessSettings = signal<BusinessSettings>(
@@ -474,6 +477,29 @@ export class BarberService {
         }
       } catch {
         // Usar clientes locales
+      }
+
+      // 9. Proyección de Todos los Usuarios del Sistema (Admin, Barberos, Clientes)
+      try {
+        const { data: allUsersData, error: usersError } = await this.supabaseService.supabase
+          .from('profiles')
+          .select('id, full_name, phone, role, is_active, avatar_url, created_at')
+          .order('created_at', { ascending: false });
+
+        if (!usersError && allUsersData) {
+          const mappedUsers: SystemUser[] = allUsersData.map((u: any) => ({
+            id: u.id,
+            fullName: u.full_name || 'Usuario',
+            phone: u.phone || '',
+            role: (u.role as UserRole) || 'barber',
+            isActive: u.is_active ?? true,
+            avatarUrl: u.avatar_url || undefined,
+            createdAt: u.created_at,
+          }));
+          this.systemUsers.set(mappedUsers);
+        }
+      } catch {
+        // Fallback
       }
 
       // 4. Proyección quirúrgica de Ventas recientes con Join relacional seguro
@@ -1259,6 +1285,105 @@ export class BarberService {
     const updated = [newRev, ...this.reviews()];
     this.reviews.set(updated);
     this.saveToStorage(STORAGE_KEYS.REVIEWS, updated);
+  }
+
+  /**
+   * Crear Usuario de Sistema (Admin, Barbero o Cliente)
+   */
+  async createSystemUser(params: {
+    fullName: string;
+    phone?: string;
+    role: UserRole;
+    isActive?: boolean;
+  }): Promise<SystemUser> {
+    const newUser: SystemUser = {
+      id: 'usr-' + Date.now(),
+      fullName: params.fullName.trim(),
+      phone: params.phone?.trim() || '',
+      role: params.role,
+      isActive: params.isActive ?? true,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.systemUsers.set([newUser, ...this.systemUsers()]);
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const { data, error } = await this.supabaseService.supabase
+          .from('profiles')
+          .insert({
+            full_name: newUser.fullName,
+            phone: newUser.phone || null,
+            role: newUser.role,
+            is_active: newUser.isActive,
+          })
+          .select('id')
+          .single();
+
+        if (data) {
+          newUser.id = data.id;
+          this.systemUsers.set([newUser, ...this.systemUsers().filter((u) => u.id !== newUser.id)]);
+        }
+        if (error) {
+          this.logger.error('BarberService', 'Error creando perfil de usuario en Supabase', error);
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Excepción creando usuario de sistema', err);
+      }
+    }
+
+    return newUser;
+  }
+
+  /**
+   * Actualizar Usuario de Sistema
+   */
+  async updateSystemUser(
+    id: string,
+    params: { fullName: string; phone?: string; role: UserRole; isActive?: boolean }
+  ): Promise<void> {
+    const updated = this.systemUsers().map((u) =>
+      u.id === id
+        ? {
+            ...u,
+            fullName: params.fullName.trim(),
+            phone: params.phone?.trim() || '',
+            role: params.role,
+            isActive: params.isActive ?? u.isActive,
+          }
+        : u
+    );
+    this.systemUsers.set(updated);
+
+    if (this.supabaseService.isConfigured() && !id.startsWith('usr-')) {
+      try {
+        await this.supabaseService.supabase
+          .from('profiles')
+          .update({
+            full_name: params.fullName.trim(),
+            phone: params.phone?.trim() || null,
+            role: params.role,
+            is_active: params.isActive,
+          })
+          .eq('id', id);
+      } catch (err) {
+        this.logger.error('BarberService', 'Error actualizando usuario en Supabase', err);
+      }
+    }
+  }
+
+  /**
+   * Alternar estado activo/inactivo de Usuario de Sistema
+   */
+  async toggleSystemUserStatus(id: string, isActive: boolean): Promise<void> {
+    const target = this.systemUsers().find((u) => u.id === id);
+    if (!target) return;
+    await this.updateSystemUser(id, {
+      fullName: target.fullName,
+      phone: target.phone,
+      role: target.role,
+      isActive,
+    });
   }
 
   private loadRole(): 'landing' | 'barber' | 'client' {

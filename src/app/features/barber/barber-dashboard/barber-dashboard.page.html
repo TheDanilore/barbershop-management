@@ -123,6 +123,23 @@
         </svg>
         <span class="nav-label">Finanzas & Stats</span>
       </button>
+
+      <button
+        class="sidebar-nav-item"
+        [class.active]="activeTab() === 'users'"
+        (click)="setTab('users')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span class="nav-label">Usuarios & Equipo</span>
+        @if (barberService.systemUsers().length > 0) {
+          <span class="sidebar-counter-pill">{{ barberService.systemUsers().length }}</span>
+        }
+      </button>
     </nav>
 
     <!-- Mini-Widget Caja en Tiempo Real -->
@@ -229,7 +246,8 @@
             activeTab() === 'appointments' ? 'Agenda & Turnos' :
             activeTab() === 'clients' ? 'Directorio de Clientes' :
             activeTab() === 'services' ? 'Catálogo de Servicios' :
-            activeTab() === 'cash' ? 'Caja & Cuentas Financieras' : 'Finanzas & Métricas'
+            activeTab() === 'cash' ? 'Caja & Cuentas Financieras' :
+            activeTab() === 'stats' ? 'Finanzas & Métricas' : 'Usuarios & Equipo'
           }}
         </span>
       </div>
@@ -499,55 +517,85 @@
             </div>
           </div>
 
-          @if (filteredClients().length === 0) {
-            <div class="empty-state-card">
+          @if (barberService.clients().length === 0) {
+            <div class="empty-state-card full-span">
+              <div class="empty-icon">👥</div>
+              <h3 class="empty-title">Directorio de Clientes Vacío</h3>
+              <p class="empty-desc">Registra a tu primer cliente para comenzar a trazar sus cortes, fidelización por sellos y control de créditos o fiados.</p>
+              <button class="btn-primary-action" (click)="openNewClientModal()">+ Registrar Primer Cliente (Alt+C)</button>
+            </div>
+          } @else if (filteredClients().length === 0) {
+            <div class="empty-state-card full-span">
               <div class="empty-icon">🔍</div>
               <h3 class="empty-title">Sin clientes coincidentes</h3>
               <p class="empty-desc">No se encontraron clientes con el criterio "{{ clientSearchQuery() }}"</p>
+              <button class="btn-secondary-action" (click)="clientSearchQuery.set('')">Limpiar filtro</button>
             </div>
           } @else {
             <div class="clients-desktop-grid">
               @for (client of filteredClients(); track client.id) {
                 <div class="client-card-item" [class.has-debt]="(client.currentDebt || 0) > 0">
-                  <div class="client-avatar-col">
-                    <div class="client-avatar-circle">{{ client.name.charAt(0) }}</div>
+                  <div class="client-card-top">
+                    <div class="client-avatar-col">
+                      <div class="client-avatar-circle">{{ client.name.charAt(0).toUpperCase() }}</div>
+                    </div>
+                    <div class="client-details-col">
+                      <div class="client-name-row">
+                        <span class="c-name">{{ client.name }}</span>
+                        <span class="membership-tag" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+                      </div>
+                      <div class="c-phone">
+                        @if (client.phone) {
+                          📞 {{ client.phone }}
+                        } @else {
+                          <span class="no-phone-label">Sin teléfono registrado</span>
+                        }
+                      </div>
+                    </div>
                   </div>
-                  <div class="client-details-col">
-                    <div class="client-name-row">
-                      <span class="c-name">{{ client.name }}</span>
-                      <span class="membership-tag" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
-                    </div>
 
-                    <div class="c-phone">
-                      @if (client.phone) {
-                        📞 {{ client.phone }}
-                      } @else {
-                        <span class="no-phone-label">Sin teléfono registrado</span>
-                      }
+                  <!-- Métricas clave: Cortes y Fidelización -->
+                  <div class="client-metrics-row">
+                    <div class="cm-stat">
+                      <span class="cm-label">Cortes acumulados:</span>
+                      <strong class="cm-value">{{ client.cutsCount }}</strong>
                     </div>
-
-                    <!-- Fidelización Dinámica con Stamps Required -->
-                    <div class="c-stamps-pill">
-                      Sellos: <strong>{{ client.loyaltyStamps }}/{{ barberService.stampsRequired() }}</strong>
+                    <div class="cm-stat">
+                      <span class="cm-label">Sellos:</span>
+                      <strong class="cm-value">{{ client.loyaltyStamps }}/{{ barberService.stampsRequired() }}</strong>
                       @if (client.loyaltyStamps >= barberService.stampsRequired() - 1) {
                         <span class="tag-gold-alert">¡Próximo GRATIS!</span>
                       }
                     </div>
+                  </div>
 
-                    <!-- Deuda / Fiado Badge -->
+                  <!-- Crédito / Deuda (Fiado) -->
+                  <div class="client-credit-panel" [class.has-debt]="(client.currentDebt || 0) > 0">
                     @if ((client.currentDebt || 0) > 0) {
-                      <div class="client-debt-badge">
-                        <span>Saldo Deudor: <strong>${{ client.currentDebt?.toFixed(2) }}</strong></span>
-                        <button class="btn-pay-debt-link" (click)="openDebtPaymentModal(client)">
-                          Abonar Pago
-                        </button>
+                      <div class="ccp-debt-info">
+                        <div class="ccp-row">
+                          <span class="ccp-label">⚠️ Saldo Fiado (Deuda):</span>
+                          <strong class="ccp-debt-val">${{ (client.currentDebt || 0).toFixed(2) }}</strong>
+                        </div>
+                        @if (client.creditLimit) {
+                          <div class="ccp-sub">Límite acordado: ${{ client.creditLimit.toFixed(2) }}</div>
+                        }
+                      </div>
+                      <button class="btn-pay-debt-action" (click)="openDebtPaymentModal(client)" title="Registrar abono de deuda">
+                        💰 Abonar Pago
+                      </button>
+                    } @else {
+                      <div class="ccp-clean-info">
+                        <span class="ccp-clean-icon">✓</span>
+                        <span class="ccp-clean-text">Crédito al día • Sin deuda pendiente</span>
                       </div>
                     }
                   </div>
 
-                  <div class="client-action-col">
+                  <!-- Acciones de Tarjeta -->
+                  <div class="client-card-actions">
                     <button class="btn-add-cut-direct" (click)="openRegisterCutModal(client.id)" title="Registrar corte rápido">
-                      + ✂ Corte
+                      + ✂ Nuevo Corte
                     </button>
                   </div>
                 </div>
@@ -813,6 +861,73 @@
           </div>
         </div>
       }
+
+      <!-- ---------------- TAB USERS ---------------- -->
+      @if (activeTab() === 'users') {
+        <div class="tab-pane fade-in full-width-pane">
+          <div class="pane-header">
+            <div>
+              <h2 class="pane-title">Gestión de Usuarios & Personal</h2>
+              <p class="pane-subtitle">{{ barberService.systemUsers().length }} usuarios registrados • Administradores, barberos y colaboradores</p>
+            </div>
+            <button class="btn-primary-action" (click)="openCreateUserModal()">+ Nuevo Colaborador</button>
+          </div>
+
+          <div class="users-desktop-grid">
+            @for (usr of barberService.systemUsers(); track usr.id) {
+              <div class="user-management-card" [class.inactive]="!usr.isActive">
+                <div class="umc-header">
+                  <div class="umc-avatar">
+                    {{ usr.fullName.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="umc-status-group">
+                    <span class="umc-badge-role" [class]="usr.role">
+                      {{ usr.role === 'admin' ? '🛡 Admin' : usr.role === 'barber' ? '✂ Barbero' : '👤 Cliente' }}
+                    </span>
+                    <span class="umc-badge-status" [class.active]="usr.isActive">
+                      {{ usr.isActive ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="umc-body">
+                  <h3 class="umc-title">{{ usr.fullName }}</h3>
+                  <div class="umc-phone">
+                    @if (usr.phone) {
+                      📞 {{ usr.phone }}
+                    } @else {
+                      <span class="no-phone-label">Sin teléfono asignado</span>
+                    }
+                  </div>
+                  @if (usr.createdAt) {
+                    <div class="umc-date">Registrado: {{ formatDate(usr.createdAt) }}</div>
+                  }
+                </div>
+
+                <div class="umc-footer-actions">
+                  <button class="btn-smc-edit" (click)="openEditUserModal(usr)">
+                    ✏ Editar
+                  </button>
+                  <button
+                    class="btn-smc-toggle"
+                    [class.danger]="usr.isActive"
+                    (click)="toggleUserStatus(usr)"
+                  >
+                    {{ usr.isActive ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </div>
+            } @empty {
+              <div class="empty-state-card full-span">
+                <div class="empty-icon">👥</div>
+                <h3 class="empty-title">Sin usuarios registrados</h3>
+                <p class="empty-desc">Crea cuentas de acceso para tu equipo de barberos y administradores.</p>
+                <button class="btn-primary-action" (click)="openCreateUserModal()">+ Crear Primer Usuario</button>
+              </div>
+            }
+          </div>
+        </div>
+      }
     </main>
   </div>
 
@@ -873,6 +988,16 @@
         <line x1="6" y1="20" x2="6" y2="14"></line>
       </svg>
       <span>Stats</span>
+    </button>
+
+    <button class="nav-item" [class.active]="activeTab() === 'users'" (click)="setTab('users')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span>Equipo</span>
     </button>
   </nav>
 
@@ -1345,6 +1470,70 @@
           <button type="submit" class="btn-confirm-primary" [disabled]="transferForm.invalid || isSubmitting()">
             @if (isSubmitting()) { Transfiriendo... } @else { Ejecutar Transferencia }
           </button>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CREAR / EDITAR USUARIO DE SISTEMA -->
+  @if (isUserModalOpen()) {
+    <div class="modal-backdrop" (click)="closeUserModal()">
+      <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <div class="sheet-title-group">
+            <h2 class="sheet-title">
+              {{ editingUserId() ? 'Editar Colaborador / Usuario' : 'Nuevo Colaborador del Sistema' }}
+            </h2>
+          </div>
+          <button class="btn-close-sheet" (click)="closeUserModal()" title="Cerrar (Esc)">✕</button>
+        </div>
+
+        <form [formGroup]="userForm" (ngSubmit)="submitUser()" class="sheet-body">
+          <div class="form-group">
+            <label class="form-label" for="userFullName">Nombre Completo *</label>
+            <input
+              id="userFullName"
+              type="text"
+              class="form-input"
+              formControlName="fullName"
+              placeholder="Ej. Mateo Silva"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="userPhone">Teléfono / WhatsApp</label>
+            <input
+              id="userPhone"
+              type="tel"
+              class="form-input"
+              formControlName="phone"
+              placeholder="Ej. +51 987 654 321"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="userRole">Rol en el Sistema *</label>
+            <select id="userRole" class="form-input form-select" formControlName="role">
+              <option value="barber">Barbero (Atención, Agenda y Cobro de Cortes)</option>
+              <option value="admin">Administrador (Acceso Total y Configuración)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isActive" />
+              <span>Colaborador Activo (Disponible para turnos y atención)</span>
+            </label>
+          </div>
+
+          <div class="sheet-footer">
+            <button type="button" class="btn-secondary" (click)="closeUserModal()">Cancelar</button>
+            <button type="submit" class="btn-primary-action" [disabled]="userForm.invalid || isSubmitting()">
+              {{ isSubmitting() ? 'Guardando...' : editingUserId() ? 'Guardar Cambios' : 'Crear Colaborador' }}
+            </button>
+          </div>
         </form>
       </div>
     </div>

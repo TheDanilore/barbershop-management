@@ -2782,3 +2782,260 @@
   box-shadow: 0 4px 18px rgba(239, 68, 68, 0.35);
 }
 
+/* ========================================================================= */
+/* CLIENT CARD ENRICHED (CORTES, FIDELIDAD, FIADOS & CRÉDITO)                */
+/* ========================================================================= */
+.client-card-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.client-metrics-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.cm-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.cm-value {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.client-credit-panel {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.client-credit-panel.has-debt {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.ccp-debt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ccp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #f87171;
+}
+
+.ccp-debt-val {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ef4444;
+}
+
+.ccp-sub {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.ccp-clean-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #34d399;
+  font-weight: 600;
+}
+
+.ccp-clean-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-size: 0.75rem;
+}
+
+.btn-pay-debt-action {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-pay-debt-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.client-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.client-card-actions .btn-add-cut-direct {
+  width: 100%;
+}
+
+/* ========================================================================= */
+/* USERS & STAFF MANAGEMENT GRID & CARDS                                     */
+/* ========================================================================= */
+.users-desktop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.user-management-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.user-management-card:hover {
+  border-color: rgba(212, 175, 55, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.user-management-card.inactive {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.umc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.umc-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold-light));
+  color: #0d0d12;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+}
+
+.umc-status-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.umc-badge-role {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.umc-badge-role.admin {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.umc-badge-role.barber {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.umc-badge-role.customer {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.umc-badge-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #f87171;
+}
+
+.umc-badge-status.active {
+  color: #34d399;
+}
+
+.umc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.umc-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.umc-phone {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.umc-date {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.umc-footer-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.umc-footer-actions button {
+  flex: 1;
+}
+

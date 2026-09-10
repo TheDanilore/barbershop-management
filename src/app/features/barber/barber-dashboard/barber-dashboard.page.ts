@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormGroup,
@@ -17,14 +18,14 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Client, MovementType, PaymentMethod, ServiceItem } from '../../../core/models/barber.models';
+import { Client, MovementType, PaymentMethod, ServiceItem, SystemUser, UserRole } from '../../../core/models/barber.models';
 import { BarberService } from '../../../core/services/barber.service';
 import { HapticsService } from '../../../core/services/haptics.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
 import { BarberSchedule } from '../components/barber-schedule/barber-schedule';
 
-export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'cash' | 'stats';
+export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'cash' | 'stats' | 'users';
 
 @Component({
   selector: 'app-barber-dashboard',
@@ -60,7 +61,7 @@ export class BarberDashboardPage implements OnInit {
   readonly isNewClientModalOpen = signal(false);
   readonly isDailyCashModalOpen = signal(false);
 
-  // Nuevos Modales Empresariales (Servicios, Caja, Movimientos, Abonos)
+  // Nuevos Modales Empresariales (Servicios, Caja, Movimientos, Abonos, Usuarios)
   readonly isServiceModalOpen = signal(false);
   readonly editingServiceId = signal<string | null>(null);
 
@@ -72,6 +73,9 @@ export class BarberDashboardPage implements OnInit {
 
   readonly isDebtPaymentModalOpen = signal(false);
   readonly debtPaymentClient = signal<Client | null>(null);
+
+  readonly isUserModalOpen = signal(false);
+  readonly editingUserId = signal<string | null>(null);
 
   // Prevención multi-tap
   readonly isSubmitting = signal(false);
@@ -154,6 +158,13 @@ export class BarberDashboardPage implements OnInit {
     notes: [''],
   });
 
+  readonly userForm: FormGroup = this.fb.group({
+    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
+    phone: ['', [Validators.pattern(/^[+0-9\s-]{7,20}$/)]],
+    role: ['barber', [Validators.required]],
+    isActive: [true],
+  });
+
   readonly filteredClients = computed(() => {
     const q = this.clientSearchQuery().toLowerCase().trim();
     if (!q) return this.barberService.clients();
@@ -184,25 +195,29 @@ export class BarberDashboardPage implements OnInit {
   }
 
   ngOnInit(): void {
-    // Sincronizar ruta activa con la pestaña en inglés
-    this.route.paramMap.subscribe((params) => {
-      const tabParam = params.get('tab') as string;
-      if (tabParam && ['overview', 'appointments', 'clients', 'services', 'cash', 'stats'].includes(tabParam)) {
-        this.activeTab.set(tabParam as BarberTabType);
-      } else if (tabParam === 'inicio') {
-        this.setTab('overview');
-      } else if (tabParam === 'agenda') {
-        this.setTab('appointments');
-      } else if (tabParam === 'clientes') {
-        this.setTab('clients');
-      } else if (tabParam === 'servicios') {
-        this.setTab('services');
-      } else if (tabParam === 'caja') {
-        this.setTab('cash');
-      } else {
-        this.activeTab.set('overview');
-      }
-    });
+    // Sincronizar ruta activa con la pestaña en inglés (con takeUntilDestroyed para prevenir memory leaks)
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const tabParam = params.get('tab') as string;
+        if (tabParam && ['overview', 'appointments', 'clients', 'services', 'cash', 'stats', 'users'].includes(tabParam)) {
+          this.activeTab.set(tabParam as BarberTabType);
+        } else if (tabParam === 'inicio') {
+          this.setTab('overview');
+        } else if (tabParam === 'agenda') {
+          this.setTab('appointments');
+        } else if (tabParam === 'clientes') {
+          this.setTab('clients');
+        } else if (tabParam === 'servicios') {
+          this.setTab('services');
+        } else if (tabParam === 'caja') {
+          this.setTab('cash');
+        } else if (tabParam === 'usuarios') {
+          this.setTab('users');
+        } else {
+          this.activeTab.set('overview');
+        }
+      });
 
     if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
       this.barberService.syncFromSupabase();
@@ -242,6 +257,7 @@ export class BarberDashboardPage implements OnInit {
     this.isMovementModalOpen.set(false);
     this.isTransferModalOpen.set(false);
     this.isDebtPaymentModalOpen.set(false);
+    this.isUserModalOpen.set(false);
   }
 
   setTab(tab: BarberTabType): void {
@@ -691,6 +707,77 @@ export class BarberDashboardPage implements OnInit {
     } catch {
       return isoDate;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // GESTIÓN DE USUARIOS & PERSONAL
+  // ---------------------------------------------------------------------------
+  openCreateUserModal(): void {
+    this.haptics.lightTap();
+    this.editingUserId.set(null);
+    this.userForm.reset({ fullName: '', phone: '', role: 'barber', isActive: true });
+    this.isUserModalOpen.set(true);
+  }
+
+  openEditUserModal(user: SystemUser): void {
+    this.haptics.lightTap();
+    this.editingUserId.set(user.id);
+    this.userForm.reset({
+      fullName: user.fullName,
+      phone: user.phone || '',
+      role: user.role,
+      isActive: user.isActive,
+    });
+    this.isUserModalOpen.set(true);
+  }
+
+  closeUserModal(): void {
+    this.isUserModalOpen.set(false);
+    this.editingUserId.set(null);
+  }
+
+  async submitUser(): Promise<void> {
+    if (this.userForm.invalid || this.isSubmitting()) {
+      this.userForm.markAllAsTouched();
+      this.haptics.warning();
+      this.showToast('Completa los campos del usuario');
+      return;
+    }
+
+    const { fullName, phone, role, isActive } = this.userForm.value;
+    const editId = this.editingUserId();
+
+    this.isSubmitting.set(true);
+    try {
+      if (editId) {
+        await this.barberService.updateSystemUser(editId, {
+          fullName,
+          phone,
+          role,
+          isActive: Boolean(isActive),
+        });
+        this.showToast(`Usuario ${fullName} actualizado`);
+      } else {
+        await this.barberService.createSystemUser({
+          fullName,
+          phone,
+          role,
+          isActive: Boolean(isActive),
+        });
+        this.showToast(`Nuevo usuario ${fullName} creado`);
+      }
+      this.haptics.success();
+      this.closeUserModal();
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async toggleUserStatus(user: SystemUser): Promise<void> {
+    const nextState = !user.isActive;
+    await this.barberService.toggleSystemUserStatus(user.id, nextState);
+    this.haptics.lightTap();
+    this.showToast(nextState ? `Usuario ${user.fullName} activado` : `Usuario ${user.fullName} desactivado`);
   }
 
   getPaymentLabel(method: string): string {

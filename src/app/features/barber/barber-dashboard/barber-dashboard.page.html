@@ -140,6 +140,18 @@
           <span class="sidebar-counter-pill">{{ barberService.systemUsers().length }}</span>
         }
       </button>
+
+      <button
+        class="sidebar-nav-item"
+        [class.active]="activeTab() === 'profile'"
+        (click)="setTab('profile')"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span class="nav-label">Mi Perfil</span>
+      </button>
     </nav>
 
     <!-- Mini-Widget Caja en Tiempo Real -->
@@ -158,13 +170,13 @@
 
     <!-- Perfil y Acciones Inferiores -->
     <div class="sidebar-user-footer">
-      <div class="suf-user-info">
-        <div class="suf-avatar">
+      <div class="suf-user-info" (click)="setTab('profile')" title="Ver mi perfil" style="cursor:pointer;">
+        <div class="suf-avatar" [class.active]="activeTab() === 'profile'">
           {{ (supabaseService.userProfile()?.full_name || 'A').charAt(0).toUpperCase() }}
         </div>
         <div class="suf-details">
           <div class="suf-name">{{ supabaseService.userProfile()?.full_name || 'Administrador' }}</div>
-          <div class="suf-role">Master Barber • Admin</div>
+          <div class="suf-role">{{ getRoleLabelProfile(supabaseService.userProfile()?.role) }}</div>
         </div>
       </div>
       <div class="suf-actions">
@@ -247,7 +259,8 @@
             activeTab() === 'clients' ? 'Directorio de Clientes' :
             activeTab() === 'services' ? 'Catálogo de Servicios' :
             activeTab() === 'cash' ? 'Caja & Cuentas Financieras' :
-            activeTab() === 'stats' ? 'Finanzas & Métricas' : 'Usuarios & Equipo'
+            activeTab() === 'stats' ? 'Finanzas & Métricas' :
+            activeTab() === 'users' ? 'Usuarios & Equipo' : 'Mi Perfil'
           }}
         </span>
       </div>
@@ -534,69 +547,78 @@
           } @else {
             <div class="clients-desktop-grid">
               @for (client of filteredClients(); track client.id) {
-                <div class="client-card-item" [class.has-debt]="(client.currentDebt || 0) > 0">
-                  <div class="client-card-top">
-                    <div class="client-avatar-col">
-                      <div class="client-avatar-circle">{{ client.name.charAt(0).toUpperCase() }}</div>
-                    </div>
-                    <div class="client-details-col">
-                      <div class="client-name-row">
-                        <span class="c-name">{{ client.name }}</span>
-                        <span class="membership-tag" [class]="client.membershipLevel.toLowerCase()">{{ client.membershipLevel }}</span>
+                <div class="client-card-v2" [class.has-debt]="(client.currentDebt || 0) > 0" [attr.data-tier]="client.membershipLevel.toLowerCase()">
+
+                  <!-- Franja lateral de membresía -->
+                  <div class="ccv2-tier-stripe"></div>
+
+                  <!-- Cabecera: Avatar + Nombre + Tier -->
+                  <div class="ccv2-top">
+                    <div class="ccv2-avatar">{{ client.name.charAt(0).toUpperCase() }}</div>
+                    <div class="ccv2-identity">
+                      <div class="ccv2-name-row">
+                        <span class="ccv2-name">{{ client.name }}</span>
+                        <span class="ccv2-tier-chip" [attr.data-tier]="client.membershipLevel.toLowerCase()">
+                          {{ client.membershipLevel }}
+                        </span>
                       </div>
-                      <div class="c-phone">
+                      <div class="ccv2-phone">
                         @if (client.phone) {
                           📞 {{ client.phone }}
                         } @else {
-                          <span class="no-phone-label">Sin teléfono registrado</span>
+                          <span class="dim-text">Sin teléfono</span>
                         }
                       </div>
                     </div>
-                  </div>
-
-                  <!-- Métricas clave: Cortes y Fidelización -->
-                  <div class="client-metrics-row">
-                    <div class="cm-stat">
-                      <span class="cm-label">Cortes acumulados:</span>
-                      <strong class="cm-value">{{ client.cutsCount }}</strong>
-                    </div>
-                    <div class="cm-stat">
-                      <span class="cm-label">Sellos:</span>
-                      <strong class="cm-value">{{ client.loyaltyStamps }}/{{ barberService.stampsRequired() }}</strong>
-                      @if (client.loyaltyStamps >= barberService.stampsRequired() - 1) {
-                        <span class="tag-gold-alert">¡Próximo GRATIS!</span>
-                      }
-                    </div>
-                  </div>
-
-                  <!-- Crédito / Deuda (Fiado) -->
-                  <div class="client-credit-panel" [class.has-debt]="(client.currentDebt || 0) > 0">
+                    <!-- Badge de deuda flotante (sólo si tiene deuda) -->
                     @if ((client.currentDebt || 0) > 0) {
-                      <div class="ccp-debt-info">
-                        <div class="ccp-row">
-                          <span class="ccp-label">⚠️ Saldo Fiado (Deuda):</span>
-                          <strong class="ccp-debt-val">${{ (client.currentDebt || 0).toFixed(2) }}</strong>
-                        </div>
-                        @if (client.creditLimit) {
-                          <div class="ccp-sub">Límite acordado: ${{ client.creditLimit.toFixed(2) }}</div>
-                        }
-                      </div>
-                      <button class="btn-pay-debt-action" (click)="openDebtPaymentModal(client)" title="Registrar abono de deuda">
-                        💰 Abonar Pago
-                      </button>
-                    } @else {
-                      <div class="ccp-clean-info">
-                        <span class="ccp-clean-icon">✓</span>
-                        <span class="ccp-clean-text">Crédito al día • Sin deuda pendiente</span>
-                      </div>
+                      <div class="ccv2-debt-badge">Debe ${{ (client.currentDebt || 0).toFixed(2) }}</div>
                     }
                   </div>
 
-                  <!-- Acciones de Tarjeta -->
-                  <div class="client-card-actions">
-                    <button class="btn-add-cut-direct" (click)="openRegisterCutModal(client.id)" title="Registrar corte rápido">
-                      + ✂ Nuevo Corte
+                  <!-- Fidelización: Barra de progreso visual -->
+                  <div class="ccv2-loyalty-wrap">
+                    <div class="ccv2-loyalty-header">
+                      <span class="ccv2-loyalty-label">
+                        ✂ {{ client.loyaltyStamps }} / {{ barberService.stampsRequired() }} sellos
+                      </span>
+                      @if (client.loyaltyStamps >= barberService.stampsRequired() - 1) {
+                        <span class="ccv2-free-alert">🎉 ¡Próximo GRATIS!</span>
+                      }
+                    </div>
+                    <div class="ccv2-loyalty-bar-track">
+                      <div
+                        class="ccv2-loyalty-bar-fill"
+                        [style.width.%]="(client.loyaltyStamps / barberService.stampsRequired()) * 100"
+                      ></div>
+                    </div>
+                    <div class="ccv2-cuts-count">{{ client.cutsCount }} cortes acumulados</div>
+                  </div>
+
+                  <!-- Panel de crédito (compacto) -->
+                  @if ((client.currentDebt || 0) > 0) {
+                    <div class="ccv2-debt-panel">
+                      <div class="ccv2-dp-row">
+                        <span>⚠️ Deuda total:</span>
+                        <strong>${{ (client.currentDebt || 0).toFixed(2) }}</strong>
+                      </div>
+                      @if (client.creditLimit) {
+                        <div class="ccv2-dp-limit">Límite: ${{ client.creditLimit.toFixed(2) }}</div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Acciones -->
+                  <div class="ccv2-actions">
+                    <button class="ccv2-btn-cut" (click)="openRegisterCutModal(client.id)" title="Registrar nuevo corte">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M6 9l6 6 6-6"/></svg>
+                      Nuevo Corte
                     </button>
+                    @if ((client.currentDebt || 0) > 0) {
+                      <button class="ccv2-btn-pay" (click)="openDebtPaymentModal(client)" title="Abonar deuda">
+                        💰 Abonar
+                      </button>
+                    }
                   </div>
                 </div>
               }
@@ -867,50 +889,59 @@
         <div class="tab-pane fade-in full-width-pane">
           <div class="pane-header">
             <div>
-              <h2 class="pane-title">Gestión de Usuarios & Personal</h2>
-              <p class="pane-subtitle">{{ barberService.systemUsers().length }} usuarios registrados • Administradores, barberos y colaboradores</p>
+              <h2 class="pane-title">Gestión de Usuarios &amp; Personal</h2>
+              <p class="pane-subtitle">{{ barberService.systemUsers().length }} usuarios registrados &bull; Administradores, barberos y colaboradores</p>
             </div>
             <button class="btn-primary-action" (click)="openCreateUserModal()">+ Nuevo Colaborador</button>
           </div>
 
           <div class="users-desktop-grid">
             @for (usr of barberService.systemUsers(); track usr.id) {
-              <div class="user-management-card" [class.inactive]="!usr.isActive">
-                <div class="umc-header">
-                  <div class="umc-avatar">
-                    {{ usr.fullName.charAt(0).toUpperCase() }}
-                  </div>
-                  <div class="umc-status-group">
-                    <span class="umc-badge-role" [class]="usr.role">
-                      {{ usr.role === 'admin' ? '🛡 Admin' : usr.role === 'barber' ? '✂ Barbero' : '👤 Cliente' }}
-                    </span>
-                    <span class="umc-badge-status" [class.active]="usr.isActive">
-                      {{ usr.isActive ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </div>
-                </div>
+              <div class="user-card-v2" [class.inactive]="!usr.isActive" [attr.data-role]="usr.role">
+                <!-- Accent stripe lateral por rol -->
+                <div class="ucv2-role-stripe"></div>
 
-                <div class="umc-body">
-                  <h3 class="umc-title">{{ usr.fullName }}</h3>
-                  <div class="umc-phone">
-                    @if (usr.phone) {
-                      📞 {{ usr.phone }}
-                    } @else {
-                      <span class="no-phone-label">Sin teléfono asignado</span>
+                <div class="ucv2-top">
+                  <!-- Avatar grande -->
+                  <div class="ucv2-avatar" [attr.data-role]="usr.role">
+                    {{ usr.fullName.charAt(0).toUpperCase() }}
+                    @if (usr.isActive) {
+                      <span class="ucv2-online-dot"></span>
                     }
                   </div>
-                  @if (usr.createdAt) {
-                    <div class="umc-date">Registrado: {{ formatDate(usr.createdAt) }}</div>
-                  }
+
+                  <!-- Nombre + chips -->
+                  <div class="ucv2-identity">
+                    <h3 class="ucv2-name">{{ usr.fullName }}</h3>
+                    <div class="ucv2-chips">
+                      <span class="ucv2-chip-role" [attr.data-role]="usr.role">
+                        {{ usr.role === 'admin' ? '🛡&thinsp;Admin' : usr.role === 'barber' ? '✂&thinsp;Barbero' : '👤&thinsp;Cliente' }}
+                      </span>
+                      <span class="ucv2-chip-status" [class.active]="usr.isActive">
+                        {{ usr.isActive ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </div>
+                    <div class="ucv2-meta">
+                      @if (usr.phone) {
+                        <span class="ucv2-meta-item">📞 {{ usr.phone }}</span>
+                      } @else {
+                        <span class="ucv2-meta-item dim">Sin teléfono</span>
+                      }
+                      @if (usr.createdAt) {
+                        <span class="ucv2-meta-item dim">&bull; {{ formatDate(usr.createdAt) }}</span>
+                      }
+                    </div>
+                  </div>
                 </div>
 
-                <div class="umc-footer-actions">
-                  <button class="btn-smc-edit" (click)="openEditUserModal(usr)">
-                    ✏ Editar
+                <div class="ucv2-actions">
+                  <button class="ucv2-btn-edit" (click)="openEditUserModal(usr)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    Editar
                   </button>
                   <button
-                    class="btn-smc-toggle"
-                    [class.danger]="usr.isActive"
+                    class="ucv2-btn-toggle"
+                    [class.deactivate]="usr.isActive"
                     (click)="toggleUserStatus(usr)"
                   >
                     {{ usr.isActive ? 'Desactivar' : 'Activar' }}
@@ -925,6 +956,130 @@
                 <button class="btn-primary-action" (click)="openCreateUserModal()">+ Crear Primer Usuario</button>
               </div>
             }
+          </div>
+        </div>
+      }
+
+      <!-- ---------------- TAB PROFILE ---------------- -->
+      @if (activeTab() === 'profile') {
+        <div class="tab-pane fade-in full-width-pane">
+          <div class="profile-page-layout">
+
+            <!-- Hero Card del Perfil -->
+            <div class="profile-hero-card">
+              <div class="phc-avatar-wrap">
+                <div class="phc-avatar">
+                  {{ (supabaseService.userProfile()?.full_name || 'A').charAt(0).toUpperCase() }}
+                </div>
+                <div class="phc-avatar-ring"></div>
+              </div>
+              <div class="phc-info">
+                <h2 class="phc-name">{{ supabaseService.userProfile()?.full_name || 'Sin nombre' }}</h2>
+                <span class="phc-role-chip" [attr.data-role]="supabaseService.userProfile()?.role">
+                  {{ getRoleLabelProfile(supabaseService.userProfile()?.role) }}
+                </span>
+                @if (supabaseService.userProfile()?.phone) {
+                  <div class="phc-phone">📞 {{ supabaseService.userProfile()?.phone }}</div>
+                }
+                <div class="phc-email">📧 {{ supabaseService.currentUser()?.email || 'Sin email registrado' }}</div>
+              </div>
+              @if (!isEditingProfile()) {
+                <button class="phc-edit-btn" (click)="openEditProfile()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  Editar Perfil
+                </button>
+              }
+            </div>
+
+            <!-- Formulario de edición (inline, aparece al hacer click en Editar) -->
+            @if (isEditingProfile()) {
+              <div class="profile-edit-card">
+                <div class="pec-header">
+                  <h3 class="pec-title">Editar mis datos</h3>
+                  <button class="btn-close-sheet" (click)="cancelEditProfile()">✕</button>
+                </div>
+                <form [formGroup]="profileForm" (ngSubmit)="submitProfile()" class="pec-body">
+                  <div class="form-group">
+                    <label class="form-label" for="profileFullName">Nombre Completo *</label>
+                    <input id="profileFullName" type="text" formControlName="fullName" placeholder="Tu nombre completo" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="profilePhone">Teléfono / WhatsApp</label>
+                    <input id="profilePhone" type="tel" formControlName="phone" placeholder="Ej: +51 987 654 321" />
+                  </div>
+                  <div class="pec-actions">
+                    <button type="button" class="btn-secondary" (click)="cancelEditProfile()">Cancelar</button>
+                    <button type="submit" class="btn-primary-action" [disabled]="profileForm.invalid || isSubmitting()">
+                      {{ isSubmitting() ? 'Guardando...' : 'Guardar Cambios' }}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            }
+
+            <!-- Grid de estadísticas del perfil -->
+            <div class="profile-stats-grid">
+              <div class="profile-stat-card">
+                <div class="psc-icon">✂</div>
+                <div class="psc-value">{{ barberService.cutsToday() }}</div>
+                <div class="psc-label">Servicios Hoy</div>
+              </div>
+              <div class="profile-stat-card">
+                <div class="psc-icon">📅</div>
+                <div class="psc-value">{{ barberService.todayAppointments().length }}</div>
+                <div class="psc-label">Citas Pendientes</div>
+              </div>
+              <div class="profile-stat-card">
+                <div class="psc-icon">👥</div>
+                <div class="psc-value">{{ barberService.clients().length }}</div>
+                <div class="psc-label">Clientes Totales</div>
+              </div>
+              <div class="profile-stat-card accent">
+                <div class="psc-icon">💰</div>
+                <div class="psc-value">${{ barberService.revenueToday().toFixed(2) }}</div>
+                <div class="psc-label">Ingresos Hoy</div>
+              </div>
+            </div>
+
+            <!-- Info de la sesión -->
+            <div class="profile-session-card">
+              <h3 class="psc-title">Información de Sesión</h3>
+              <div class="psi-row">
+                <span class="psi-label">Estado de Conexión:</span>
+                <span class="psi-value">
+                  @if (supabaseService.connectionStatus() === 'connected') {
+                    <span class="status-online">● Conectado</span>
+                  } @else if (supabaseService.connectionStatus() === 'offline') {
+                    <span class="status-offline">● Sin conexión</span>
+                  } @else {
+                    <span class="status-checking">⏳ Verificando...</span>
+                  }
+                </span>
+              </div>
+              @if (supabaseService.latencyMs() !== null) {
+                <div class="psi-row">
+                  <span class="psi-label">Latencia Supabase:</span>
+                  <span class="psi-value">{{ supabaseService.latencyMs() }}ms</span>
+                </div>
+              }
+              <div class="psi-row">
+                <span class="psi-label">Turno de Caja:</span>
+                <span class="psi-value">
+                  @if (barberService.activeCashShift()) {
+                    <span class="status-online">● Abierto desde {{ formatDate(barberService.activeCashShift()!.openedAt) }}</span>
+                  } @else {
+                    <span class="status-offline">● Cerrado</span>
+                  }
+                </span>
+              </div>
+              <div class="psc-actions">
+                <button class="btn-secondary" (click)="logout()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  Cerrar Sesión
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       }
@@ -990,14 +1145,12 @@
       <span>Stats</span>
     </button>
 
-    <button class="nav-item" [class.active]="activeTab() === 'users'" (click)="setTab('users')">
+    <button class="nav-item" [class.active]="activeTab() === 'profile' || activeTab() === 'users'" (click)="setTab('profile')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-        <circle cx="9" cy="7" r="4"></circle>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
       </svg>
-      <span>Equipo</span>
+      <span>Perfil</span>
     </button>
   </nav>
 
@@ -1020,6 +1173,19 @@
         </div>
 
         <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="sheet-body">
+
+          <!-- Advertencia: Caja cerrada + Efectivo seleccionado -->
+          @if (!cutForm.get('isCredit')?.value && cutForm.get('paymentMethod')?.value === 'cash' && !barberService.activeCashShift()) {
+            <div class="cash-closed-warning">
+              <span class="ccw-icon">🔒</span>
+              <div class="ccw-text">
+                <strong>Caja cerrada</strong> — No puedes registrar un pago en efectivo sin un turno activo.
+                <button type="button" class="ccw-link-btn" (click)="closeRegisterCutModal(); setTab('cash')">Abrir turno de caja →</button>
+                o cambia el método de pago.
+              </div>
+            </div>
+          }
+
           <!-- Tipo de Operación: Al Contado vs Al Crédito (Fiado) -->
           <div class="form-group">
             <label class="form-label">Modalidad de Cobro *</label>

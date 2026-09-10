@@ -240,6 +240,17 @@ export class SupabaseService {
   }
 
   /**
+   * Fuerza la recarga del perfil del usuario autenticado desde Supabase.
+   * Usado por el tab de Mi Perfil tras una edición exitosa.
+   */
+  async refreshUserProfile(): Promise<void> {
+    const user = this.currentUser();
+    if (user) {
+      await this.loadUserProfile(user.id);
+    }
+  }
+
+  /**
    * Establece el rol y lo persiste para recargas de PWA
    */
   setRole(role: UserRole): void {

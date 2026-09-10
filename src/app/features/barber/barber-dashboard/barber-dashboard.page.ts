@@ -25,7 +25,7 @@ import { SupabaseService } from '../../../core/services/supabase.service';
 import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
 import { BarberSchedule } from '../components/barber-schedule/barber-schedule';
 
-export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'cash' | 'stats' | 'users';
+export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'cash' | 'stats' | 'users' | 'profile';
 
 @Component({
   selector: 'app-barber-dashboard',
@@ -165,6 +165,13 @@ export class BarberDashboardPage implements OnInit {
     isActive: [true],
   });
 
+  readonly profileForm: FormGroup = this.fb.group({
+    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
+    phone: ['', [Validators.pattern(/^[+0-9\s-]{7,20}$/)]],
+  });
+
+  readonly isEditingProfile = signal(false);
+
   readonly filteredClients = computed(() => {
     const q = this.clientSearchQuery().toLowerCase().trim();
     if (!q) return this.barberService.clients();
@@ -200,7 +207,7 @@ export class BarberDashboardPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         const tabParam = params.get('tab') as string;
-        if (tabParam && ['overview', 'appointments', 'clients', 'services', 'cash', 'stats', 'users'].includes(tabParam)) {
+        if (tabParam && ['overview', 'appointments', 'clients', 'services', 'cash', 'stats', 'users', 'profile'].includes(tabParam)) {
           this.activeTab.set(tabParam as BarberTabType);
         } else if (tabParam === 'inicio') {
           this.setTab('overview');
@@ -324,6 +331,15 @@ export class BarberDashboardPage implements OnInit {
       this.cutForm.markAllAsTouched();
       this.haptics.warning();
       this.showToast('Completa todos los campos requeridos');
+      return;
+    }
+
+    // Guard: los pagos en efectivo requieren un turno de caja abierto
+    const pm = this.cutForm.get('paymentMethod')?.value;
+    const creditMode = this.cutForm.get('isCredit')?.value;
+    if (pm === 'cash' && !creditMode && !this.barberService.activeCashShift()) {
+      this.haptics.warning();
+      this.showToast('⚠️ La caja está cerrada. Abre un turno antes de registrar efectivo.');
       return;
     }
 
@@ -778,6 +794,66 @@ export class BarberDashboardPage implements OnInit {
     await this.barberService.toggleSystemUserStatus(user.id, nextState);
     this.haptics.lightTap();
     this.showToast(nextState ? `Usuario ${user.fullName} activado` : `Usuario ${user.fullName} desactivado`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // MI PERFIL — AUTOGESTIÓN DEL USUARIO LOGUEADO
+  // ---------------------------------------------------------------------------
+  openEditProfile(): void {
+    const profile = this.supabaseService.userProfile();
+    this.profileForm.reset({
+      fullName: profile?.full_name || '',
+      phone: profile?.phone || '',
+    });
+    this.isEditingProfile.set(true);
+  }
+
+  cancelEditProfile(): void {
+    this.isEditingProfile.set(false);
+  }
+
+  async submitProfile(): Promise<void> {
+    if (this.profileForm.invalid || this.isSubmitting()) {
+      this.profileForm.markAllAsTouched();
+      return;
+    }
+    const { fullName, phone } = this.profileForm.value;
+    this.isSubmitting.set(true);
+    try {
+      const profile = this.supabaseService.userProfile();
+      if (profile && this.supabaseService.isConfigured()) {
+        const { error } = await this.supabaseService.supabase
+          .from('profiles')
+          .update({ full_name: fullName.trim(), phone: phone?.trim() || null })
+          .eq('id', profile.id);
+        if (!error) {
+          await this.supabaseService.refreshUserProfile();
+          await this.barberService.syncFromSupabase();
+          this.haptics.success();
+          this.isEditingProfile.set(false);
+          this.showToast('✅ Perfil actualizado con éxito');
+        } else {
+          this.showToast('Error al actualizar perfil en la base de datos');
+        }
+      } else {
+        // Modo offline: solo notificar
+        this.showToast('Sin conexión a Supabase — cambios no persistidos');
+        this.isEditingProfile.set(false);
+      }
+    } catch {
+      this.showToast('Error inesperado al guardar el perfil');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  getRoleLabelProfile(role: string | undefined): string {
+    switch (role) {
+      case 'admin': return 'Administrador';
+      case 'barber': return 'Barbero / Estilista';
+      case 'customer': return 'Cliente';
+      default: return 'Usuario';
+    }
   }
 
   getPaymentLabel(method: string): string {

@@ -146,29 +146,25 @@ export class BarberService {
     );
   });
 
-  // Métricas consolidadas (Prefiere datos en vivo locales o KPIs de la RPC de Supabase)
+  // Métricas consolidadas — El servidor (RPC) tiene soberanía sobre el caché local para evitar estado residual
   readonly cutsToday = computed(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const localCutsToday = this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
-    if (localCutsToday > 0) return localCutsToday;
+    // Dar prioridad al RPC del servidor para evitar que datos locales desactualizados
+    // muestren cortes que ya no existen en Supabase
     if (this.serverKpis()) return this.serverKpis()!.cutsToday;
-    return 0;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
   });
 
   readonly cutsThisMonth = computed(() => {
-    const currentYearMonth = new Date().toISOString().slice(0, 7);
-    const localMonthCuts = this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
-    if (localMonthCuts > 0) return localMonthCuts;
     if (this.serverKpis()) return this.serverKpis()!.cutsThisMonth;
-    return 0;
+    const currentYearMonth = new Date().toISOString().slice(0, 7);
+    return this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
   });
 
   readonly revenueToday = computed(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const localRevenueToday = this.cuts().filter((c) => c.date.startsWith(todayStr)).reduce((sum, c) => sum + c.price, 0);
-    if (localRevenueToday > 0) return localRevenueToday;
     if (this.serverKpis()) return this.serverKpis()!.revenueToday;
-    return 0;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return this.cuts().filter((c) => c.date.startsWith(todayStr)).reduce((sum, c) => sum + c.price, 0);
   });
 
   readonly revenueThisWeek = computed(() => {
@@ -511,6 +507,10 @@ export class BarberService {
       }
 
       // 8. Proyección quirúrgica de Clientes con fidelidad y saldo de crédito/deuda
+      // CRITICAL FIX: Cuando Supabase responde sin error, SIEMPRE sobreescribimos el signal
+      // y el localStorage — incluso si loyalty_progress está vacía (cutsCount=0).
+      // Esto evita que datos de sesiones anteriores con cutsCount>0 persistan en caché
+      // cuando las tablas de Supabase han sido limpiadas/reseteadas.
       try {
         const { data: profilesData, error: profError } = await this.supabaseService.supabase
           .from('profiles')
@@ -521,12 +521,16 @@ export class BarberService {
             membership_tier,
             avatar_url,
             loyalty_progress (current_stamps, total_historical_cuts),
-            customer_credits (current_debt, credit_limit)
+            customer_credits!customer_credits_profile_id_fkey (current_debt, credit_limit)
           `)
           .eq('role', 'customer')
           .eq('is_active', true);
 
-        if (!profError && profilesData) {
+        if (profError) {
+          // Error real de Supabase: loguear para diagnóstico, preservar caché local como fallback
+          this.logger.error('BarberService', 'Error al cargar clientes desde Supabase (RLS u otro)', profError);
+        } else if (profilesData) {
+          // Respuesta exitosa (incluye lista vacía): el servidor gobierna sobre el caché local
           const mappedClients: Client[] = profilesData.map((p) => {
             const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
             const cc = Array.isArray(p.customer_credits) ? p.customer_credits[0] : (p.customer_credits as any);
@@ -542,11 +546,13 @@ export class BarberService {
               creditLimit: Number(cc?.credit_limit ?? 0),
             };
           });
+          // Sobreescritura soberana: elimina cualquier dato residual de localStorage
           this.clients.set(mappedClients);
           this.saveToStorage(STORAGE_KEYS.CLIENTS, mappedClients);
         }
-      } catch {
-        // Usar clientes locales
+      } catch (clientErr) {
+        // Excepción de red: loguear para diagnóstico, preservar caché local como fallback offline
+        this.logger.error('BarberService', 'Excepción al cargar clientes', clientErr);
       }
 
       // 9. Proyección de Todos los Usuarios del Sistema (Admin, Barberos, Clientes)
@@ -760,13 +766,13 @@ export class BarberService {
       const updatedClients = this.clients().map((c) =>
         c.id === client.id
           ? {
-              ...c,
-              cutsCount: newCutsCount,
-              loyaltyStamps: newStamps,
-              membershipLevel: newLevel,
-              currentDebt: newDebt,
-              lastVisitDate: new Date().toISOString().slice(0, 10),
-            }
+            ...c,
+            cutsCount: newCutsCount,
+            loyaltyStamps: newStamps,
+            membershipLevel: newLevel,
+            currentDebt: newDebt,
+            lastVisitDate: new Date().toISOString().slice(0, 10),
+          }
           : c
       );
       this.clients.set(updatedClients);
@@ -1542,12 +1548,12 @@ export class BarberService {
     const updated = this.systemUsers().map((u) =>
       u.id === id
         ? {
-            ...u,
-            fullName: params.fullName.trim(),
-            phone: params.phone?.trim() || '',
-            role: params.role,
-            isActive: params.isActive ?? u.isActive,
-          }
+          ...u,
+          fullName: params.fullName.trim(),
+          phone: params.phone?.trim() || '',
+          role: params.role,
+          isActive: params.isActive ?? u.isActive,
+        }
         : u
     );
     this.systemUsers.set(updated);

@@ -131,7 +131,7 @@ export class BarberDashboardPage implements OnInit {
   });
 
   readonly openShiftForm: FormGroup = this.fb.group({
-    initialCash: [30.0, [Validators.required, Validators.min(0)]],
+    initialCash: [0.0, [Validators.required, Validators.min(0)]],
     notes: [''],
   });
 
@@ -535,7 +535,7 @@ export class BarberDashboardPage implements OnInit {
   openStartShiftModal(): void {
     this.haptics.lightTap();
     this.shiftMode.set('open');
-    this.openShiftForm.reset({ initialCash: 30.0, notes: '' });
+    this.openShiftForm.reset({ initialCash: 0.0, notes: '' });
     this.isShiftModalOpen.set(true);
   }
 

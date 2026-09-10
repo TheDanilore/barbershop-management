@@ -3,6 +3,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -35,13 +37,21 @@ import { LoyaltyCard } from '../components/loyalty-card/loyalty-card';
   styleUrl: './customer-dashboard.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CustomerDashboardPage {
+export class CustomerDashboardPage implements OnInit {
   readonly barberService = inject(BarberService);
   readonly supabaseService = inject(SupabaseService);
   readonly haptics = inject(HapticsService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+
+  // Nombre reactivo de cliente extraído del perfil real o mock
+  readonly displayName = computed(() => {
+    return (
+      this.supabaseService.userProfile()?.full_name ||
+      this.barberService.currentClient().name
+    );
+  });
 
   // Tab activo: 'inicio' | 'fidelidad' | 'historial' | 'perfil'
   readonly clientTab = signal<'inicio' | 'fidelidad' | 'historial' | 'perfil'>('inicio');
@@ -64,6 +74,12 @@ export class CustomerDashboardPage {
     this.destroyRef.onDestroy(() => {
       if (this.toastTimeout) clearTimeout(this.toastTimeout);
     });
+  }
+
+  ngOnInit(): void {
+    if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
+      this.barberService.syncFromSupabase();
+    }
   }
 
   setTab(tab: 'inicio' | 'fidelidad' | 'historial' | 'perfil'): void {

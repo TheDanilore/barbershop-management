@@ -111,12 +111,18 @@ export class LoginPage {
 
       if (res.error) {
         this.haptics.warning();
-        const friendlyMessage =
-          res.error.message === 'Invalid login credentials'
-            ? 'Credenciales inválidas. Verifica tu correo y contraseña o crea el usuario en Supabase Auth.'
-            : res.error.message.includes('Email not confirmed')
-              ? 'Correo no verificado. Confirma tu correo o desactiva "Confirm email" en Supabase.'
-              : res.error.message;
+        const code = res.error.code ?? '';
+        const msg = res.error.message ?? '';
+        let friendlyMessage = 'No se pudo iniciar sesión. Verifica tus datos.';
+        if (code === 'invalid_credentials' || msg === 'Invalid login credentials') {
+          friendlyMessage = 'Credenciales inválidas. Verifica tu correo y contraseña.';
+        } else if (code === 'email_not_confirmed' || msg.includes('Email not confirmed')) {
+          friendlyMessage = 'Correo no verificado. Confirma tu correo o desactiva "Confirm email" en Supabase.';
+        } else if (code === 'email_provider_disabled' || msg.includes('Email logins are disabled')) {
+          friendlyMessage = 'El acceso por correo está deshabilitado en Supabase Auth.';
+        } else if (msg) {
+          friendlyMessage = msg;
+        }
         this.showError(friendlyMessage);
       } else {
         this.haptics.success();
@@ -124,12 +130,14 @@ export class LoginPage {
         this.showSuccess('¡Bienvenido a BarberTrack!');
 
         // Redirección inteligente basada en el rol resuelto en Supabase
-        const targetRoute = res.role === 'barber' || res.role === 'admin' ? '/barber' : '/customer';
-        this.barberService.setRole(res.role === 'barber' || res.role === 'admin' ? 'barber' : 'client');
+        const isStaff = res.role === 'barber' || res.role === 'admin';
+        const targetRoute = isStaff ? '/barber' : '/customer';
+        this.barberService.setRole(isStaff ? 'barber' : 'client');
+        this.barberService.syncFromSupabase();
 
         setTimeout(() => {
           this.router.navigate([targetRoute]);
-        }, 400);
+        }, 300);
       }
     } catch (err: unknown) {
       this.haptics.warning();

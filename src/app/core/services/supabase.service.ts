@@ -143,7 +143,11 @@ export class SupabaseService {
       });
       this.currentUser.set(res.data.user);
       const profile = await this.loadUserProfile(res.data.user.id);
-      const role = profile?.role || (res.data.user.user_metadata?.['role'] as UserRole) || 'customer';
+      const role =
+        profile?.role ||
+        (res.data.user.app_metadata?.['role'] as UserRole) ||
+        (res.data.user.user_metadata?.['role'] as UserRole) ||
+        (res.data.user.email === 'admin@barbertrack.com' ? 'admin' : 'customer');
       this.setRole(role);
       return { ...res, role };
     }
@@ -184,6 +188,20 @@ export class SupabaseService {
       });
       this.currentUser.set(res.data.user);
       this.setRole('customer');
+
+      // Crear fila inicial en profiles si no existe
+      try {
+        await this.supabase.from('profiles').insert({
+          auth_user_id: res.data.user.id,
+          full_name: fullName,
+          role: 'customer',
+          phone: phone || null,
+          membership_tier: 'Bronze',
+          is_active: true,
+        });
+      } catch (err) {
+        this.logger.warn('SupabaseService', 'Aviso al insertar perfil en Supabase', err);
+      }
     }
 
     return res;
@@ -191,13 +209,14 @@ export class SupabaseService {
 
   /**
    * Carga quirúrgica del perfil del usuario (role, full_name, is_active)
+   * Busca por auth_user_id (relación con auth.users) o por id directo
    */
   async loadUserProfile(userId: string): Promise<ProfileRow | null> {
     try {
       const { data, error } = await this.supabase
         .from('profiles')
         .select('id, full_name, role, phone, membership_tier, is_active, created_at, avatar_url, auth_user_id')
-        .eq('id', userId)
+        .or(`auth_user_id.eq.${userId},id.eq.${userId}`)
         .maybeSingle();
 
       if (data && !error) {
@@ -210,9 +229,12 @@ export class SupabaseService {
       this.logger.warn('SupabaseService', 'Error cargando perfil de usuario', err);
     }
 
-    // Fallback con metadata de auth
+    // Fallback con metadata de auth o reconocimiento de admin por correo
     const authUser = this.currentUser();
-    const fallbackRole = (authUser?.user_metadata?.['role'] as UserRole) || 'customer';
+    const fallbackRole =
+      (authUser?.app_metadata?.['role'] as UserRole) ||
+      (authUser?.user_metadata?.['role'] as UserRole) ||
+      (authUser?.email === 'admin@barbertrack.com' ? 'admin' : 'customer');
     this.setRole(fallbackRole);
     return null;
   }

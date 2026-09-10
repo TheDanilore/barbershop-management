@@ -300,8 +300,26 @@ export class BarberService {
 
   readonly currentClientId = signal<string>(this.loadFromStorage(STORAGE_KEYS.CURRENT_CLIENT_ID, 'cli-1'));
 
-  // Cliente activo computado
+  // Cliente activo computado ligado al perfil real o fallback a demo
   readonly currentClient = computed<Client>(() => {
+    const profile = this.supabaseService.userProfile();
+    if (profile) {
+      const found = this.clients().find(
+        (c) => c.id === profile.id || (profile.auth_user_id && c.id === profile.auth_user_id)
+      );
+      if (found) return found;
+
+      return {
+        id: profile.id,
+        name: profile.full_name || 'Mi Perfil',
+        phone: profile.phone || '',
+        email: this.supabaseService.currentUser()?.email || '',
+        cutsCount: 0,
+        loyaltyStamps: 0,
+        membershipLevel: (profile.membership_tier as any) || 'Bronze',
+      };
+    }
+
     const found = this.clients().find((c) => c.id === this.currentClientId());
     return found || this.clients()[0] || INITIAL_CLIENTS[0];
   });
@@ -357,13 +375,17 @@ export class BarberService {
   readonly todayAppointments = computed(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
     return this.appointments()
-      .filter((a) => a.date === todayStr || a.date === '2026-09-05')
+      .filter((a) => a.date === todayStr)
       .sort((a, b) => a.time.localeCompare(b.time));
   });
 
   readonly clientAppointments = computed(() => {
-    const cliId = this.currentClient().id;
-    return this.appointments().filter((a) => a.clientId === cliId);
+    const profile = this.supabaseService.userProfile();
+    const cliId = profile?.id || this.currentClient().id;
+    const authId = profile?.auth_user_id || this.supabaseService.currentUser()?.id;
+    return this.appointments().filter(
+      (a) => a.clientId === cliId || (authId && a.clientId === authId)
+    );
   });
 
   readonly nextClientAppointment = computed<Appointment | null>(() => {
@@ -500,9 +522,9 @@ export class BarberService {
             final_price,
             payment_method,
             created_at,
-            customer:customer_id (id, full_name),
-            barber:barber_id (id, full_name),
-            service:service_id (id, name)
+            customer:profiles!sales_history_customer_id_fkey (id, full_name),
+            barber:profiles!sales_history_barber_id_fkey (id, full_name),
+            service:services!sales_history_service_id_fkey (id, name)
           `)
           .order('created_at', { ascending: false })
           .limit(20);
@@ -522,12 +544,62 @@ export class BarberService {
           }));
           this.cuts.set(mappedCuts);
           this.saveToStorage(STORAGE_KEYS.CUTS, mappedCuts);
+        } else if (!salesError && salesData && salesData.length === 0) {
+          this.cuts.set([]);
+          this.saveToStorage(STORAGE_KEYS.CUTS, []);
         }
-      } catch {
-        // Usar historial local
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso sincronizando ventas', err);
       }
 
-      this.logger.info('BarberService', 'Sincronización completada');
+      // 5. Proyección de Citas / Agenda desde Supabase
+      try {
+        const { data: aptsData, error: aptsError } = await this.supabaseService.supabase
+          .from('appointments')
+          .select(`
+            id,
+            customer_id,
+            barber_id,
+            service_id,
+            scheduled_at,
+            status,
+            customer:profiles!appointments_customer_id_fkey (id, full_name, phone),
+            barber:profiles!appointments_barber_id_fkey (id, full_name),
+            service:services!appointments_service_id_fkey (id, name, base_price)
+          `)
+          .order('scheduled_at', { ascending: true });
+
+        if (!aptsError && aptsData && aptsData.length > 0) {
+          const mappedApts: Appointment[] = aptsData.map((a: any) => {
+            const dt = new Date(a.scheduled_at);
+            const dateStr = dt.toISOString().slice(0, 10);
+            const timeStr = dt.toTimeString().slice(0, 5);
+            return {
+              id: a.id,
+              clientId: a.customer_id,
+              clientName: a.customer?.full_name || 'Cliente',
+              clientPhone: a.customer?.phone || '',
+              barberId: a.barber_id,
+              barberName: a.barber?.full_name || 'Barbero',
+              serviceId: a.service_id,
+              serviceName: a.service?.name || 'Corte',
+              date: dateStr,
+              time: timeStr,
+              price: Number(a.service?.base_price || 15),
+              status: a.status as any,
+            };
+          });
+          this.appointments.set(mappedApts);
+          this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, mappedApts);
+        } else if (!aptsError && aptsData && aptsData.length === 0) {
+          this.appointments.set([]);
+          this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, []);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso sincronizando citas', err);
+      }
+
+      this.logger.info('BarberService', 'Sincronización completada con éxito');
     } catch (err: unknown) {
       this.logger.error('BarberService', 'Error durante la sincronización con Supabase', err);
       this.errorMessage.set('No se pudo sincronizar con el servidor. Modo offline activado.');

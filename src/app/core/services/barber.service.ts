@@ -183,11 +183,15 @@ export class BarberService {
       id: 'default',
       businessName: 'BarberTrack PRO',
       currencySymbol: 'S/',
+      loyaltyMode: 'per_service',
     })
   );
 
   // Prefijo / Símbolo de moneda oficial reactivo en toda la PWA
   readonly currencySymbol = computed<string>(() => this.businessSettings().currencySymbol || 'S/');
+
+  // Modo de acumulación de sellos de fidelización: 'per_service' (por servicio realizado) o 'per_visit' (1 por cita/ticket)
+  readonly loyaltyMode = computed<'per_visit' | 'per_service'>(() => this.businessSettings().loyaltyMode || 'per_service');
 
   readonly appSettings = signal<Record<string, number>>(
     this.loadFromStorage(STORAGE_KEYS.APP_SETTINGS, { stamps_required: 10 })
@@ -240,25 +244,34 @@ export class BarberService {
     );
   });
 
-  // Métricas consolidadas — El servidor (RPC) tiene soberanía sobre el caché local para evitar estado residual
+  // Métricas reactivas consolidadas — El servidor (RPC) actúa como base histórica y el estado local añade reactividad instantánea
   readonly cutsToday = computed(() => {
-    // Dar prioridad al RPC del servidor para evitar que datos locales desactualizados
-    // muestren cortes que ya no existen en Supabase
-    if (this.serverKpis()) return this.serverKpis()!.cutsToday;
     const todayStr = getLocalDateString();
-    return this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
+    const localCutsToday = this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
+    if (this.serverKpis()) {
+      return Math.max(this.serverKpis()!.cutsToday, localCutsToday);
+    }
+    return localCutsToday;
   });
 
   readonly cutsThisMonth = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.cutsThisMonth;
     const currentYearMonth = getLocalDateString().slice(0, 7);
-    return this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
+    const localCutsMonth = this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
+    if (this.serverKpis()) {
+      return Math.max(this.serverKpis()!.cutsThisMonth, localCutsMonth);
+    }
+    return localCutsMonth;
   });
 
   readonly revenueToday = computed(() => {
-    if (this.serverKpis()) return this.serverKpis()!.revenueToday;
     const todayStr = getLocalDateString();
-    return this.cuts().filter((c) => c.date.startsWith(todayStr)).reduce((sum, c) => sum + c.price, 0);
+    const localRevenueToday = this.cuts()
+      .filter((c) => c.date.startsWith(todayStr) && c.paymentMethod !== 'credit')
+      .reduce((sum, c) => sum + c.price, 0);
+    if (this.serverKpis()) {
+      return Math.max(this.serverKpis()!.revenueToday, localRevenueToday);
+    }
+    return localRevenueToday;
   });
 
   readonly revenueThisWeek = computed(() => {
@@ -278,8 +291,8 @@ export class BarberService {
 
   readonly totalRevenue = computed(() => {
     const localTotal = this.cuts().reduce((sum, c) => sum + c.price, 0);
-    if (this.serverKpis() && this.serverKpis()!.totalRevenue > localTotal) {
-      return this.serverKpis()!.totalRevenue;
+    if (this.serverKpis()) {
+      return Math.max(this.serverKpis()!.totalRevenue, localTotal);
     }
     return localTotal;
   });
@@ -431,10 +444,10 @@ export class BarberService {
           this.saveToStorage(STORAGE_KEYS.APP_SETTINGS, settingsMap);
         }
 
-        // Cargar business_settings (nombre, símbolo de moneda)
+        // Cargar business_settings (nombre, símbolo de moneda, modo de fidelización)
         const { data: bsData, error: bsError } = await this.supabaseService.supabase
           .from('business_settings')
-          .select('id, business_name, currency_symbol')
+          .select('*')
           .limit(1)
           .maybeSingle();
 
@@ -443,6 +456,7 @@ export class BarberService {
             id: bsData.id,
             businessName: bsData.business_name ?? 'BarberTrack PRO',
             currencySymbol: bsData.currency_symbol ?? 'S/',
+            loyaltyMode: (bsData.loyalty_mode as any) || this.businessSettings().loyaltyMode || 'per_service',
           });
           this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
         }
@@ -1101,14 +1115,65 @@ export class BarberService {
     this.cuts.set(updatedCuts);
     this.saveToStorage(STORAGE_KEYS.CUTS, updatedCuts);
 
-    if (client) {
-      const newCutsCount = client.cutsCount + 1;
-      const newStamps = client.loyaltyStamps + 1;
-      let newLevel: MembershipTier = client.membershipLevel;
+    // 3. Sincronizar saldos de cuentas financieras y movimientos en local
+    if (!params.isCredit) {
+      const targetType = actualPaymentMethod === 'cash' ? 'cash' : actualPaymentMethod === 'card' ? 'bank' : 'digital_wallet';
+      const accounts = this.financialAccounts();
+      const targetAcc = accounts.find((a) => a.type === targetType && a.isActive) || accounts[0];
 
-      if (newCutsCount >= 15) newLevel = 'VIP';
-      else if (newCutsCount >= 8) newLevel = 'Gold';
-      else if (newCutsCount >= 3) newLevel = 'Silver';
+      if (targetAcc) {
+        const updatedAccounts = accounts.map((a) =>
+          a.id === targetAcc.id ? { ...a, currentBalance: (Number(a.currentBalance) || 0) + finalPrice } : a
+        );
+        this.financialAccounts.set(updatedAccounts);
+        this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, updatedAccounts);
+
+        const newAccountMov: AccountMovement = {
+          id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mov-${Date.now()}`,
+          accountId: targetAcc.id,
+          movementType: 'income',
+          amount: finalPrice,
+          description: `Cobro POS: ${summaryServiceName} (${client?.name || 'Cliente'})`,
+          referenceType: 'order',
+          referenceId: saleId || null,
+          createdAt: new Date().toISOString(),
+          accountName: targetAcc.name,
+          shiftId: actualPaymentMethod === 'cash' && activeShift ? activeShift.id : null,
+        };
+        this.accountMovements.update((prev) => [newAccountMov, ...prev]);
+        this.saveToStorage(STORAGE_KEYS.ACCOUNT_MOVEMENTS, this.accountMovements());
+      }
+    }
+
+    // 4. Actualizar métricas KPI reactivas inmediatamente
+    this.serverKpis.update((kpi) => {
+      if (!kpi) return null;
+      return {
+        ...kpi,
+        cutsToday: kpi.cutsToday + 1,
+        cutsThisMonth: kpi.cutsThisMonth + 1,
+        totalCuts: kpi.totalCuts + 1,
+        revenueToday: kpi.revenueToday + (params.isCredit ? 0 : finalPrice),
+        totalRevenue: kpi.totalRevenue + finalPrice,
+      };
+    });
+
+    // 5. Fidelización y Sellos según loyaltyMode
+    if (client) {
+      const isPaid = !params.isCredit;
+      const serviceCount = lineItems.reduce((acc, it) => acc + (it.quantity || 1), 0);
+      const mode = this.loyaltyMode();
+      // Si el cobro es al contado: en modo 'per_service' suma los servicios, en 'per_visit' suma 1. Si es crédito/fiado, 0 sellos hasta saldar.
+      const stampsToAdd = isPaid ? (mode === 'per_service' ? Math.max(1, serviceCount) : 1) : 0;
+      const cutsToAdd = mode === 'per_service' ? Math.max(1, serviceCount) : 1;
+
+      const newCutsCount = client.cutsCount + cutsToAdd;
+      const newStamps = client.loyaltyStamps + stampsToAdd;
+
+      let newLevel: MembershipTier = client.membershipLevel;
+      if (newCutsCount >= 50) newLevel = 'VIP';
+      else if (newCutsCount >= 20) newLevel = 'Gold';
+      else if (newCutsCount >= 5) newLevel = 'Silver';
       else newLevel = 'Bronze';
 
       const newDebt = params.isCredit ? (client.currentDebt || 0) + finalPrice : (client.currentDebt || 0);
@@ -1212,16 +1277,44 @@ export class BarberService {
 
     const amount = Number(params.amount);
     client.currentDebt = Math.max(0, (client.currentDebt || 0) - amount);
+
+    // Acreditar sello de fidelización al saldar/abonar su servicio
+    client.loyaltyStamps = (client.loyaltyStamps || 0) + 1;
+
     this.clients.set([...this.clients()]);
     this.saveToStorage(STORAGE_KEYS.CLIENTS, this.clients());
 
+    const activeShift = this.activeCashShift();
     const acc = this.financialAccounts().find((a) => a.id === params.accountId) || this.financialAccounts()[0];
     if (acc) {
       acc.currentBalance += amount;
       this.financialAccounts.set([...this.financialAccounts()]);
+      this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, this.financialAccounts());
+
+      const paymentMov: AccountMovement = {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `mov-${Date.now()}`,
+        accountId: acc.id,
+        movementType: 'income',
+        amount: amount,
+        description: `Abono de deuda: ${client.name}`,
+        referenceType: 'credit_payment',
+        createdAt: new Date().toISOString(),
+        accountName: acc.name,
+        shiftId: acc.type === 'cash' && activeShift ? activeShift.id : null,
+      };
+      this.accountMovements.update((prev) => [paymentMov, ...prev]);
+      this.saveToStorage(STORAGE_KEYS.ACCOUNT_MOVEMENTS, this.accountMovements());
     }
 
-    const activeShift = this.activeCashShift();
+    // Actualizar métricas KPI reactivas
+    this.serverKpis.update((kpi) => {
+      if (!kpi) return null;
+      return {
+        ...kpi,
+        revenueToday: kpi.revenueToday + amount,
+      };
+    });
+
     if (acc?.type === 'cash' && activeShift) {
       activeShift.cashSales += amount;
       activeShift.expectedCash += amount;
@@ -2204,6 +2297,36 @@ export class BarberService {
     const val = localStorage.getItem(STORAGE_KEYS.ROLE);
     if (val === 'barber' || val === 'client' || val === 'landing') return val;
     return 'landing';
+  }
+
+  /**
+   * Actualizar configuración de negocio (nombre, moneda, modo de fidelización)
+   */
+  async updateBusinessSettings(updates: Partial<BusinessSettings>): Promise<void> {
+    const current = this.businessSettings();
+    const updated = { ...current, ...updates };
+    this.businessSettings.set(updated);
+    this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, updated);
+
+    if (this.supabaseService.isConfigured() && current.id && current.id !== 'default') {
+      try {
+        const payload: any = { updated_at: new Date().toISOString() };
+        if (updates.businessName !== undefined) payload.business_name = updates.businessName;
+        if (updates.currencySymbol !== undefined) payload.currency_symbol = updates.currencySymbol;
+        if (updates.loyaltyMode !== undefined) payload.loyalty_mode = updates.loyaltyMode;
+
+        const { error } = await this.supabaseService.supabase
+          .from('business_settings')
+          .update(payload)
+          .eq('id', current.id);
+
+        if (error) {
+          this.logger.warn('BarberService', 'Aviso al actualizar business_settings en Supabase', error);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Excepción al guardar business_settings', err);
+      }
+    }
   }
 
   private loadFromStorage<T>(key: string, fallback: T): T {

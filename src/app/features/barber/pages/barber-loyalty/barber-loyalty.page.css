@@ -962,6 +962,123 @@
 }
 
 /* --------------------------------------------------------------------------
+   CONFIGURACIÓN DEL MODO DE FIDELIZACIÓN (ADMIN)
+   -------------------------------------------------------------------------- */
+.loyalty-mode-config-card {
+  background: #16161e;
+  border: 1px solid rgba(229, 169, 60, 0.25);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.lmc-info {
+  flex: 1;
+}
+
+.lmc-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(229, 169, 60, 0.12);
+  color: #e5a93c;
+  margin-bottom: 8px;
+}
+
+.lmc-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 4px;
+}
+
+.lmc-desc {
+  font-size: 0.82rem;
+  color: #a1a1aa;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.lmc-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lmc-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.lmc-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(229, 169, 60, 0.3);
+}
+
+.lmc-btn.active {
+  background: rgba(229, 169, 60, 0.12);
+  border-color: #e5a93c;
+  box-shadow: 0 0 16px rgba(229, 169, 60, 0.18);
+}
+
+.lmc-icon {
+  font-size: 1.35rem;
+}
+
+.lmc-btn-texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.lmc-btn-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.lmc-btn.active .lmc-btn-title {
+  color: #e5a93c;
+}
+
+.lmc-btn-sub {
+  font-size: 0.72rem;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.lmc-btn.active .lmc-btn-sub {
+  color: #d4d4d8;
+}
+
+@media (max-width: 900px) {
+  .loyalty-mode-config-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .lmc-toggle-group {
+    flex-direction: column;
+  }
+}
+
+/* --------------------------------------------------------------------------
    RESPONSIVE MÓVIL (< 768px)
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {

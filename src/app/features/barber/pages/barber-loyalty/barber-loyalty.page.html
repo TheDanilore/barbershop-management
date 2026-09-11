@@ -78,6 +78,42 @@
     </article>
   </section>
 
+  <!-- Barra de Configuración de Fidelización del Negocio (Admin) -->
+  <section class="loyalty-mode-config-card">
+    <div class="lmc-info">
+      <div class="lmc-badge">⚙️ Regla de Acumulación de Sellos</div>
+      <h3 class="lmc-title">Modo de Conteo de Sellos del Cliente</h3>
+      <p class="lmc-desc">
+        Define cómo tus clientes acumulan sellos al registrar servicios en el punto de venta (POS).
+      </p>
+    </div>
+    <div class="lmc-toggle-group">
+      <button
+        type="button"
+        class="lmc-btn"
+        [class.active]="barberService.loyaltyMode() === 'per_service'"
+        (click)="setLoyaltyMode('per_service')">
+        <span class="lmc-icon">✂️</span>
+        <div class="lmc-btn-texts">
+          <span class="lmc-btn-title">Por Servicio Realizado</span>
+          <span class="lmc-btn-sub">Combos suman múltiples sellos (Ej: Corte + Barba = 2)</span>
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="lmc-btn"
+        [class.active]="barberService.loyaltyMode() === 'per_visit'"
+        (click)="setLoyaltyMode('per_visit')">
+        <span class="lmc-icon">🎟️</span>
+        <div class="lmc-btn-texts">
+          <span class="lmc-btn-title">Por Visita / Ticket</span>
+          <span class="lmc-btn-sub">1 sello por orden completada, sin importar items</span>
+        </div>
+      </button>
+    </div>
+  </section>
+
   <!-- ======================================================================= -->
   <!-- SECCIÓN 1: PREMIOS PENDIENTES DE ENTREGA (ALERTAS ACTIVAS)              -->
   <!-- ======================================================================= -->

@@ -23,7 +23,7 @@
             <span class="status-pill" [class]="apt.status">{{ getStatusLabel(apt.status) }}</span>
           </div>
 
-          <div class="t-service-name">{{ apt.serviceName }} • ${{ apt.price }}</div>
+          <div class="t-service-name">{{ apt.serviceName }} • {{ barberService.currencySymbol() }}{{ apt.price }}</div>
           <div class="t-phone">📞 {{ apt.clientPhone }}</div>
 
           @if (apt.notes) {

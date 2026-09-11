@@ -209,76 +209,7 @@
   <!-- MODALES DE ACCIÓN RÁPIDA IN-SITU                                         -->
   <!-- ======================================================================= -->
 
-  <!-- MODAL: REGISTRAR CORTE -->
-  @if (isRegisterCutModalOpen()) {
-  <div class="modal-backdrop" (click)="closeRegisterCutModal()">
-    <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
 
-      <div class="sheet-header">
-        <div class="sheet-title-group">
-          <h2 class="sheet-title">Registrar Corte &amp; Cobro</h2>
-          <p class="sheet-subtitle">Selecciona el cliente y el servicio realizado</p>
-        </div>
-        <button class="btn-close-sheet" (click)="closeRegisterCutModal()" title="Cerrar (Esc)">✕</button>
-      </div>
-
-      <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="sheet-body">
-        <div class="form-group">
-          <label class="form-label" for="cutClientId">Cliente *</label>
-          <select id="cutClientId" class="form-input form-select" formControlName="clientId">
-            @for (cli of barberService.clients(); track cli.id) {
-            <option [value]="cli.id">{{ cli.name }} ({{ cli.loyaltyStamps }} sellos)</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="cutServiceId">Servicio Realizado *</label>
-          <select id="cutServiceId" class="form-input form-select" formControlName="serviceId">
-            @for (srv of barberService.services(); track srv.id) {
-            <option [value]="srv.id">{{ srv.name }} - {{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }} ({{ srv.durationMinutes }} min)</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Método de Pago *</label>
-          <div class="payment-method-selector">
-            <label class="pm-option" [class.selected]="cutForm.get('paymentMethod')?.value === 'cash'">
-              <input type="radio" formControlName="paymentMethod" value="cash" />
-              <span>💵 Efectivo</span>
-            </label>
-            <label class="pm-option" [class.selected]="cutForm.get('paymentMethod')?.value === 'transfer'">
-              <input type="radio" formControlName="paymentMethod" value="transfer" />
-              <span>📱 Yape/Transf.</span>
-            </label>
-            <label class="pm-option" [class.selected]="cutForm.get('paymentMethod')?.value === 'card'">
-              <input type="radio" formControlName="paymentMethod" value="card" />
-              <span>💳 Tarjeta</span>
-            </label>
-            <label class="pm-option credit" [class.selected]="cutForm.get('paymentMethod')?.value === 'credit'">
-              <input type="radio" formControlName="paymentMethod" value="credit" />
-              <span>📝 Fiado</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="cutNotes">Notas adicionales</label>
-          <input id="cutNotes" type="text" class="form-input" formControlName="notes" placeholder="Ej: Degradado alto, barba perfilada" />
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeRegisterCutModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="cutForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Procesando...' : 'Confirmar & Cobrar' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
 
   <!-- MODAL REUTILIZABLE: APERTURA / CIERRE DE TURNO DE CAJA (ARQUEO ASISTIDO) -->
   <app-cash-shift-modal

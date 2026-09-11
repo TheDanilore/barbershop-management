@@ -176,6 +176,20 @@ export class BarberLoyaltyPage {
     }
   }
 
+  async setLoyaltyMode(mode: 'per_service' | 'per_visit'): Promise<void> {
+    this.haptics.selection();
+    try {
+      await this.barberService.updateBusinessSettings({ loyaltyMode: mode });
+      this.showToast(
+        mode === 'per_service'
+          ? '✅ Modo activo: 1 sello por cada servicio realizado'
+          : '✅ Modo activo: 1 sello por visita / ticket'
+      );
+    } catch {
+      this.showToast('Error al actualizar el modo de fidelización');
+    }
+  }
+
   getRewardTypeLabel(type: RewardType | undefined): string {
     switch (type) {
       case 'free_cut': return 'Corte Gratis';

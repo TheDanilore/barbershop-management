@@ -274,6 +274,7 @@ export interface BusinessSettings {
   id: string;
   businessName: string;
   currencySymbol: string;
+  loyaltyMode?: 'per_visit' | 'per_service';
 }
 
 export interface AppSetting {

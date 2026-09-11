@@ -34,7 +34,6 @@ export class BarberDashboardPage {
   private readonly fb = inject(FormBuilder);
 
   // Modales de Acción Rápida In-situ
-  readonly isRegisterCutModalOpen = signal(false);
   readonly isShiftModalOpen = signal(false);
   readonly shiftMode = signal<'open' | 'close'>('open');
   readonly activeShift = computed(() => this.barberService.activeCashShift());
@@ -46,14 +45,7 @@ export class BarberDashboardPage {
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  // Formularios Reactivos
-  readonly cutForm = this.fb.group({
-    clientId: ['', Validators.required],
-    serviceId: ['', Validators.required],
-    paymentMethod: ['cash' as PaymentMethod, Validators.required],
-    notes: [''],
-  });
-
+  // Formulario Reactivo de Abono de Deuda
   readonly debtPaymentForm = this.fb.group({
     amount: [null as number | null, [Validators.required, Validators.min(0.5)]],
     accountId: ['', Validators.required],
@@ -87,73 +79,11 @@ export class BarberDashboardPage {
   }
 
   // ---------------------------------------------------------------------------
-  // COBRO DE CORTES
+  // COBRO DE CORTES (DELEGA AL MODAL POS CHAMELEON CENTRALIZADO)
   // ---------------------------------------------------------------------------
   openRegisterCutModal(preselectedClientId?: string): void {
     this.haptics.lightTap();
-    const clientId =
-      preselectedClientId ||
-      this.cutForm.get('clientId')?.value ||
-      this.barberService.clients()[0]?.id ||
-      '';
-    const firstService = this.barberService.services()[0];
-    this.cutForm.reset({
-      clientId,
-      serviceId: firstService?.id || '',
-      paymentMethod: 'cash',
-      notes: '',
-    });
-    this.isRegisterCutModalOpen.set(true);
-  }
-
-  closeRegisterCutModal(): void {
-    this.haptics.lightTap();
-    this.isRegisterCutModalOpen.set(false);
-  }
-
-  async submitRegisterCut(): Promise<void> {
-    if (this.cutForm.invalid || this.isSubmitting()) {
-      this.cutForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Selecciona el cliente y servicio');
-      return;
-    }
-
-    const { clientId, serviceId, paymentMethod, notes } = this.cutForm.value;
-
-    // Validación preventiva de efectivo sin turno
-    if (paymentMethod === 'cash' && !this.barberService.activeCashShift()) {
-      this.haptics.warning();
-      this.showToast('⚠️ No puedes cobrar en efectivo con el turno de caja cerrado');
-      return;
-    }
-
-    this.isSubmitting.set(true);
-    try {
-      const barberId =
-        this.supabaseService.userProfile()?.id ||
-        this.barberService.barbers()[0]?.id ||
-        '';
-
-      const cut = await this.barberService.registerCut({
-        clientId: clientId!,
-        serviceId: serviceId!,
-        barberId,
-        paymentMethod: paymentMethod as PaymentMethod,
-        notes: notes?.trim(),
-      });
-
-      this.haptics.success();
-      this.closeRegisterCutModal();
-      this.showToast(
-        `✅ Cobro de $${cut.price.toFixed(2)} registrado (${this.getPaymentLabel(cut.paymentMethod)})`
-      );
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al procesar el cobro');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.barberService.openRegisterCutModal({ clientId: preselectedClientId });
   }
 
   // ---------------------------------------------------------------------------
@@ -208,7 +138,7 @@ export class BarberDashboardPage {
       });
       this.haptics.success();
       this.closeDebtPaymentModal();
-      this.showToast(`Abono de $${amount} registrado a ${client.name}`);
+      this.showToast(`Abono de ${this.barberService.currencySymbol()}${amount} registrado a ${client.name}`);
     } catch (err: unknown) {
       this.logger.error('BarberDashboardPage', 'Error al procesar el abono de deuda', err);
       this.haptics.warning();

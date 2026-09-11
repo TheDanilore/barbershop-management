@@ -32,7 +32,7 @@
         <!-- Fecha -->
         <div class="form-group">
           <label class="form-label">3. Fecha del Turno *</label>
-          <input type="date" formControlName="date" />
+          <input type="date" formControlName="date" [min]="todayDateStr()" />
         </div>
 
         <!-- Horario -->
@@ -44,6 +44,8 @@
                 type="button"
                 class="time-slot-chip"
                 [class.selected]="bookingForm.get('time')?.value === time"
+                [class.disabled]="isSlotDisabled(time)"
+                [disabled]="isSlotDisabled(time)"
                 (click)="selectTime(time)"
               >
                 {{ time }}

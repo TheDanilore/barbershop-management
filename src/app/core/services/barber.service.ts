@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { LoggerService } from './logger.service';
 import { SupabaseService } from './supabase.service';
-import { getLocalDateString, getLocalTimeString } from '../utils/date.utils';
+import { getLocalDateString, getLocalTimeString, isPastDateTime, isDateInPast } from '../utils/date.utils';
 import {
   AccountMovement,
   AccountType,
@@ -119,8 +119,22 @@ export class BarberService {
       this.bookingModalTime.set(appointmentToEdit.time);
     } else {
       this.bookingModalAppointmentToEdit.set(null);
-      if (date) this.bookingModalDate.set(date);
-      if (time) this.bookingModalTime.set(time);
+      const today = getLocalDateString();
+      const targetDate = date && !isDateInPast(date) ? date : today;
+      this.bookingModalDate.set(targetDate);
+
+      // Si se proporcionó un horario válido en el futuro, usarlo; de lo contrario buscar el primer futuro
+      if (time && !isPastDateTime(targetDate, time)) {
+        this.bookingModalTime.set(time);
+      } else {
+        const standardSlots = [
+          '08:30', '09:15', '10:00', '10:45', '11:30', '12:15',
+          '14:00', '14:45', '15:30', '16:15', '17:00', '17:45',
+          '18:30', '19:15', '20:00',
+        ];
+        const nextSlot = standardSlots.find((slot) => !isPastDateTime(targetDate, slot)) || standardSlots[0];
+        this.bookingModalTime.set(nextSlot);
+      }
     }
     this.isBookingModalOpen.set(true);
   }
@@ -1834,6 +1848,10 @@ export class BarberService {
     time: string;
     notes?: string;
   }): Promise<Appointment> {
+    if (isPastDateTime(params.date, params.time)) {
+      throw new Error('No es posible agendar una cita en una fecha u horario que ya ha transcurrido.');
+    }
+
     const client = this.clients().find((c) => c.id === params.clientId) || this.currentClient();
     const barber = this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0];
 

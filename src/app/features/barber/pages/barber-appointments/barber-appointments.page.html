@@ -261,6 +261,21 @@
         <div class="empty-glow"></div>
         <div class="empty-badge-icon">📅</div>
       </div>
+      @if (isViewingPastDate()) {
+      <h3 class="empty-title">Sin citas registradas en esta fecha</h3>
+      <p class="empty-subtitle">
+        El <strong>{{ formattedSelectedDate() }}</strong> es una fecha pasada y no cuenta con registros de citas.
+      </p>
+      <div class="empty-actions">
+        <button
+          type="button"
+          class="btn-empty-create"
+          (click)="goToToday()">
+          <span>📅 Ir a la Agenda de Hoy</span>
+          <kbd class="kbd-key">T</kbd>
+        </button>
+      </div>
+      } @else {
       <h3 class="empty-title">Agenda completamente libre</h3>
       <p class="empty-subtitle">
         No hay citas reservadas para el <strong>{{ formattedSelectedDate() }}</strong> con los filtros seleccionados.
@@ -274,6 +289,7 @@
           <kbd class="kbd-key">Alt+A</kbd>
         </button>
       </div>
+      }
     </div>
     }
 
@@ -281,10 +297,10 @@
     @if (viewMode() === 'timeline') {
     <div class="timeline-pro-container">
       @for (slot of timelineSlots(); track slot.time) {
-      <div class="timeline-slot-row" [class.has-appointments]="slot.appointments.length > 0">
+      <div class="timeline-slot-row" [class.has-appointments]="slot.appointments.length > 0" [class.is-past-slot]="slot.isPast">
         <!-- Columna de Hora -->
         <div class="slot-time-col">
-          <span class="slot-time-label">{{ slot.time }}</span>
+          <span class="slot-time-label" [class.past-time]="slot.isPast">{{ slot.time }}</span>
           <div class="slot-time-line"></div>
         </div>
 
@@ -416,6 +432,15 @@
                 </div>
               </article>
               }
+            </div>
+          } @else if (slot.isPast) {
+            <!-- Ranura Horaria Transcurrida / No Disponible para Nuevas Citas -->
+            <div class="past-slot-bar" title="Horario transcurrido ({{ slot.time }}) - No disponible para agendar">
+              <div class="psb-left">
+                <span class="psb-icon">⏳</span>
+                <span class="psb-text">Horario finalizado ({{ slot.time }})</span>
+              </div>
+              <span class="psb-tag">Transcurrido</span>
             </div>
           } @else {
             <!-- Ranura Horaria Libre Clickeable -->

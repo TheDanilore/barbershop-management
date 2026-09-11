@@ -532,6 +532,25 @@
   line-height: 1;
 }
 
+/* Horarios Transcurridos / Deshabilitados */
+.time-chip.disabled,
+.time-chip[disabled] {
+  opacity: 0.32;
+  cursor: not-allowed !important;
+  background: rgba(255, 255, 255, 0.015);
+  border-color: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.tc-past-tag {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.25);
+  font-weight: 700;
+}
+
 /* 8. Live Summary Card */
 .live-summary-card {
   background: rgba(229, 169, 60, 0.04);

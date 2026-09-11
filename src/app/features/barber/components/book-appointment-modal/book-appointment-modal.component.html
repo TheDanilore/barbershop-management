@@ -131,6 +131,7 @@
               id="bookingDate"
               type="date"
               class="form-input"
+              [min]="todayDateStr()"
               formControlName="date" />
           </div>
         </div>
@@ -151,9 +152,14 @@
               class="time-chip"
               [class.selected]="currentTime() === slot"
               [class.occupied]="occupiedSlotsOnSelectedDate().has(slot)"
+              [class.disabled]="isSlotDisabled(slot)"
+              [disabled]="isSlotDisabled(slot)"
+              [title]="isSlotDisabled(slot) ? 'Horario transcurrido' : (occupiedSlotsOnSelectedDate().has(slot) ? 'Ocupado por ' + occupiedSlotsOnSelectedDate().get(slot) : 'Disponible')"
               (click)="selectTimeChip(slot)">
               <span class="tc-time">{{ slot }}</span>
-              @if (occupiedSlotsOnSelectedDate().has(slot)) {
+              @if (isSlotDisabled(slot)) {
+              <span class="tc-past-tag" title="Horario transcurrido">✕</span>
+              } @else if (occupiedSlotsOnSelectedDate().has(slot)) {
               <span class="tc-occupied-tag" [title]="'Ocupado por ' + occupiedSlotsOnSelectedDate().get(slot)">
                 ●
               </span>

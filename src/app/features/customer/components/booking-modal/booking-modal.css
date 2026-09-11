@@ -143,6 +143,17 @@
   font-weight: 700;
 }
 
+.time-slot-chip.disabled,
+.time-slot-chip[disabled] {
+  opacity: 0.28;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: #14141a;
+  border-color: #1e1e24;
+  color: #555566;
+  text-decoration: line-through;
+}
+
 .btn-confirm-primary {
   width: 100%;
   padding: 14px;

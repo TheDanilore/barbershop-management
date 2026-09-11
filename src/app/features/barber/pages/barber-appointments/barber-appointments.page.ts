@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   computed,
   inject,
@@ -19,10 +20,13 @@ import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import {
   getLocalDateString,
+  getLocalTimeString,
   addDaysToDateStr,
   getDayName,
   getMonthShortName,
   formatDateReadable,
+  isDateInPast,
+  isPastDateTime,
 } from '../../../../core/utils/date.utils';
 
 export interface WeekDayItem {
@@ -47,6 +51,7 @@ export class BarberAppointmentsPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
 
   // Estados de navegación y filtros
   readonly selectedDate = signal<string>(getLocalDateString());
@@ -54,10 +59,21 @@ export class BarberAppointmentsPage {
   readonly selectedStatusFilter = signal<string>('all');
   readonly viewMode = signal<'timeline' | 'list'>('timeline');
 
+  // Hora local reactiva actualizada periódicamente
+  readonly currentLocalTime = signal<string>(getLocalTimeString());
+
   // Estados de Acción
   readonly isSubmitting = signal(false);
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    // Sincronizar hora local cada 30s para refrescar de forma reactiva los slots vencidos
+    const timer = setInterval(() => {
+      this.currentLocalTime.set(getLocalTimeString());
+    }, 30000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
+  }
 
   // Franjas horarias estándar del negocio
   readonly availableTimeSlots = [
@@ -166,17 +182,29 @@ export class BarberAppointmentsPage {
     return map;
   });
 
+  // Es una fecha en el pasado?
+  readonly isViewingPastDate = computed(() => this.selectedDate() < this.todayDateStr());
+
   // Estructura de Timeline enriquecida para cada slot horario
   readonly timelineSlots = computed(() => {
     const appointments = this.filteredAppointments();
     const slots = this.availableTimeSlots;
+    const targetDate = this.selectedDate();
+    const today = this.todayDateStr();
+    const nowTime = this.currentLocalTime();
+    const isPastDate = targetDate < today;
+    const isToday = targetDate === today;
 
     return slots.map((time) => {
       const aptsAtThisTime = appointments.filter((a) => a.time === time);
+      // Un slot está en el pasado si la fecha es pasada, o si es hoy y la hora ya transcurrió
+      const isPast = isPastDate || (isToday && time <= nowTime);
+
       return {
         time,
         appointments: aptsAtThisTime,
         isOccupied: aptsAtThisTime.length > 0,
+        isPast,
       };
     });
   });
@@ -335,10 +363,38 @@ export class BarberAppointmentsPage {
     }
   }
 
+  // Buscar el primer slot disponible y futuro para agendar
+  getFirstAvailableSlot(dateStr: string): string {
+    const today = this.todayDateStr();
+    const nowTime = this.currentLocalTime();
+    const occupiedMap = this.occupiedSlotsOnSelectedDate();
+
+    // 1. Priorizar slot futuro no ocupado
+    for (const slot of this.availableTimeSlots) {
+      const isPast = dateStr < today || (dateStr === today && slot <= nowTime);
+      if (!isPast && !occupiedMap.has(slot)) {
+        return slot;
+      }
+    }
+    // 2. Si todos están ocupados, tomar el primer futuro
+    for (const slot of this.availableTimeSlots) {
+      const isPast = dateStr < today || (dateStr === today && slot <= nowTime);
+      if (!isPast) return slot;
+    }
+    return this.availableTimeSlots[0];
+  }
+
   // --- MODAL AGENDAR / EDITAR CITA ---
   openBookAppointmentModal(defaultTime?: string): void {
     this.haptics.lightTap();
-    this.barberService.openBookingModal(this.selectedDate(), defaultTime || '10:00');
+    // Si la fecha actual seleccionada en la vista es pasada, agendar para hoy
+    const targetDate = this.selectedDate() < this.todayDateStr() ? this.todayDateStr() : this.selectedDate();
+    // Si no se especificó hora o la hora es pasada en la fecha destino, resolver el primer slot futuro disponible
+    let targetTime = defaultTime;
+    if (!targetTime || (targetDate === this.todayDateStr() && targetTime <= this.currentLocalTime())) {
+      targetTime = this.getFirstAvailableSlot(targetDate);
+    }
+    this.barberService.openBookingModal(targetDate, targetTime);
   }
 
   openEditAppointmentModal(apt: Appointment): void {

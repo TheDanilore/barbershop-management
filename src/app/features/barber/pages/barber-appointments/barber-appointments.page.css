@@ -908,6 +908,65 @@
   opacity: 1;
 }
 
+/* Ranura Horaria Pasada / Transcurrida (Solo lectura/informativa) */
+.past-slot-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.012);
+  border: 1px dashed rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 0.8rem;
+  user-select: none;
+  cursor: default;
+}
+
+.psb-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.psb-icon {
+  font-size: 0.85rem;
+  opacity: 0.45;
+}
+
+.psb-text {
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
+}
+
+.psb-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.02em;
+}
+
+/* Modificadores de slots pasados en Timeline */
+.timeline-slot-row.is-past-slot {
+  opacity: 0.58;
+  transition: opacity 0.2s ease;
+}
+
+.timeline-slot-row.is-past-slot:hover {
+  opacity: 0.88;
+}
+
+.slot-time-label.past-time {
+  color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
 /* ==============================================================================
    5. VISTA LISTA DENSA (POWER USER ERP)
    ============================================================================== */

@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
-import { getLocalDateString } from '../../../../core/utils/date.utils';
+import { getLocalDateString, getLocalTimeString, isPastDateTime } from '../../../../core/utils/date.utils';
 
 @Component({
   selector: 'app-booking-modal',
@@ -23,6 +23,7 @@ export class BookingModal {
   @Output() booked = new EventEmitter<string>();
 
   readonly isSubmitting = signal(false);
+  readonly todayDateStr = computed(() => getLocalDateString());
 
   readonly availableTimeSlots = [
     '09:00', '09:45', '10:30', '11:15', '12:00',
@@ -30,15 +31,38 @@ export class BookingModal {
     '17:45', '18:30', '19:15',
   ];
 
-  readonly bookingForm: FormGroup = this.fb.group({
-    serviceId: ['srv-1', [Validators.required]],
-    barberId: ['barber-1', [Validators.required]],
-    date: [getLocalDateString(), [Validators.required]],
-    time: ['10:00', [Validators.required]],
-    notes: [''],
-  });
+  readonly bookingForm: FormGroup;
+
+  constructor() {
+    const today = getLocalDateString();
+    const nowTime = getLocalTimeString();
+    const initialSlot = this.availableTimeSlots.find((s) => !isPastDateTime(today, s)) || this.availableTimeSlots[0];
+
+    this.bookingForm = this.fb.group({
+      serviceId: ['srv-1', [Validators.required]],
+      barberId: ['barber-1', [Validators.required]],
+      date: [today, [Validators.required]],
+      time: [initialSlot, [Validators.required]],
+      notes: [''],
+    });
+
+    this.bookingForm.get('date')?.valueChanges.subscribe((d) => {
+      if (!d) return;
+      const curTime = this.bookingForm.get('time')?.value;
+      if (this.isSlotDisabled(curTime)) {
+        const next = this.availableTimeSlots.find((s) => !isPastDateTime(d, s)) || this.availableTimeSlots[0];
+        this.bookingForm.patchValue({ time: next });
+      }
+    });
+  }
+
+  isSlotDisabled(time: string): boolean {
+    const d = this.bookingForm.get('date')?.value || getLocalDateString();
+    return isPastDateTime(d, time);
+  }
 
   selectTime(time: string): void {
+    if (this.isSlotDisabled(time)) return;
     this.haptics.selection();
     this.bookingForm.patchValue({ time });
   }

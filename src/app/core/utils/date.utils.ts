@@ -70,3 +70,24 @@ export function formatDateReadable(dateStr: string): string {
     year: 'numeric',
   });
 }
+
+/**
+ * Determina si una fecha en formato 'YYYY-MM-DD' es estrictamente anterior al día de hoy.
+ */
+export function isDateInPast(dateStr: string, now: Date = new Date()): boolean {
+  return dateStr < getLocalDateString(now);
+}
+
+/**
+ * Determina si una fecha y hora específica ya transcurrió respecto a la hora local actual.
+ * Si la fecha es pasada, devuelve true.
+ * Si la fecha es futura, devuelve false.
+ * Si la fecha es hoy, compara si la hora (HH:mm) es menor o igual a la hora actual.
+ */
+export function isPastDateTime(dateStr: string, timeStr: string, now: Date = new Date()): boolean {
+  const today = getLocalDateString(now);
+  if (dateStr < today) return true;
+  if (dateStr > today) return false;
+  return timeStr <= getLocalTimeString(now);
+}
+

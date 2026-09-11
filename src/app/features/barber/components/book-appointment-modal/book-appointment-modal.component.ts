@@ -13,12 +13,26 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { Appointment, AppointmentServiceItem, ServiceItem } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoggerService } from '../../../../core/services/logger.service';
-import { getLocalDateString } from '../../../../core/utils/date.utils';
+import {
+  getLocalDateString,
+  getLocalTimeString,
+  isDateInPast,
+  isPastDateTime,
+} from '../../../../core/utils/date.utils';
 
 @Component({
   selector: 'app-book-appointment-modal',
@@ -47,6 +61,10 @@ export class BookAppointmentModalComponent implements OnChanges {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
 
+  // Fecha y hora local actual reactiva
+  readonly todayDateStr = computed(() => getLocalDateString());
+  readonly currentLocalTime = signal<string>(getLocalTimeString());
+
   // Es modo edición de cita existente?
   readonly isEditMode = computed(() => !!this.appointmentToEdit);
 
@@ -66,6 +84,24 @@ export class BookAppointmentModalComponent implements OnChanges {
   readonly currentDate = signal<string>(getLocalDateString());
   readonly currentTime = signal<string>('10:00');
 
+  // Validador de formulario para asegurar que la cita siempre sea en el futuro
+  private readonly futureAppointmentValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+    const group = control as FormGroup;
+    const date = group.get('date')?.value;
+    const time = group.get('time')?.value;
+    if (!date || !time) return null;
+
+    // Si es edición y no se modificaron fecha y hora, permitirlo
+    if (this.isEditMode() && this.appointmentToEdit?.date === date && this.appointmentToEdit?.time === time) {
+      return null;
+    }
+
+    if (isPastDateTime(date, time)) {
+      return { pastAppointment: true };
+    }
+    return null;
+  };
+
   // Formulario reactivo
   readonly bookingForm: FormGroup = this.fb.group({
     clientId: ['', [Validators.required]],
@@ -73,7 +109,7 @@ export class BookAppointmentModalComponent implements OnChanges {
     date: [getLocalDateString(), [Validators.required]],
     time: ['10:00', [Validators.required]],
     notes: [''],
-  });
+  }, { validators: [this.futureAppointmentValidator] });
 
   // Lista detallada de servicios seleccionados
   readonly selectedServicesList = computed<AppointmentServiceItem[]>(() => {
@@ -130,14 +166,70 @@ export class BookAppointmentModalComponent implements OnChanges {
     return map;
   });
 
+  // Determinar si una hora específica está deshabilitada (pasada)
+  isSlotDisabled(slot: string): boolean {
+    const selectedDate = this.currentDate();
+    const today = this.todayDateStr();
+
+    // Fecha en el pasado
+    if (selectedDate < today) return true;
+
+    // Fecha de hoy y hora ya transcurrida
+    if (selectedDate === today && slot <= this.currentLocalTime()) {
+      // Excepción: cita en edición conservando su horario original
+      if (this.isEditMode() && this.appointmentToEdit?.date === selectedDate && this.appointmentToEdit?.time === slot) {
+        return false;
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  // Buscar el primer slot disponible y futuro para agendar
+  getFirstAvailableFutureSlot(dateStr: string): string {
+    const today = this.todayDateStr();
+    const nowTime = this.currentLocalTime();
+    const occupied = this.occupiedSlotsOnSelectedDate();
+
+    // 1. Priorizar slot futuro no ocupado
+    for (const slot of this.availableTimeSlots) {
+      const isPast = dateStr < today || (dateStr === today && slot <= nowTime);
+      if (!isPast && !occupied.has(slot)) {
+        return slot;
+      }
+    }
+    // 2. Si todos están ocupados, tomar el primer futuro
+    for (const slot of this.availableTimeSlots) {
+      const isPast = dateStr < today || (dateStr === today && slot <= nowTime);
+      if (!isPast) return slot;
+    }
+    return this.availableTimeSlots[0];
+  }
+
   constructor() {
+    // Sincronizar reloj reactivo cada 30 segundos
+    const timer = setInterval(() => {
+      this.currentLocalTime.set(getLocalTimeString());
+    }, 30000);
+    this.destroyRef.onDestroy(() => clearInterval(timer));
+
     this.bookingForm.get('barberId')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((val) => this.currentBarberId.set(val || ''));
 
     this.bookingForm.get('date')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((val) => this.currentDate.set(val || getLocalDateString()));
+      .subscribe((val) => {
+        const d = val || getLocalDateString();
+        this.currentDate.set(d);
+        // Si el horario seleccionado es inválido en la nueva fecha, auto-seleccionar el primer slot futuro
+        if (this.isSlotDisabled(this.currentTime())) {
+          const nextSlot = this.getFirstAvailableFutureSlot(d);
+          this.bookingForm.patchValue({ time: nextSlot });
+          this.currentTime.set(nextSlot);
+        }
+      });
 
     this.bookingForm.get('time')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -190,8 +282,15 @@ export class BookAppointmentModalComponent implements OnChanges {
       }
     } else {
       // MODO CREACIÓN NUEVA
-      const targetDate = this.initialDate || getLocalDateString();
-      const targetTime = this.initialTime || '10:00';
+      const today = this.todayDateStr();
+      const rawDate = this.initialDate || today;
+      const targetDate = rawDate < today ? today : rawDate;
+
+      // Calcular horario seguro en el futuro
+      let targetTime = this.initialTime;
+      if (!targetTime || (targetDate === today && targetTime <= this.currentLocalTime())) {
+        targetTime = this.getFirstAvailableFutureSlot(targetDate);
+      }
       const barberId = firstBarber?.id || '';
 
       this.bookingForm.reset({
@@ -243,7 +342,13 @@ export class BookAppointmentModalComponent implements OnChanges {
   }
 
   selectTimeChip(slot: string): void {
+    if (this.isSlotDisabled(slot)) {
+      this.haptics.warning();
+      this.errorMessage.set(`El horario ${slot} ya ha transcurrido. Por favor selecciona una hora futura.`);
+      return;
+    }
     this.haptics.selection();
+    this.errorMessage.set(null);
     this.bookingForm.patchValue({ time: slot });
   }
 
@@ -257,6 +362,9 @@ export class BookAppointmentModalComponent implements OnChanges {
     this.errorMessage.set(null);
 
     if (this.bookingForm.invalid || this.isSubmitting()) {
+      if (this.bookingForm.hasError('pastAppointment')) {
+        this.errorMessage.set('No es posible agendar una cita en una fecha u horario que ya ha transcurrido.');
+      }
       this.bookingForm.markAllAsTouched();
       this.haptics.warning();
       return;

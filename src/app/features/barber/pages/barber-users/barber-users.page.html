@@ -1,0 +1,210 @@
+<div class="users-page">
+  <!-- Toast Notification -->
+  @if (toastMessage()) {
+    <div class="toast-banner">
+      <span class="toast-icon">✨</span>
+      <span class="toast-text">{{ toastMessage() }}</span>
+    </div>
+  }
+
+  <!-- Encabezado de Página -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="header-badge-row">
+        <span class="badge-gold">Equipo &amp; Acceso</span>
+        <span class="badge-users-count">{{ barberService.systemUsers().length }} colaboradores</span>
+      </div>
+      <h1 class="page-title">Gestión de Usuarios &amp; Personal</h1>
+      <p class="page-subtitle">
+        Administra las cuentas de acceso, roles (administradores y barberos) y permisos de tu equipo de trabajo.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-primary-action" (click)="openCreateUserModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-icon">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Nuevo Colaborador</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Barra de Filtros & Búsqueda -->
+  <section class="filter-toolbar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="search"
+        class="search-input"
+        placeholder="Buscar colaborador por nombre o teléfono..."
+        [value]="searchTerm()"
+        (input)="searchTerm.set($any($event.target).value)"
+      />
+    </div>
+
+    <div class="role-filter-group">
+      <button
+        class="filter-pill"
+        [class.active]="roleFilter() === 'all'"
+        (click)="setRoleFilter('all')"
+      >
+        Todos ({{ barberService.systemUsers().length }})
+      </button>
+      <button
+        class="filter-pill"
+        [class.active]="roleFilter() === 'admin'"
+        (click)="setRoleFilter('admin')"
+      >
+        🛡️ Admins
+      </button>
+      <button
+        class="filter-pill"
+        [class.active]="roleFilter() === 'barber'"
+        (click)="setRoleFilter('barber')"
+      >
+        ✂️ Barberos
+      </button>
+    </div>
+  </section>
+
+  <!-- Grid de Usuarios -->
+  <section class="users-grid">
+    @for (usr of filteredUsers(); track usr.id) {
+      <div class="user-card-v2" [class.inactive]="!usr.isActive" [attr.data-role]="usr.role">
+        <!-- Stripe lateral de acento de rol -->
+        <div class="ucv2-role-stripe"></div>
+
+        <div class="ucv2-top">
+          <!-- Avatar con inicial y online dot -->
+          <div class="ucv2-avatar" [attr.data-role]="usr.role">
+            {{ usr.fullName.charAt(0).toUpperCase() }}
+            @if (usr.isActive) {
+              <span class="ucv2-online-dot" title="Usuario activo"></span>
+            }
+          </div>
+
+          <!-- Información Principal -->
+          <div class="ucv2-identity">
+            <h3 class="ucv2-name">{{ usr.fullName }}</h3>
+            <div class="ucv2-chips">
+              <span class="ucv2-chip-role" [attr.data-role]="usr.role">
+                {{ usr.role === 'admin' ? '🛡️ Admin' : usr.role === 'barber' ? '✂️ Barbero' : '👤 Cliente' }}
+              </span>
+              <span class="ucv2-chip-status" [class.active]="usr.isActive">
+                {{ usr.isActive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="ucv2-meta">
+              @if (usr.phone) {
+                <span class="ucv2-meta-item">📞 {{ usr.phone }}</span>
+              } @else {
+                <span class="ucv2-meta-item dim">Sin teléfono registrado</span>
+              }
+              @if (usr.createdAt) {
+                <span class="ucv2-meta-item dim">• Registrado: {{ formatDate(usr.createdAt) }}</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="ucv2-actions">
+          <button class="ucv2-btn-edit" (click)="openEditUserModal(usr)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Editar
+          </button>
+          <button
+            class="ucv2-btn-toggle"
+            [class.deactivate]="usr.isActive"
+            (click)="toggleUserStatus(usr)"
+          >
+            {{ usr.isActive ? 'Pausar Acceso' : 'Reactivar' }}
+          </button>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty-state-card full-span">
+        <div class="empty-icon">👥</div>
+        <h3 class="empty-title">Sin colaboradores encontrados</h3>
+        <p class="empty-desc">No hay usuarios que coincidan con la búsqueda o filtro aplicado.</p>
+        <button class="btn-primary-action" (click)="openCreateUserModal()">+ Crear Nuevo Colaborador</button>
+      </div>
+    }
+  </section>
+
+  <!-- MODAL: CREAR / EDITAR USUARIO -->
+  @if (isUserModalOpen()) {
+    <div class="modal-backdrop" (click)="closeUserModal()">
+      <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
+        <div class="sheet-drag-handle"></div>
+
+        <div class="sheet-header">
+          <div class="sheet-title-group">
+            <h2 class="sheet-title">
+              {{ editingUserId() ? 'Editar Colaborador' : 'Nuevo Colaborador del Sistema' }}
+            </h2>
+            <p class="sheet-subtitle">Define las credenciales de rol y perfil de atención</p>
+          </div>
+          <button class="btn-close-sheet" (click)="closeUserModal()" title="Cerrar">✕</button>
+        </div>
+
+        <form [formGroup]="userForm" (ngSubmit)="submitUser()" class="sheet-body">
+          <div class="form-group">
+            <label class="form-label" for="userFullName">Nombre Completo *</label>
+            <input
+              id="userFullName"
+              type="text"
+              class="form-input"
+              formControlName="fullName"
+              placeholder="Ej: Mateo Silva"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="userPhone">Teléfono / WhatsApp</label>
+            <input
+              id="userPhone"
+              type="tel"
+              class="form-input"
+              formControlName="phone"
+              placeholder="Ej: +51 987 654 321"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="userRole">Rol en el Negocio *</label>
+            <select id="userRole" class="form-input form-select" formControlName="role">
+              <option value="barber">✂️ Barbero (Atención, Citas y Cobro de Cortes)</option>
+              <option value="admin">🛡️ Administrador (Acceso Total, Caja y Configuración)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isActive" />
+              <span>Colaborador Activo (Disponible para turnos y atención al cliente)</span>
+            </label>
+          </div>
+
+          <div class="sheet-footer">
+            <button type="button" class="btn-secondary" (click)="closeUserModal()">Cancelar</button>
+            <button
+              type="submit"
+              class="btn-primary-action"
+              [disabled]="userForm.invalid || isSubmitting()"
+            >
+              {{ isSubmitting() ? 'Guardando...' : editingUserId() ? 'Guardar Cambios' : 'Crear Colaborador' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

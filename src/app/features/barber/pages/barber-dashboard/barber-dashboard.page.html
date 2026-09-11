@@ -1,0 +1,370 @@
+<!-- ========================================================================= -->
+<!-- BARBERTRACK PRO — DASHBOARD EJECUTIVO PRINCIPAL                             -->
+<!-- ========================================================================= -->
+<div class="dashboard-container fade-in">
+  <!-- Toast Notification Local -->
+  @if (toastMessage()) {
+  <div class="toast-banner">
+    <span class="toast-icon">✨</span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+  </div>
+  }
+
+  <!-- Grid de Métricas Principales (KPIs) -->
+  <app-barber-metrics></app-barber-metrics>
+
+  <!-- Contenido en 2 Columnas Asimétricas (65% Principal / 35% Lateral) -->
+  <div class="dashboard-grid">
+    <!-- ===================================================================== -->
+    <!-- COLUMNA PRINCIPAL: AGENDA DEL DÍA & ÚLTIMOS SERVICIOS COBRADOS        -->
+    <!-- ===================================================================== -->
+    <div class="dashboard-main-col">
+      <!-- 1. Agenda del Día -->
+      <section class="section-container surface-card agenda-card">
+        <div class="section-header-flex">
+          <div class="section-title-wrap">
+            <h2 class="section-title">Agenda de hoy</h2>
+            <span class="badge-count">{{ barberService.todayAppointments().length }} turnos</span>
+          </div>
+          <button class="link-btn" (click)="navigateTo('appointments')">
+            Ver agenda completa →
+          </button>
+        </div>
+        <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
+      </section>
+
+      <!-- 2. Historial de Últimos Servicios Cobrados -->
+      <section class="section-container surface-card cuts-section-card">
+        <div class="section-header-flex">
+          <div class="section-title-wrap">
+            <h2 class="section-title">Últimos Servicios Cobrados</h2>
+            <span class="badge-count">{{ barberService.cuts().length }} total</span>
+          </div>
+          <button class="btn-primary-small" (click)="openRegisterCutModal()">
+            + Registrar Corte
+          </button>
+        </div>
+
+        <div class="cuts-table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Servicio</th>
+                <th>Barbero</th>
+                <th>Método</th>
+                <th class="text-right">Precio</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (cut of recentCuts(); track cut.id) {
+              <tr>
+                <td class="cell-time">{{ formatDate(cut.date) }}</td>
+                <td class="cell-client font-medium">{{ cut.clientName }}</td>
+                <td><span class="tag-service">{{ cut.serviceName }}</span></td>
+                <td class="cell-subtle">{{ cut.barberName }}</td>
+                <td>
+                  <span class="tag-payment" [class]="cut.paymentMethod">
+                    {{ getPaymentLabel(cut.paymentMethod) }}
+                  </span>
+                </td>
+                <td class="text-right cell-price" [class.credit-text]="cut.paymentMethod === 'credit'">
+                  ${{ cut.price.toFixed(2) }}
+                </td>
+              </tr>
+              } @empty {
+              <tr>
+                <td colspan="6" class="table-empty-row">
+                  <div class="table-empty-box">
+                    <div class="teb-icon">✂</div>
+                    <div class="teb-title">Sin cobros registrados hoy</div>
+                    <div class="teb-sub">Registra el primer servicio para alimentar las métricas en tiempo real.</div>
+                    <button class="btn-empty-action" (click)="openRegisterCutModal()">
+                      + Registrar Primer Corte (Alt+N)
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- COLUMNA LATERAL: WIDGETS DE OPERACIÓN RÁPIDA                           -->
+    <!-- ===================================================================== -->
+    <div class="dashboard-side-col">
+      <!-- 1. Alerta de Fiados / Cuentas por Cobrar (si existen) -->
+      @if (clientsWithDebt().length > 0) {
+      <div class="action-card debt-alert-card">
+        <div class="acc-header">
+          <span class="acc-title">⚠️ Cuentas por Cobrar (Fiados)</span>
+          <span class="acc-pill-warn">{{ clientsWithDebt().length }} clientes</span>
+        </div>
+        <div class="debt-client-list">
+          @for (debtCli of clientsWithDebt().slice(0, 3); track debtCli.id) {
+          <div class="debt-row">
+            <div class="debt-info">
+              <span class="debt-name">{{ debtCli.name }}</span>
+              <span class="debt-amount">Debe: ${{ (debtCli.currentDebt || 0).toFixed(2) }}</span>
+            </div>
+            <button class="btn-pay-debt-sm" (click)="openDebtPaymentModal(debtCli)">
+              Abonar
+            </button>
+          </div>
+          }
+        </div>
+        <button class="btn-view-all-debts" (click)="navigateTo('clients')">
+          Ver todos los créditos en Clientes →
+        </button>
+      </div>
+      }
+
+      <!-- 2. Estado de Caja & Turno -->
+      <div class="action-card">
+        <div class="acc-header">
+          <div class="acc-title-group">
+            <span class="acc-title">Estado de Caja &amp; Turno</span>
+          </div>
+          @if (barberService.activeCashShift()) {
+          <span class="status-badge-open">
+            <span class="status-dot"></span>
+            Abierto
+          </span>
+          } @else {
+          <span class="status-badge-closed">
+            <span class="status-dot"></span>
+            Cerrado
+          </span>
+          }
+        </div>
+
+        <div class="acc-body">
+          @if (barberService.activeCashShift(); as shift) {
+          <div class="shift-live-row">
+            <span class="slr-label">Fondo Inicial:</span>
+            <strong class="slr-val">${{ shift.initialCash.toFixed(2) }}</strong>
+          </div>
+          <div class="shift-live-row">
+            <span class="slr-label">Efectivo Esperado:</span>
+            <strong class="slr-val gold">${{ shift.expectedCash.toFixed(2) }}</strong>
+          </div>
+          <div class="acc-actions-row">
+            <button class="btn-outline-danger" (click)="openShiftModal('close')">
+              Arqueo &amp; Cerrar Turno
+            </button>
+          </div>
+          } @else {
+          <p class="shift-closed-hint">Abre un turno para habilitar cobros en efectivo con arqueo diario.</p>
+          <button class="btn-primary-action full-width" (click)="openShiftModal('open')">
+            🟢 Abrir Turno de Caja
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- 3. Fidelización de Clientes con Progreso de Sellos -->
+      <div class="action-card">
+        <div class="acc-header cursor-pointer" (click)="navigateTo('loyalty')" title="Gestionar programa de fidelización">
+          <div class="acc-title-group">
+            <span class="acc-title">Fidelización de Clientes</span>
+          </div>
+          <span class="acc-pill-gold">
+            Meta: {{ barberService.stampsRequired() }} sellos
+          </span>
+        </div>
+
+        <div class="top-loyalty-list">
+          @for (cli of topLoyaltyClients(); track cli.id) {
+          <div class="tl-item cursor-pointer" (click)="openRegisterCutModal(cli.id)" title="Registrar corte para {{ cli.name }}">
+            <div class="tl-avatar">{{ cli.name.charAt(0) }}</div>
+            <div class="tl-details">
+              <div class="tl-name-row">
+                <span class="tl-name">{{ cli.name }}</span>
+                <span class="tl-count">{{ cli.loyaltyStamps }}/{{ barberService.stampsRequired() }}</span>
+              </div>
+              <div class="tl-progress-bar">
+                <div class="tl-progress-fill"
+                  [style.width.%]="(cli.loyaltyStamps / barberService.stampsRequired()) * 100">
+                </div>
+              </div>
+            </div>
+          </div>
+          } @empty {
+          <div class="empty-hint">Sin clientes registrados aún.</div>
+          }
+        </div>
+
+        <button class="btn-link-action" (click)="navigateTo('loyalty')">
+          Ver Catálogo de Recompensas &amp; Canjes →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODALES DE ACCIÓN RÁPIDA IN-SITU                                         -->
+  <!-- ======================================================================= -->
+
+  <!-- MODAL: REGISTRAR CORTE -->
+  @if (isRegisterCutModalOpen()) {
+  <div class="modal-backdrop" (click)="closeRegisterCutModal()">
+    <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle"></div>
+
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <h2 class="sheet-title">Registrar Corte &amp; Cobro</h2>
+          <p class="sheet-subtitle">Selecciona el cliente y el servicio realizado</p>
+        </div>
+        <button class="btn-close-sheet" (click)="closeRegisterCutModal()" title="Cerrar (Esc)">✕</button>
+      </div>
+
+      <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="sheet-body">
+        <div class="form-group">
+          <label class="form-label" for="cutClientId">Cliente *</label>
+          <select id="cutClientId" class="form-input form-select" formControlName="clientId">
+            @for (cli of barberService.clients(); track cli.id) {
+            <option [value]="cli.id">{{ cli.name }} ({{ cli.loyaltyStamps }} sellos)</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="cutServiceId">Servicio Realizado *</label>
+          <select id="cutServiceId" class="form-input form-select" formControlName="serviceId">
+            @for (srv of barberService.services(); track srv.id) {
+            <option [value]="srv.id">{{ srv.name }} - ${{ srv.price.toFixed(2) }} ({{ srv.durationMinutes }} min)</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Método de Pago *</label>
+          <div class="payment-method-selector">
+            <label class="pm-option" [class.selected]="cutForm.get('paymentMethod')?.value === 'cash'">
+              <input type="radio" formControlName="paymentMethod" value="cash" />
+              <span>💵 Efectivo</span>
+            </label>
+            <label class="pm-option" [class.selected]="cutForm.get('paymentMethod')?.value === 'transfer'">
+              <input type="radio" formControlName="paymentMethod" value="transfer" />
+              <span>📱 Yape/Transf.</span>
+            </label>
+            <label class="pm-option" [class.selected]="cutForm.get('paymentMethod')?.value === 'card'">
+              <input type="radio" formControlName="paymentMethod" value="card" />
+              <span>💳 Tarjeta</span>
+            </label>
+            <label class="pm-option credit" [class.selected]="cutForm.get('paymentMethod')?.value === 'credit'">
+              <input type="radio" formControlName="paymentMethod" value="credit" />
+              <span>📝 Fiado</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="cutNotes">Notas adicionales</label>
+          <input id="cutNotes" type="text" class="form-input" formControlName="notes" placeholder="Ej: Degradado alto, barba perfilada" />
+        </div>
+
+        <div class="sheet-footer">
+          <button type="button" class="btn-secondary" (click)="closeRegisterCutModal()">Cancelar</button>
+          <button type="submit" class="btn-primary-action" [disabled]="cutForm.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Procesando...' : 'Confirmar & Cobrar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  }
+
+  <!-- MODAL: APERTURA / CIERRE DE TURNO DE CAJA -->
+  @if (isShiftModalOpen()) {
+  <div class="modal-backdrop" (click)="closeShiftModal()">
+    <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle"></div>
+
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <h2 class="sheet-title">{{ shiftMode() === 'open' ? 'Abrir Turno de Caja' : 'Cerrar Turno (Arqueo)' }}</h2>
+          <p class="sheet-subtitle">Control de gaveta y arqueo de caja diario</p>
+        </div>
+        <button class="btn-close-sheet" (click)="closeShiftModal()" title="Cerrar">✕</button>
+      </div>
+
+      <form [formGroup]="shiftMode() === 'open' ? openShiftForm : closeShiftForm" (ngSubmit)="submitShift()" class="sheet-body">
+        @if (shiftMode() === 'open') {
+        <div class="form-group">
+          <label class="form-label" for="dashInitialCash">Fondo Inicial en Gaveta ($) *</label>
+          <input id="dashInitialCash" type="number" step="0.50" min="0" class="form-input" formControlName="initialCash" />
+        </div>
+        } @else {
+        <div class="form-group">
+          <label class="form-label" for="dashActualCash">Efectivo Real en Gaveta ($) *</label>
+          <input id="dashActualCash" type="number" step="0.50" min="0" class="form-input" formControlName="actualCash" />
+        </div>
+        }
+
+        <div class="form-group">
+          <label class="form-label" for="dashShiftNotes">Observaciones</label>
+          <input id="dashShiftNotes" type="text" class="form-input" formControlName="notes" placeholder="Notas de apertura o cierre..." />
+        </div>
+
+        <div class="sheet-footer">
+          <button type="button" class="btn-secondary" (click)="closeShiftModal()">Cancelar</button>
+          <button type="submit" class="btn-primary-action" [disabled]="isSubmitting()">
+            {{ isSubmitting() ? 'Procesando...' : shiftMode() === 'open' ? 'Confirmar Apertura' : 'Confirmar Cierre & Arqueo' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  }
+
+  <!-- MODAL: ABONO DE DEUDA (FIADO) -->
+  @if (isDebtPaymentModalOpen()) {
+  <div class="modal-backdrop" (click)="closeDebtPaymentModal()">
+    <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle"></div>
+
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <h2 class="sheet-title">Abonar a Deuda de Cliente</h2>
+          <p class="sheet-subtitle">{{ debtPaymentClient()?.name }} • Deuda actual: ${{ (debtPaymentClient()?.currentDebt || 0).toFixed(2) }}</p>
+        </div>
+        <button class="btn-close-sheet" (click)="closeDebtPaymentModal()" title="Cerrar">✕</button>
+      </div>
+
+      <form [formGroup]="debtPaymentForm" (ngSubmit)="submitDebtPayment()" class="sheet-body">
+        <div class="form-group">
+          <label class="form-label" for="dashDebtAmount">Monto a Abonar ($) *</label>
+          <input id="dashDebtAmount" type="number" step="0.50" min="0.5" class="form-input" formControlName="amount" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dashDebtAccount">Cuenta Destino *</label>
+          <select id="dashDebtAccount" class="form-input form-select" formControlName="accountId">
+            @for (acc of barberService.financialAccounts(); track acc.id) {
+            <option [value]="acc.id">{{ acc.name }} (${{ acc.currentBalance.toFixed(2) }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="dashDebtNotes">Notas / Comprobante</label>
+          <input id="dashDebtNotes" type="text" class="form-input" formControlName="notes" placeholder="Ej: Pago parcial efectivo" />
+        </div>
+
+        <div class="sheet-footer">
+          <button type="button" class="btn-secondary" (click)="closeDebtPaymentModal()">Cancelar</button>
+          <button type="submit" class="btn-primary-action" [disabled]="debtPaymentForm.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Registrando...' : 'Confirmar Abono' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  }
+</div>

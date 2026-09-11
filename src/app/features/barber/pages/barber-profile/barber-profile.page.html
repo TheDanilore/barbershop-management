@@ -1,0 +1,201 @@
+<div class="profile-page">
+  <!-- Toast Notification -->
+  @if (toastMessage()) {
+    <div class="toast-banner">
+      <span class="toast-icon">✨</span>
+      <span class="toast-text">{{ toastMessage() }}</span>
+    </div>
+  }
+
+  <!-- Encabezado de Página -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="header-badge-row">
+        <span class="badge-gold">Cuenta de Usuario</span>
+        <span class="badge-active">Sesión Activa</span>
+      </div>
+      <h1 class="page-title">Mi Perfil &amp; Configuración</h1>
+      <p class="page-subtitle">
+        Gestiona tus datos personales, preferencias de visualización y estado de sesión.
+      </p>
+    </div>
+  </header>
+
+  <!-- Hero Card del Perfil -->
+  <section class="profile-hero-card">
+    <div class="phc-avatar-wrap">
+      <div class="phc-avatar">
+        {{ (supabaseService.userProfile()?.full_name || 'U').charAt(0).toUpperCase() }}
+      </div>
+      <div class="phc-avatar-ring"></div>
+    </div>
+
+    <div class="phc-info">
+      <h2 class="phc-name">{{ supabaseService.userProfile()?.full_name || 'Usuario del Sistema' }}</h2>
+      <div class="phc-badges">
+        <span class="phc-role-chip" [attr.data-role]="supabaseService.userProfile()?.role">
+          {{ getRoleLabel(supabaseService.userProfile()?.role) }}
+        </span>
+        <span class="phc-status-chip">En Línea</span>
+      </div>
+      <div class="phc-contact-row">
+        @if (supabaseService.userProfile()?.phone) {
+          <span class="phc-meta">📞 {{ supabaseService.userProfile()?.phone }}</span>
+        }
+        <span class="phc-meta">📧 {{ supabaseService.currentUser()?.email || 'Sin correo registrado' }}</span>
+      </div>
+    </div>
+
+    @if (!isEditingProfile()) {
+      <button class="phc-edit-btn" (click)="openEditProfile()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <span>Editar Perfil</span>
+      </button>
+    }
+  </section>
+
+  <!-- Formulario de Edición Inline -->
+  @if (isEditingProfile()) {
+    <section class="profile-edit-card">
+      <div class="pec-header">
+        <div>
+          <h3 class="pec-title">Modificar Datos Personales</h3>
+          <p class="pec-sub">Actualiza tu nombre visible y número de contacto para citas</p>
+        </div>
+        <button class="btn-close-edit" (click)="cancelEditProfile()" title="Cancelar">✕</button>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="submitProfile()" class="pec-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="profileFullName">Nombre Completo *</label>
+            <input
+              id="profileFullName"
+              type="text"
+              class="form-input"
+              formControlName="fullName"
+              placeholder="Tu nombre completo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="profilePhone">Teléfono / WhatsApp</label>
+            <input
+              id="profilePhone"
+              type="tel"
+              class="form-input"
+              formControlName="phone"
+              placeholder="Ej: +51 987 654 321"
+            />
+          </div>
+        </div>
+
+        <div class="pec-actions">
+          <button type="button" class="btn-secondary" (click)="cancelEditProfile()">Cancelar</button>
+          <button
+            type="submit"
+            class="btn-primary-action"
+            [disabled]="profileForm.invalid || isSubmitting()"
+          >
+            {{ isSubmitting() ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  <!-- Grid de Métricas Personales -->
+  <section class="profile-stats-grid">
+    <div class="stat-card">
+      <div class="sc-icon gold">✂</div>
+      <div class="sc-info">
+        <span class="sc-val">{{ barberService.cutsToday() }}</span>
+        <span class="sc-lbl">Servicios Hoy</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="sc-icon blue">📅</div>
+      <div class="sc-info">
+        <span class="sc-val">{{ barberService.todayAppointments().length }}</span>
+        <span class="sc-lbl">Turnos Agendados</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="sc-icon green">👥</div>
+      <div class="sc-info">
+        <span class="sc-val">{{ barberService.clients().length }}</span>
+        <span class="sc-lbl">Cartera Clientes</span>
+      </div>
+    </div>
+
+    <div class="stat-card highlight">
+      <div class="sc-icon gold-filled">💰</div>
+      <div class="sc-info">
+        <span class="sc-val gold">${{ barberService.revenueToday().toFixed(2) }}</span>
+        <span class="sc-lbl">Recaudación Hoy</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Panel de Información de Sesión y Conexión -->
+  <section class="session-card">
+    <div class="sc-card-header">
+      <h3 class="sc-title">Diagnóstico de Sesión &amp; Plataforma</h3>
+      <span class="sc-desc">Estado de los servicios en la nube e integridad de red</span>
+    </div>
+
+    <div class="session-details-list">
+      <div class="sdl-row">
+        <span class="sdl-label">Estado de Conexión en la Nube:</span>
+        <span class="sdl-value">
+          @if (supabaseService.connectionStatus() === 'connected') {
+            <span class="status-online">● Supabase Conectado</span>
+          } @else if (supabaseService.connectionStatus() === 'offline') {
+            <span class="status-offline">● Sin conexión a internet (Modo Local)</span>
+          } @else {
+            <span class="status-checking">⏳ Verificando...</span>
+          }
+        </span>
+      </div>
+
+      @if (supabaseService.latencyMs() !== null) {
+        <div class="sdl-row">
+          <span class="sdl-label">Latencia de Conexión:</span>
+          <span class="sdl-value latency">{{ supabaseService.latencyMs() }} ms</span>
+        </div>
+      }
+
+      <div class="sdl-row">
+        <span class="sdl-label">Turno de Caja Actual:</span>
+        <span class="sdl-value">
+          @if (barberService.activeCashShift()) {
+            <span class="status-online">● Turno Abierto (Iniciado {{ formatDate(barberService.activeCashShift()!.openedAt) }})</span>
+          } @else {
+            <span class="status-offline">● Turno Cerrado</span>
+          }
+        </span>
+      </div>
+
+      <div class="sdl-row">
+        <span class="sdl-label">ID de Cuenta:</span>
+        <span class="sdl-value code-font">{{ supabaseService.currentUser()?.id || 'offline-user' }}</span>
+      </div>
+    </div>
+
+    <div class="sc-actions">
+      <button class="btn-logout" (click)="logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Cerrar Sesión</span>
+      </button>
+    </div>
+  </section>
+</div>

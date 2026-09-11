@@ -1,0 +1,282 @@
+/* ==========================================================================
+   BARBERTRACK PRO — DASHBOARD EJECUTIVO (CSS)
+   ========================================================================== */
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.overview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.grid-main-col {
+  min-width: 0;
+}
+
+.grid-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Action Cards */
+.action-card {
+  background: #14141a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.acc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.acc-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.acc-title {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.acc-subtitle {
+  font-size: 0.72rem;
+  color: #71717a;
+}
+
+.live-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #a1a1aa;
+}
+
+.live-pill.active {
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+}
+
+.acc-pill-gold {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(229, 169, 60, 0.15);
+  color: #f3c26b;
+  border: 1px solid rgba(229, 169, 60, 0.3);
+}
+
+.shift-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shift-live-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sli-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.sli-label {
+  color: #a1a1aa;
+}
+
+.sli-value {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.sli-value.gold {
+  color: #e5a93c;
+  font-size: 1rem;
+}
+
+.shift-closed-hint {
+  font-size: 0.8rem;
+  color: #a1a1aa;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.btn-primary-action {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #e5a93c, #d4952b);
+  border: none;
+  border-radius: 8px;
+  color: #0b0f19;
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary-action:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-outline-action {
+  padding: 9px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-outline-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(229, 169, 60, 0.3);
+}
+
+.btn-link-action {
+  background: transparent;
+  border: none;
+  color: #e5a93c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  padding: 4px 0;
+  transition: opacity 0.15s;
+}
+
+.btn-link-action:hover {
+  text-decoration: underline;
+}
+
+/* Top Loyalty List */
+.top-loyalty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.tl-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tl-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(229, 169, 60, 0.15);
+  color: #e5a93c;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tl-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.tl-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.tl-name {
+  font-size: 0.82rem;
+  color: #ffffff;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tl-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f3c26b;
+  flex-shrink: 0;
+}
+
+.tl-progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tl-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e5a93c, #f59e0b);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.empty-hint {
+  font-size: 0.78rem;
+  color: #71717a;
+  text-align: center;
+  padding: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE (TABLET & MÓVIL)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}

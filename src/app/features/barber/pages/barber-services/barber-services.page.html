@@ -1,0 +1,112 @@
+<div class="services-page fade-in">
+  @if (toastMessage()) {
+  <div class="local-toast">
+    <div class="toast-dot"></div>
+    <span>{{ toastMessage() }}</span>
+  </div>
+  }
+
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="header-badge-row">
+        <span class="badge-gold">Tarifario</span>
+        <span class="badge-counter">{{ barberService.services().length }} Servicios Activos</span>
+      </div>
+      <h1 class="page-title">Catálogo de Servicios & Tarifas</h1>
+      <p class="page-subtitle">Gestiona los precios, nombres y tiempos estimados de corte</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-primary-create" (click)="openCreateServiceModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>+ Nuevo Servicio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Grid de Servicios -->
+  <div class="services-cards-grid">
+    @for (srv of barberService.services(); track srv.id) {
+    <div class="service-card-item" [class.paused]="srv.isActive === false">
+      <div class="sci-top">
+        <div class="sci-icon-box">✂️</div>
+        <div class="sci-status">
+          @if (srv.isActive !== false) {
+          <span class="status-pill active">Activo</span>
+          } @else {
+          <span class="status-pill paused">Inactivo</span>
+          }
+        </div>
+      </div>
+
+      <div class="sci-info">
+        <h3 class="sci-name">{{ srv.name }}</h3>
+        <div class="sci-meta">
+          <span class="sci-price">${{ srv.price.toFixed(2) }}</span>
+          <span class="sci-duration">⏱️ {{ srv.durationMinutes }} min</span>
+        </div>
+      </div>
+
+      <div class="sci-actions">
+        <button class="btn-sci-action" (click)="openEditServiceModal(srv)">
+          ✏️ Editar
+        </button>
+        <button class="btn-sci-action toggle" (click)="toggleServiceActive(srv)">
+          {{ srv.isActive === false ? 'Activar' : 'Desactivar' }}
+        </button>
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- Modal Crear / Editar Servicio -->
+  @if (isServiceModalOpen()) {
+  <div class="modal-backdrop" (click)="closeServiceModal()">
+    <div class="modal-sheet" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle"></div>
+
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <span class="sheet-badge gold">Catálogo</span>
+          <h3 class="sheet-title">{{ editingServiceId() ? 'Editar Servicio' : 'Nuevo Servicio' }}</h3>
+        </div>
+        <button class="sheet-close-btn" (click)="closeServiceModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="serviceForm" (ngSubmit)="submitService()" class="sheet-form">
+        <div class="form-group">
+          <label class="form-label" for="serviceName">Nombre del Servicio *</label>
+          <input id="serviceName" type="text" class="form-input" formControlName="name" placeholder="Ej: Corte Clásico + Barba" />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="servicePrice">Precio ($) *</label>
+            <input id="servicePrice" type="number" step="0.50" min="0.5" class="form-input" formControlName="price" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="serviceDuration">Duración (min) *</label>
+            <input id="serviceDuration" type="number" step="5" min="5" class="form-input" formControlName="durationMinutes" />
+          </div>
+        </div>
+
+        <div class="sheet-footer">
+          <button type="button" class="btn-secondary" (click)="closeServiceModal()">Cancelar</button>
+          <button type="submit" class="btn-primary-action" [disabled]="serviceForm.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Guardando...' : editingServiceId() ? 'Guardar Cambios' : 'Crear Servicio' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  }
+</div>

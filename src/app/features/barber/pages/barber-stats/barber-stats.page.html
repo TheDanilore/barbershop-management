@@ -1,0 +1,221 @@
+<div class="stats-page">
+  <!-- Encabezado de Página -->
+  <header class="page-header">
+    <div class="header-titles">
+      <div class="header-badge-row">
+        <span class="badge-gold">Inteligencia de Negocio</span>
+        <span class="badge-kpi">Métricas en Tiempo Real</span>
+      </div>
+      <h1 class="page-title">Finanzas &amp; Estadísticas</h1>
+      <p class="page-subtitle">
+        Visualiza el rendimiento financiero, servicios estrella y la satisfacción consolidada de tus clientes.
+      </p>
+    </div>
+  </header>
+
+  <!-- Tarjetas KPI Principales -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="6" x2="12" y2="12"></line>
+          <line x1="12" y1="12" x2="16" y2="14"></line>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Ingresos de Hoy</span>
+        <div class="kpi-value gold">${{ barberService.revenueToday().toFixed(2) }}</div>
+        <span class="kpi-hint">{{ barberService.cutsToday() }} servicios completados</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Últimos 7 Días</span>
+        <div class="kpi-value">${{ barberService.revenueThisWeek().toFixed(2) }}</div>
+        <span class="kpi-hint">Facturación semanal</span>
+      </div>
+    </div>
+
+    <div class="kpi-card highlight-card">
+      <div class="kpi-icon-wrap emerald">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+          <line x1="2" y1="10" x2="22" y2="10"></line>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Saldo en Cuentas</span>
+        <div class="kpi-value emerald">${{ barberService.totalFinancialBalance().toFixed(2) }}</div>
+        <span class="kpi-hint">{{ barberService.financialAccounts().length }} cuentas bancarias / caja</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrap purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Ticket Promedio</span>
+        <div class="kpi-value">${{ averageTicket().toFixed(2) }}</div>
+        <span class="kpi-hint">Por servicio atendido</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Métricas Secundarias & Servicios Estrella -->
+  <div class="stats-split-layout">
+    <!-- Panel Izquierdo: Servicios más Solicitados -->
+    <section class="stats-panel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2 class="panel-title">Servicios Más Solicitados</h2>
+          <p class="panel-sub">Ranking por volumen de cortes y recaudación generada</p>
+        </div>
+        @if (highPerformanceService(); as topSrv) {
+          <span class="badge-top-service">★ Top #1: {{ topSrv.name }}</span>
+        }
+      </div>
+
+      <div class="services-stats-list">
+        @for (srv of barberService.topRequestedServices(); track srv.id; let idx = $index) {
+          <div class="service-stat-row">
+            <div class="ssr-rank">#{{ idx + 1 }}</div>
+            <div class="ssr-main">
+              <div class="ssr-info">
+                <div class="ssr-name-wrap">
+                  <span class="ssr-name">{{ srv.name }}</span>
+                  <span class="ssr-count-badge">{{ srv.count }} cortes</span>
+                </div>
+                <div class="ssr-revenue-wrap">
+                  <span class="ssr-revenue">${{ srv.revenue.toFixed(2) }}</span>
+                  <span class="ssr-pct">{{ srv.percentage }}%</span>
+                </div>
+              </div>
+              <div class="ssr-progress-track">
+                <div class="ssr-progress-bar" [style.width.%]="srv.percentage"></div>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <div class="empty-state-card">
+            <div class="empty-icon">📊</div>
+            <p class="empty-title">Sin servicios registrados aún</p>
+            <p class="empty-desc">Los datos de servicios más solicitados se actualizarán automáticamente con cada cobro.</p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Panel Derecho: Desglose Histórico & Salud Financiera -->
+    <section class="stats-panel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <h2 class="panel-title">Salud Operativa del Negocio</h2>
+          <p class="panel-sub">Historial acumulado y volumen de operaciones</p>
+        </div>
+      </div>
+
+      <div class="breakdown-list">
+        <div class="breakdown-item">
+          <div class="bi-left">
+            <span class="bi-bullet gold"></span>
+            <span class="bi-label">Facturación Histórica Consolidada</span>
+          </div>
+          <span class="bi-value gold">${{ barberService.totalRevenue().toFixed(2) }}</span>
+        </div>
+
+        <div class="breakdown-item">
+          <div class="bi-left">
+            <span class="bi-bullet blue"></span>
+            <span class="bi-label">Total de Cortes Realizados</span>
+          </div>
+          <span class="bi-value">{{ barberService.cuts().length }} servicios</span>
+        </div>
+
+        <div class="breakdown-item">
+          <div class="bi-left">
+            <span class="bi-bullet green"></span>
+            <span class="bi-label">Clientes en Cartera</span>
+          </div>
+          <span class="bi-value">{{ barberService.clients().length }} registrados</span>
+        </div>
+
+        <div class="breakdown-item">
+          <div class="bi-left">
+            <span class="bi-bullet purple"></span>
+            <span class="bi-label">Catálogo Activo</span>
+          </div>
+          <span class="bi-value">{{ barberService.services().length }} opciones</span>
+        </div>
+      </div>
+
+      <!-- Card informativa de liquidez -->
+      <div class="liquidity-banner">
+        <div class="lb-icon">💎</div>
+        <div class="lb-content">
+          <div class="lb-title">Balance de Liquidez Disponible</div>
+          <div class="lb-desc">
+            Dispones de <strong>${{ barberService.totalFinancialBalance().toFixed(2) }}</strong> distribuidos en tus cuentas de caja y financieras.
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Satisfacción y Reseñas de Clientes -->
+  <section class="reviews-section">
+    <div class="reviews-header">
+      <div class="rh-left">
+        <h2 class="section-title">Reseñas &amp; Satisfacción de Clientes</h2>
+        <p class="section-sub">Calificaciones emitidas por tus clientes en sus visitas</p>
+      </div>
+      <div class="rh-rating-badge">
+        <div class="rating-stars-gold">
+          ★ ★ ★ ★ ★
+        </div>
+        <span class="rating-number">{{ barberService.averageRating() }} / 5.0</span>
+        <span class="rating-count">({{ barberService.reviews().length }} opiniones)</span>
+      </div>
+    </div>
+
+    <div class="reviews-grid">
+      @for (rev of barberService.reviews(); track rev.id) {
+        <article class="review-card">
+          <div class="rc-header">
+            <div class="rc-user">
+              <div class="rc-avatar">{{ rev.clientName.charAt(0).toUpperCase() }}</div>
+              <div class="rc-meta">
+                <span class="rc-name">{{ rev.clientName }}</span>
+                <span class="rc-barber">Atendido por: <strong>{{ rev.barberName }}</strong></span>
+              </div>
+            </div>
+            <div class="rc-stars">
+              @for (star of [1, 2, 3, 4, 5]; track star) {
+                <span class="star" [class.filled]="star <= rev.rating">★</span>
+              }
+            </div>
+          </div>
+          <p class="rc-comment">"{{ rev.comment }}"</p>
+          <div class="rc-footer">
+            <span class="rc-date">{{ rev.date }}</span>
+          </div>
+        </article>
+      } @empty {
+        <div class="empty-state-card full-span">
+          <div class="empty-icon">⭐</div>
+          <p class="empty-title">Sin reseñas registradas aún</p>
+          <p class="empty-desc">Las opiniones de tus clientes sobre cortes y atención se mostrarán aquí.</p>
+        </div>
+      }
+    </div>
+  </section>
+</div>

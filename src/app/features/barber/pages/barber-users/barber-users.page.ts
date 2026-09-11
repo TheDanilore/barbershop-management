@@ -1,0 +1,162 @@
+import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { SystemUser } from '../../../../core/models/barber.models';
+import { BarberService } from '../../../../core/services/barber.service';
+import { HapticsService } from '../../../../core/services/haptics.service';
+
+@Component({
+  selector: 'app-barber-users',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './barber-users.page.html',
+  styleUrl: './barber-users.page.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class BarberUsersPage {
+  readonly barberService = inject(BarberService);
+  readonly haptics = inject(HapticsService);
+  private readonly fb = inject(FormBuilder);
+
+  // Filters & State
+  readonly searchTerm = signal('');
+  readonly roleFilter = signal<'all' | 'admin' | 'barber'>('all');
+  readonly isUserModalOpen = signal(false);
+  readonly editingUserId = signal<string | null>(null);
+  readonly isSubmitting = signal(false);
+  readonly toastMessage = signal<string | null>(null);
+  private toastTimeout: any = null;
+
+  readonly userForm = this.fb.group({
+    fullName: ['', [Validators.required, Validators.minLength(2)]],
+    phone: [''],
+    role: ['barber', Validators.required],
+    isActive: [true],
+  });
+
+  readonly filteredUsers = computed(() => {
+    const term = this.searchTerm().trim().toLowerCase();
+    const role = this.roleFilter();
+    return this.barberService.systemUsers().filter((u) => {
+      const matchRole = role === 'all' || u.role === role;
+      const matchTerm =
+        !term ||
+        u.fullName.toLowerCase().includes(term) ||
+        (u.phone && u.phone.toLowerCase().includes(term));
+      return matchRole && matchTerm;
+    });
+  });
+
+  openCreateUserModal(): void {
+    this.haptics.lightTap();
+    this.editingUserId.set(null);
+    this.userForm.reset({
+      fullName: '',
+      phone: '',
+      role: 'barber',
+      isActive: true,
+    });
+    this.isUserModalOpen.set(true);
+  }
+
+  openEditUserModal(user: SystemUser): void {
+    this.haptics.lightTap();
+    this.editingUserId.set(user.id);
+    this.userForm.reset({
+      fullName: user.fullName,
+      phone: user.phone || '',
+      role: user.role,
+      isActive: user.isActive,
+    });
+    this.isUserModalOpen.set(true);
+  }
+
+  closeUserModal(): void {
+    this.isUserModalOpen.set(false);
+    this.editingUserId.set(null);
+  }
+
+  async submitUser(): Promise<void> {
+    if (this.userForm.invalid || this.isSubmitting()) {
+      this.userForm.markAllAsTouched();
+      this.haptics.warning();
+      this.showToast('Completa los campos obligatorios del usuario');
+      return;
+    }
+
+    const { fullName, phone, role, isActive } = this.userForm.value;
+    const editId = this.editingUserId();
+
+    this.isSubmitting.set(true);
+    try {
+      if (editId) {
+        await this.barberService.updateSystemUser(editId, {
+          fullName: fullName!.trim(),
+          phone: phone?.trim() || undefined,
+          role: role as any,
+          isActive: Boolean(isActive),
+        });
+        this.showToast(`Usuario ${fullName} actualizado correctamente`);
+      } else {
+        await this.barberService.createSystemUser({
+          fullName: fullName!.trim(),
+          phone: phone?.trim() || undefined,
+          role: role as any,
+          isActive: Boolean(isActive),
+        });
+        this.showToast(`Nuevo colaborador ${fullName} creado`);
+      }
+      this.haptics.success();
+      this.closeUserModal();
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(err?.message || 'Error al procesar usuario');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async toggleUserStatus(user: SystemUser): Promise<void> {
+    const nextState = !user.isActive;
+    try {
+      await this.barberService.toggleSystemUserStatus(user.id, nextState);
+      this.haptics.lightTap();
+      this.showToast(nextState ? `Usuario ${user.fullName} activado` : `Usuario ${user.fullName} pausado`);
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast('Error al actualizar estado del usuario');
+    }
+  }
+
+  setRoleFilter(role: 'all' | 'admin' | 'barber'): void {
+    this.haptics.lightTap();
+    this.roleFilter.set(role);
+  }
+
+  formatDate(isoDate: string): string {
+    try {
+      const date = new Date(isoDate);
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return isoDate;
+    }
+  }
+
+  showToast(message: string): void {
+    this.toastMessage.set(message);
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => {
+      this.toastMessage.set(null);
+    }, 3500);
+  }
+}

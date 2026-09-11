@@ -1,0 +1,96 @@
+<div class="appointments-page fade-in">
+  @if (toastMessage()) {
+  <div class="local-toast">
+    <div class="toast-dot"></div>
+    <span>{{ toastMessage() }}</span>
+  </div>
+  }
+
+  <header class="page-header">
+    <div class="header-titles">
+      <h1 class="page-title">Gestión de Citas y Turnos</h1>
+      <p class="page-subtitle">Visualiza, coordina y agenda todas las reservas de la barbería</p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-primary-create" (click)="openBookAppointmentModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span>+ Agendar Cita</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="schedule-view-card">
+    <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
+  </main>
+
+  <!-- Modal Agendar Cita -->
+  @if (isBookAppointmentModalOpen()) {
+  <div class="modal-backdrop" (click)="closeBookAppointmentModal()">
+    <div class="modal-sheet" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle"></div>
+
+      <div class="sheet-header">
+        <div class="sheet-title-group">
+          <span class="sheet-badge blue">Agenda</span>
+          <h3 class="sheet-title">Nueva Cita</h3>
+        </div>
+        <button class="sheet-close-btn" (click)="closeBookAppointmentModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="bookingForm" (ngSubmit)="submitBookAppointment()" class="sheet-form">
+        <div class="form-group">
+          <label class="form-label" for="bookingClient">Cliente *</label>
+          <select id="bookingClient" class="form-input" formControlName="clientId">
+            @for (cli of barberService.clients(); track cli.id) {
+            <option [value]="cli.id">{{ cli.name }} ({{ cli.phone }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="bookingService">Servicio *</label>
+          <select id="bookingService" class="form-input" formControlName="serviceId">
+            @for (srv of barberService.services(); track srv.id) {
+            <option [value]="srv.id">{{ srv.name }} — ${{ srv.price.toFixed(2) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="bookingDate">Fecha *</label>
+            <input id="bookingDate" type="date" class="form-input" formControlName="date" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bookingTime">Hora *</label>
+            <select id="bookingTime" class="form-input" formControlName="time">
+              @for (slot of availableTimeSlots; track slot) {
+              <option [value]="slot">{{ slot }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="sheet-footer">
+          <button type="button" class="btn-secondary" (click)="closeBookAppointmentModal()">Cancelar</button>
+          <button type="submit" class="btn-primary-action" [disabled]="bookingForm.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Agendando...' : 'Confirmar Cita' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  }
+</div>

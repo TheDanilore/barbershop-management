@@ -41,6 +41,10 @@ export class BarberCashPage {
   readonly selectedTypeFilter = signal<MovementFilterType>('all');
   readonly selectedAccountFilter = signal<string>('all');
 
+  // Paginación en memoria (15 por página para máximo rendimiento DOM)
+  readonly pageSize = signal<number>(15);
+  readonly currentPage = signal<number>(1);
+
   // Input de Arqueo interactivo (en vivo)
   readonly actualCashInput = signal<number>(0);
 
@@ -82,7 +86,7 @@ export class BarberCashPage {
   // Cálculo interactivo de Descuadre de Turno (Arqueo)
   readonly shiftDiscrepancy = computed(() => {
     const shift = this.activeShift();
-    if (!shift) return { difference: 0, status: 'none' as const, expected: 0 };
+    if (!shift) return { difference: 0, status: 'none' as const, expected: 0, actual: 0 };
     const expected = Number(shift.expectedCash || 0);
     const actual = Number(this.actualCashInput() || 0);
     const difference = actual - expected;
@@ -92,7 +96,7 @@ export class BarberCashPage {
     return { difference, status, expected, actual };
   });
 
-  // Movimientos Filtrados & Contadores
+  // Movimientos Filtrados
   readonly filteredMovements = computed(() => {
     const all = this.barberService.accountMovements();
     const type = this.selectedTypeFilter();
@@ -130,6 +134,36 @@ export class BarberCashPage {
     };
   });
 
+  // Paginación reactiva de movimientos
+  readonly totalPages = computed(() => {
+    return Math.ceil(this.filteredMovements().length / this.pageSize()) || 1;
+  });
+
+  readonly paginatedMovements = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return this.filteredMovements().slice(start, start + this.pageSize());
+  });
+
+  readonly paginationInfo = computed(() => {
+    const total = this.filteredMovements().length;
+    if (total === 0) return '0 de 0 movimientos';
+    const start = (this.currentPage() - 1) * this.pageSize() + 1;
+    const end = Math.min(this.currentPage() * this.pageSize(), total);
+    return `Mostrando ${start} - ${end} de ${total}`;
+  });
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update((p) => p + 1);
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.update((p) => p - 1);
+    }
+  }
+
   // Formularios Reactivos
   readonly openShiftForm = this.fb.group({
     initialCash: [50, [Validators.required, Validators.min(0)]],
@@ -162,7 +196,7 @@ export class BarberCashPage {
     description: ['Transferencia interna'],
   });
 
-  // Atajos de teclado Power User en Desktop
+  // Atajos de teclado contextuales sin colisión con BarberLayout (Alt+N: Corte, Alt+A: Cita, Alt+C: Cliente)
   @HostListener('window:keydown', ['$event'])
   handleKeyboard(e: KeyboardEvent): void {
     const target = e.target as HTMLElement;
@@ -178,18 +212,25 @@ export class BarberCashPage {
 
     if (isEditing) return;
 
-    if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+    // Alt+Q: Arqueo / Cierre / Apertura de caja (No colisiona con Alt+A de Agendar Cita)
+    if (e.altKey && (e.key === 'q' || e.key === 'Q')) {
       e.preventDefault();
       this.openShiftModal(this.activeShift() ? 'close' : 'open');
-    } else if (e.altKey && (e.key === 'm' || e.key === 'M')) {
-      e.preventDefault();
-      this.openMovementModal();
-    } else if (e.altKey && (e.key === 't' || e.key === 'T')) {
-      e.preventDefault();
-      this.openTransferModal();
-    } else if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+    }
+    // Alt+K: Nueva Cuenta Financiera (No colisiona con Alt+C de Nuevo Cliente)
+    else if (e.altKey && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
       this.openCreateAccountModal();
+    }
+    // Alt+M: Registrar Movimiento
+    else if (e.altKey && (e.key === 'm' || e.key === 'M')) {
+      e.preventDefault();
+      this.openMovementModal();
+    }
+    // Alt+T: Transferir entre Cuentas
+    else if (e.altKey && (e.key === 't' || e.key === 'T')) {
+      e.preventDefault();
+      this.openTransferModal();
     }
   }
 
@@ -432,20 +473,24 @@ export class BarberCashPage {
   setTypeFilter(type: MovementFilterType): void {
     this.haptics.lightTap();
     this.selectedTypeFilter.set(type);
+    this.currentPage.set(1);
   }
 
   setAccountFilter(event: Event): void {
     const val = (event.target as HTMLSelectElement).value;
     this.selectedAccountFilter.set(val);
+    this.currentPage.set(1);
   }
 
   onSearchInput(event: Event): void {
     const val = (event.target as HTMLInputElement).value;
     this.searchQuery.set(val);
+    this.currentPage.set(1);
   }
 
   clearSearch(): void {
     this.searchQuery.set('');
+    this.currentPage.set(1);
   }
 
   // --- UTILIDADES ---

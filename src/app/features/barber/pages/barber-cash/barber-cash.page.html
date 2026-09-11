@@ -26,16 +26,16 @@
 
     <div class="header-actions">
       @if (activeShift()) {
-      <button class="btn-action-outline red" (click)="openShiftModal('close')" title="Cerrar turno y arquear (Alt+A)">
+      <button class="btn-action-outline red" (click)="openShiftModal('close')" title="Cerrar turno y arquear (Alt+Q)">
         <span class="btn-icon">⚖️</span>
         <span>Arqueo &amp; Cierre</span>
-        <kbd class="kbd-hint">Alt+A</kbd>
+        <kbd class="kbd-hint">Alt+Q</kbd>
       </button>
       } @else {
-      <button class="btn-action-outline green" (click)="openShiftModal('open')" title="Abrir turno de caja (Alt+A)">
+      <button class="btn-action-outline green" (click)="openShiftModal('open')" title="Abrir turno de caja (Alt+Q)">
         <span class="btn-icon">🟢</span>
         <span>Abrir Turno</span>
-        <kbd class="kbd-hint">Alt+A</kbd>
+        <kbd class="kbd-hint">Alt+Q</kbd>
       </button>
       }
       <button class="btn-action-outline" (click)="openMovementModal()" title="Registrar movimiento (Alt+M)">
@@ -48,10 +48,10 @@
         <span>Transferir</span>
         <kbd class="kbd-hint">Alt+T</kbd>
       </button>
-      <button class="btn-primary-create" (click)="openCreateAccountModal()" title="Crear nueva cuenta (Alt+C)">
+      <button class="btn-primary-create" (click)="openCreateAccountModal()" title="Crear nueva cuenta (Alt+K)">
         <span class="btn-icon">+</span>
         <span>Nueva Cuenta</span>
-        <kbd class="kbd-hint gold">Alt+C</kbd>
+        <kbd class="kbd-hint gold">Alt+K</kbd>
       </button>
     </div>
   </header>
@@ -139,7 +139,7 @@
         <strong class="slb-cash-amount">${{ shift.expectedCash.toFixed(2) }}</strong>
       </div>
       <button class="btn-shift-action" (click)="openShiftModal('close')">
-        Cerrar Turno &amp; Arquear
+        Cerrar Turno &amp; Arquear (Alt+Q)
       </button>
     </div>
   </div>
@@ -153,7 +153,7 @@
       </div>
     </div>
     <button class="btn-open-shift-primary" (click)="openShiftModal('open')">
-      🟢 Abrir Turno de Caja (Alt+A)
+      🟢 Abrir Turno de Caja (Alt+Q)
     </button>
   </div>
   }
@@ -166,7 +166,7 @@
         <p class="section-subtitle">Gestión de fuentes de ingreso y saldos disponibles</p>
       </div>
       <button class="btn-link-action" (click)="openCreateAccountModal()">
-        + Añadir Cuenta
+        + Añadir Cuenta (Alt+K)
       </button>
     </div>
 
@@ -309,7 +309,7 @@
           }
         </p>
         <button class="btn-empty-action" (click)="openMovementModal()">
-          + Registrar Primer Movimiento
+          + Registrar Primer Movimiento (Alt+M)
         </button>
       </div>
       } @else {
@@ -324,29 +324,33 @@
           </tr>
         </thead>
         <tbody>
-          @for (mov of filteredMovements(); track mov.id) {
+          @for (mov of paginatedMovements(); track mov.id) {
           <tr class="table-row">
             <!-- Fecha / Hora -->
-            <td class="cell-datetime">
-              <span class="date-main">{{ mov.createdAt | date:'d MMM y' }}</span>
-              <span class="time-sub">{{ mov.createdAt | date:'h:mm a' }}</span>
+            <td class="td-datetime">
+              <div class="cell-datetime-content">
+                <span class="date-main">{{ mov.createdAt | date:'d MMM y' }}</span>
+                <span class="time-sub">{{ mov.createdAt | date:'h:mm a' }}</span>
+              </div>
             </td>
 
             <!-- Concepto / Referencia -->
-            <td class="cell-concept">
-              <div class="concept-title">{{ mov.description }}</div>
-              @if (mov.referenceType) {
-              <span class="ref-badge">{{ mov.referenceType }}</span>
-              }
+            <td class="td-concept">
+              <div class="cell-concept-content">
+                <span class="concept-title" [title]="mov.description">{{ mov.description }}</span>
+                @if (mov.referenceType) {
+                <span class="ref-badge">{{ mov.referenceType }}</span>
+                }
+              </div>
             </td>
 
             <!-- Cuenta -->
-            <td class="cell-account">
+            <td class="td-account">
               <span class="account-pill">{{ mov.accountName || 'Cuenta' }}</span>
             </td>
 
             <!-- Tipo de Movimiento -->
-            <td class="cell-type">
+            <td class="td-type">
               @if (mov.movementType === 'income' || mov.movementType === 'transfer_in') {
               <span class="status-badge income">+ Ingreso</span>
               } @else if (mov.movementType === 'expense' || mov.movementType === 'transfer_out') {
@@ -357,7 +361,7 @@
             </td>
 
             <!-- Monto -->
-            <td class="cell-amount text-right" [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'" [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
+            <td class="td-amount text-right" [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'" [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
               <span class="amount-sign">
                 {{ (mov.movementType === 'income' || mov.movementType === 'transfer_in') ? '+' : '-' }}
               </span>
@@ -367,6 +371,22 @@
           }
         </tbody>
       </table>
+
+      <!-- Barra de Paginación en Memoria -->
+      @if (totalPages() > 1) {
+      <div class="table-pagination-bar">
+        <span class="pagination-info">{{ paginationInfo() }}</span>
+        <div class="pagination-actions">
+          <button type="button" class="btn-page" [disabled]="currentPage() === 1" (click)="prevPage()">
+            ← Anterior
+          </button>
+          <span class="page-badge">{{ currentPage() }} / {{ totalPages() }}</span>
+          <button type="button" class="btn-page" [disabled]="currentPage() >= totalPages()" (click)="nextPage()">
+            Siguiente →
+          </button>
+        </div>
+      </div>
+      }
       }
     </div>
   </section>
@@ -656,7 +676,7 @@
         <div class="sheet-footer">
           <button type="button" class="btn-secondary" (click)="closeMovementModal()">Cancelar</button>
           <button type="submit" class="btn-primary-action" [disabled]="movementForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Registrando...' : 'Confirmar Movimiento' }}
+            {{ isSubmitting() ? 'Registrando...' : 'Confirmar Movimiento (Alt+M)' }}
           </button>
         </div>
       </form>
@@ -727,7 +747,7 @@
         <div class="sheet-footer">
           <button type="button" class="btn-secondary" (click)="closeTransferModal()">Cancelar</button>
           <button type="submit" class="btn-primary-action" [disabled]="transferForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Transfiriendo...' : 'Confirmar Transferencia' }}
+            {{ isSubmitting() ? 'Transfiriendo...' : 'Confirmar Transferencia (Alt+T)' }}
           </button>
         </div>
       </form>

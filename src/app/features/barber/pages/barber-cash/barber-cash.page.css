@@ -172,7 +172,7 @@
 .kbd-hint {
   font-family: monospace;
   font-size: 0.68rem;
-  padding: 1px 4px;
+  padding: 1px 5px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
@@ -280,15 +280,9 @@
   transform: translateY(-2px);
 }
 
-.breakdown-capsule.cash {
-  border-left: 3px solid #10b981;
-}
-.breakdown-capsule.bank {
-  border-left: 3px solid #38bdf8;
-}
-.breakdown-capsule.wallet {
-  border-left: 3px solid var(--gold-primary);
-}
+.breakdown-capsule.cash { border-left: 3px solid #10b981; }
+.breakdown-capsule.bank { border-left: 3px solid #38bdf8; }
+.breakdown-capsule.wallet { border-left: 3px solid var(--gold-primary); }
 
 .bc-top {
   display: flex;
@@ -722,7 +716,7 @@
 }
 
 /* ==============================================================================
-   5. CONSOLA DE MOVIMIENTOS RECIENTES & TOOLBAR
+   5. CONSOLA DE MOVIMIENTOS RECIENTES & TABLA FINANCIERA (ALINEACIÓN EXACTA)
    ============================================================================== */
 .movements-counter-badge {
   font-size: 0.75rem;
@@ -781,15 +775,9 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-.seg-btn.income.active {
-  color: #34d399;
-}
-.seg-btn.expense.active {
-  color: #f87171;
-}
-.seg-btn.transfer.active {
-  color: #38bdf8;
-}
+.seg-btn.income.active { color: #34d399; }
+.seg-btn.expense.active { color: #f87171; }
+.seg-btn.transfer.active { color: #38bdf8; }
 
 .toolbar-controls {
   display: flex;
@@ -854,7 +842,7 @@
   cursor: pointer;
 }
 
-/* Tabla de Movimientos */
+/* Tabla de Movimientos - FORMATO TABULAR FIJO */
 .table-container {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
@@ -866,6 +854,7 @@
 .financial-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 0.85rem;
 }
 
@@ -882,7 +871,16 @@
   white-space: nowrap;
 }
 
+/* Proporciones de Columnas */
+.th-date { width: 18%; }
+.th-desc { width: 38%; }
+.th-account { width: 18%; }
+.th-type { width: 13%; }
+.th-amount { width: 13%; text-align: right; }
+
+/* IMPORTANTE: td conserva display: table-cell nativo para no romper la matriz */
 .financial-table td {
+  display: table-cell;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
@@ -895,7 +893,8 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
-.cell-datetime {
+/* Contenido flex interno dentro de cada celda */
+.cell-datetime-content {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -913,11 +912,12 @@
   color: var(--text-dim);
 }
 
-.cell-concept {
+.cell-concept-content {
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 320px;
+  width: 100%;
+  overflow: hidden;
 }
 
 .concept-title {
@@ -926,13 +926,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .ref-badge {
+  flex-shrink: 0;
   font-size: 0.68rem;
   font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
   background: var(--bg-card);
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
@@ -940,6 +943,7 @@
 }
 
 .account-pill {
+  display: inline-block;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 3px 8px;
@@ -947,6 +951,10 @@
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .status-badge {
@@ -956,6 +964,7 @@
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 4px;
+  white-space: nowrap;
 }
 .status-badge.income {
   background: var(--bg-success);
@@ -981,6 +990,56 @@
 
 .text-right {
   text-align: right !important;
+}
+
+/* Barra de Paginación */
+.table-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.01);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.pagination-info {
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-page {
+  height: 30px;
+  padding: 0 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-page:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  color: #ffffff;
+}
+.btn-page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-badge {
+  font-weight: 700;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+  padding: 0 4px;
 }
 
 /* Empty State */
@@ -1425,6 +1484,11 @@
   .btn-primary-action, .btn-secondary {
     min-height: 48px;
     flex: 1;
+  }
+
+  /* Tabla con scroll horizontal suave en móvil */
+  .financial-table {
+    min-width: 640px;
   }
 }
 

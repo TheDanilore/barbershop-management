@@ -70,16 +70,53 @@ CREATE OR REPLACE FUNCTION "public"."fn_on_account_movement"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-    IF NEW.movement_type IN ('income', 'transfer_in') THEN
-        UPDATE public.financial_accounts
-        SET current_balance = current_balance + NEW.amount
-        WHERE id = NEW.account_id;
-    ELSIF NEW.movement_type IN ('expense', 'transfer_out') THEN
-        UPDATE public.financial_accounts
-        SET current_balance = current_balance - NEW.amount
-        WHERE id = NEW.account_id;
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.movement_type IN ('income', 'transfer_in') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance + NEW.amount
+            WHERE id = NEW.account_id;
+        ELSIF NEW.movement_type IN ('expense', 'transfer_out') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance - NEW.amount
+            WHERE id = NEW.account_id;
+        END IF;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        IF OLD.movement_type IN ('income', 'transfer_in') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance - OLD.amount
+            WHERE id = OLD.account_id;
+        ELSIF OLD.movement_type IN ('expense', 'transfer_out') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance + OLD.amount
+            WHERE id = OLD.account_id;
+        END IF;
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        -- Revertir valores antiguos
+        IF OLD.movement_type IN ('income', 'transfer_in') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance - OLD.amount
+            WHERE id = OLD.account_id;
+        ELSIF OLD.movement_type IN ('expense', 'transfer_out') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance + OLD.amount
+            WHERE id = OLD.account_id;
+        END IF;
+
+        -- Aplicar nuevos valores
+        IF NEW.movement_type IN ('income', 'transfer_in') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance + NEW.amount
+            WHERE id = NEW.account_id;
+        ELSIF NEW.movement_type IN ('expense', 'transfer_out') THEN
+            UPDATE public.financial_accounts
+            SET current_balance = current_balance - NEW.amount
+            WHERE id = NEW.account_id;
+        END IF;
+        RETURN NEW;
     END IF;
-    RETURN NEW;
+    RETURN NULL;
 END;
 $$;
 
@@ -120,18 +157,34 @@ CREATE OR REPLACE FUNCTION "public"."fn_on_credit_movement"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-    IF NEW.movement_type = 'CHARGE' THEN
-        UPDATE public.customer_credits
-        SET current_debt = current_debt + NEW.amount,
-            updated_at = now()
-        WHERE id = NEW.customer_credit_id;
-    ELSIF NEW.movement_type = 'PAYMENT' THEN
-        UPDATE public.customer_credits
-        SET current_debt = GREATEST(0, current_debt - NEW.amount),
-            updated_at = now()
-        WHERE id = NEW.customer_credit_id;
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.movement_type = 'CHARGE' THEN
+            UPDATE public.customer_credits
+            SET current_debt = current_debt + NEW.amount,
+                updated_at = now()
+            WHERE id = NEW.customer_credit_id;
+        ELSIF NEW.movement_type = 'PAYMENT' THEN
+            UPDATE public.customer_credits
+            SET current_debt = GREATEST(0, current_debt - NEW.amount),
+                updated_at = now()
+            WHERE id = NEW.customer_credit_id;
+        END IF;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        IF OLD.movement_type = 'CHARGE' THEN
+            UPDATE public.customer_credits
+            SET current_debt = GREATEST(0, current_debt - OLD.amount),
+                updated_at = now()
+            WHERE id = OLD.customer_credit_id;
+        ELSIF OLD.movement_type = 'PAYMENT' THEN
+            UPDATE public.customer_credits
+            SET current_debt = current_debt + OLD.amount,
+                updated_at = now()
+            WHERE id = OLD.customer_credit_id;
+        END IF;
+        RETURN OLD;
     END IF;
-    RETURN NEW;
+    RETURN NULL;
 END;
 $$;
 
@@ -243,104 +296,10 @@ $$;
 ALTER FUNCTION "public"."fn_on_order_loyalty_update"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."fn_on_sale_deleted"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    v_real_cuts integer := 0;
-    v_new_tier  text;
-BEGIN
-    IF OLD.customer_id IS NOT NULL THEN
-        SELECT COUNT(*) INTO v_real_cuts
-        FROM public.orders
-        WHERE customer_id = OLD.customer_id AND status = 'completed';
-
-        INSERT INTO public.loyalty_progress (
-            customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
-        )
-        VALUES (OLD.customer_id, v_real_cuts, v_real_cuts, 0, now())
-        ON CONFLICT (customer_id) DO UPDATE SET
-            current_stamps        = EXCLUDED.current_stamps,
-            total_historical_cuts = EXCLUDED.total_historical_cuts,
-            updated_at            = now();
-
-        v_new_tier := CASE
-            WHEN v_real_cuts >= 50 THEN 'VIP'
-            WHEN v_real_cuts >= 20 THEN 'Gold'
-            WHEN v_real_cuts >= 5  THEN 'Silver'
-            ELSE 'Bronze'
-        END;
-
-        UPDATE public.profiles
-        SET membership_tier = v_new_tier
-        WHERE id = OLD.customer_id;
-    END IF;
-
-    RETURN OLD;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."fn_on_sale_deleted"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."fn_on_sale_loyalty_update"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-DECLARE
-    v_total_cuts    integer;
-    v_new_stamps    integer;
-    v_new_tier      text;
-    v_reward        RECORD;
-BEGIN
-    IF NEW.customer_id IS NOT NULL THEN
-        INSERT INTO public.loyalty_progress (
-            customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
-        )
-        VALUES (NEW.customer_id, 1, 1, 0, now())
-        ON CONFLICT (customer_id) DO UPDATE SET
-            current_stamps        = public.loyalty_progress.current_stamps + 1,
-            total_historical_cuts = public.loyalty_progress.total_historical_cuts + 1,
-            updated_at            = now()
-        RETURNING current_stamps, total_historical_cuts
-        INTO v_new_stamps, v_total_cuts;
-
-        FOR v_reward IN
-            SELECT id, stamps_required, name
-            FROM public.loyalty_rewards
-            WHERE is_active = true AND stamps_required = v_new_stamps
-        LOOP
-            INSERT INTO public.loyalty_reward_claims
-                (customer_id, reward_id, sale_id, stamps_at_claim)
-            VALUES
-                (NEW.customer_id, v_reward.id, NEW.id, v_new_stamps);
-        END LOOP;
-
-        v_new_tier := CASE
-            WHEN v_total_cuts >= 50 THEN 'VIP'
-            WHEN v_total_cuts >= 20 THEN 'Gold'
-            WHEN v_total_cuts >= 5  THEN 'Silver'
-            ELSE 'Bronze'
-        END;
-
-        UPDATE public.profiles
-        SET membership_tier = v_new_tier
-        WHERE id = NEW.customer_id;
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."fn_on_sale_loyalty_update"() OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."fn_on_sales_truncated"() RETURNS "trigger"
+CREATE OR REPLACE FUNCTION "public"."fn_on_orders_truncated"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 BEGIN
-    -- Cuando se trunca sales_history, resetear loyalty_progress y tiers a valores de inicio
     UPDATE public.loyalty_progress
     SET current_stamps        = 0,
         total_historical_cuts = 0,
@@ -356,7 +315,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_on_sales_truncated"() OWNER TO "postgres";
+ALTER FUNCTION "public"."fn_on_orders_truncated"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid" DEFAULT NULL::"uuid") RETURNS json
@@ -466,7 +425,7 @@ CREATE TABLE IF NOT EXISTS "public"."account_movements" (
     "shift_id" "uuid",
     CONSTRAINT "account_movements_amount_check" CHECK (("amount" > (0)::numeric)),
     CONSTRAINT "account_movements_movement_type_check" CHECK (("movement_type" = ANY (ARRAY['income'::"text", 'expense'::"text", 'transfer_in'::"text", 'transfer_out'::"text"]))),
-    CONSTRAINT "account_movements_reference_type_check" CHECK (("reference_type" = ANY (ARRAY['sale'::"text", 'credit_payment'::"text", 'manual'::"text", 'expense'::"text", 'transfer'::"text", 'shift_adjustment'::"text"])))
+    CONSTRAINT "account_movements_reference_type_check" CHECK (("reference_type" = ANY (ARRAY['order'::"text", 'sale'::"text", 'credit_payment'::"text", 'manual'::"text", 'expense'::"text", 'transfer'::"text", 'shift_adjustment'::"text"])))
 );
 
 
@@ -536,7 +495,6 @@ ALTER TABLE "public"."cash_shifts" OWNER TO "postgres";
 CREATE TABLE IF NOT EXISTS "public"."customer_credit_movements" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "customer_credit_id" "uuid" NOT NULL,
-    "sale_id" "uuid",
     "movement_type" "text" NOT NULL,
     "amount" numeric(10,2) NOT NULL,
     "payment_method" "text",
@@ -600,7 +558,6 @@ CREATE TABLE IF NOT EXISTS "public"."loyalty_reward_claims" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "customer_id" "uuid" NOT NULL,
     "reward_id" "uuid" NOT NULL,
-    "sale_id" "uuid",
     "claimed_at" timestamp with time zone DEFAULT "now"(),
     "redeemed_at" timestamp with time zone,
     "redeemed_by" "uuid",
@@ -666,7 +623,13 @@ CREATE TABLE IF NOT EXISTS "public"."orders" (
     "status" "text" DEFAULT 'completed'::"text" NOT NULL,
     "notes" "text",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "created_by" "uuid"
+    "created_by" "uuid",
+    CONSTRAINT "orders_debt_check" CHECK (("amount_debt" >= (0)::numeric)),
+    CONSTRAINT "orders_discount_check" CHECK (("discount_amount" >= (0)::numeric)),
+    CONSTRAINT "orders_final_price_check" CHECK (("final_price" >= (0)::numeric)),
+    CONSTRAINT "orders_payment_method_check" CHECK (("payment_method" = ANY (ARRAY['cash'::"text", 'card'::"text", 'transfer'::"text", 'credit'::"text", 'mixed'::"text"]))),
+    CONSTRAINT "orders_status_check" CHECK (("status" = ANY (ARRAY['completed'::"text", 'cancelled'::"text", 'open'::"text", 'in_progress'::"text", 'refunded'::"text"]))),
+    CONSTRAINT "orders_subtotal_check" CHECK (("subtotal" >= (0)::numeric))
 );
 
 
@@ -698,7 +661,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "phone" "text",
     "membership_tier" "text" DEFAULT 'Bronze'::"text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"(),
-    "is_active" boolean DEFAULT true NOT NULL
+    "is_active" boolean DEFAULT true NOT NULL,
+    CONSTRAINT "profiles_membership_tier_check" CHECK (("membership_tier" = ANY (ARRAY['Bronze'::"text", 'Silver'::"text", 'Gold'::"text", 'VIP'::"text"])))
 );
 
 
@@ -707,7 +671,6 @@ ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."reviews" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "sale_id" "uuid",
     "rating" integer NOT NULL,
     "comment" "text",
     "created_at" timestamp with time zone DEFAULT "now"(),
@@ -717,24 +680,6 @@ CREATE TABLE IF NOT EXISTS "public"."reviews" (
 
 
 ALTER TABLE "public"."reviews" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."sales_history" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "customer_id" "uuid",
-    "barber_id" "uuid" NOT NULL,
-    "service_id" "uuid",
-    "appointment_id" "uuid",
-    "final_price" numeric(10,2) NOT NULL,
-    "payment_method" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "amount_paid" numeric(10,2) DEFAULT NULL::numeric,
-    "amount_debt" numeric(10,2) DEFAULT 0.00,
-    "shift_id" "uuid"
-);
-
-
-ALTER TABLE "public"."sales_history" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."services" (
@@ -845,16 +790,6 @@ ALTER TABLE ONLY "public"."reviews"
 
 
 
-ALTER TABLE ONLY "public"."reviews"
-    ADD CONSTRAINT "reviews_sale_id_key" UNIQUE ("sale_id");
-
-
-
-ALTER TABLE ONLY "public"."sales_history"
-    ADD CONSTRAINT "sales_history_pkey" PRIMARY KEY ("id");
-
-
-
 ALTER TABLE ONLY "public"."services"
     ADD CONSTRAINT "services_pkey" PRIMARY KEY ("id");
 
@@ -896,6 +831,10 @@ CREATE INDEX "idx_appointments_scheduled_status" ON "public"."appointments" USIN
 
 
 
+CREATE INDEX "idx_cash_shifts_account" ON "public"."cash_shifts" USING "btree" ("account_id");
+
+
+
 CREATE INDEX "idx_cash_shifts_barber" ON "public"."cash_shifts" USING "btree" ("barber_id", "status");
 
 
@@ -909,10 +848,6 @@ CREATE INDEX "idx_customer_credit_movements_customer_credit_id" ON "public"."cus
 
 
 CREATE INDEX "idx_customer_credit_movements_order_id" ON "public"."customer_credit_movements" USING "btree" ("order_id");
-
-
-
-CREATE INDEX "idx_customer_credit_movements_sale_id" ON "public"."customer_credit_movements" USING "btree" ("sale_id");
 
 
 
@@ -968,23 +903,11 @@ CREATE INDEX "idx_reviews_order_id" ON "public"."reviews" USING "btree" ("order_
 
 
 
-CREATE INDEX "idx_sales_created_barber" ON "public"."sales_history" USING "btree" ("created_at" DESC, "barber_id");
-
-
-
-CREATE INDEX "idx_sales_customer" ON "public"."sales_history" USING "btree" ("customer_id");
-
-
-
-CREATE INDEX "idx_sales_history_barber_date" ON "public"."sales_history" USING "btree" ("barber_id", "created_at");
-
-
-
 CREATE UNIQUE INDEX "reviews_order_id_key" ON "public"."reviews" USING "btree" ("order_id") WHERE ("order_id" IS NOT NULL);
 
 
 
-CREATE OR REPLACE TRIGGER "trg_account_movement_balance" AFTER INSERT ON "public"."account_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_account_movement"();
+CREATE OR REPLACE TRIGGER "trg_account_movement_balance" AFTER INSERT OR DELETE OR UPDATE ON "public"."account_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_account_movement"();
 
 
 
@@ -996,7 +919,7 @@ COMMENT ON TRIGGER "trg_account_movement_sync_shift" ON "public"."account_moveme
 
 
 
-CREATE OR REPLACE TRIGGER "trg_customer_credit_balance" AFTER INSERT ON "public"."customer_credit_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_credit_movement"();
+CREATE OR REPLACE TRIGGER "trg_customer_credit_balance" AFTER INSERT OR DELETE ON "public"."customer_credit_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_credit_movement"();
 
 
 
@@ -1008,15 +931,7 @@ CREATE OR REPLACE TRIGGER "trg_order_loyalty_update" AFTER INSERT OR UPDATE OF "
 
 
 
-CREATE OR REPLACE TRIGGER "trg_sale_deleted" AFTER DELETE ON "public"."sales_history" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_sale_deleted"();
-
-
-
-CREATE OR REPLACE TRIGGER "trg_sale_loyalty_update" AFTER INSERT ON "public"."sales_history" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_sale_loyalty_update"();
-
-
-
-CREATE OR REPLACE TRIGGER "trg_sales_truncated" AFTER TRUNCATE ON "public"."sales_history" FOR EACH STATEMENT EXECUTE FUNCTION "public"."fn_on_sales_truncated"();
+CREATE OR REPLACE TRIGGER "trg_orders_truncated" AFTER TRUNCATE ON "public"."orders" FOR EACH STATEMENT EXECUTE FUNCTION "public"."fn_on_orders_truncated"();
 
 
 
@@ -1160,31 +1075,6 @@ ALTER TABLE ONLY "public"."reviews"
 
 
 
-ALTER TABLE ONLY "public"."sales_history"
-    ADD CONSTRAINT "sales_history_appointment_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id");
-
-
-
-ALTER TABLE ONLY "public"."sales_history"
-    ADD CONSTRAINT "sales_history_barber_id_fkey" FOREIGN KEY ("barber_id") REFERENCES "public"."profiles"("id");
-
-
-
-ALTER TABLE ONLY "public"."sales_history"
-    ADD CONSTRAINT "sales_history_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."sales_history"
-    ADD CONSTRAINT "sales_history_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."sales_history"
-    ADD CONSTRAINT "sales_history_shift_id_fkey" FOREIGN KEY ("shift_id") REFERENCES "public"."cash_shifts"("id") ON DELETE SET NULL;
-
-
-
 CREATE POLICY "Acceso a citas" ON "public"."appointments" USING ((("customer_id" IN ( SELECT "profiles"."id"
    FROM "public"."profiles"
   WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))) OR ("public"."is_staff"() = true)));
@@ -1197,19 +1087,7 @@ CREATE POLICY "Acceso a fidelidad" ON "public"."loyalty_progress" USING ((("cust
 
 
 
-CREATE POLICY "Acceso a ventas" ON "public"."sales_history" USING ((("customer_id" IN ( SELECT "profiles"."id"
-   FROM "public"."profiles"
-  WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))) OR ("public"."is_staff"() = true)));
-
-
-
 CREATE POLICY "Clientes leen su propio credito" ON "public"."customer_credits" FOR SELECT TO "authenticated" USING (("profile_id" = "auth"."uid"()));
-
-
-
-CREATE POLICY "Gestión completa de ventas para personal" ON "public"."sales_history" USING ((EXISTS ( SELECT 1
-   FROM "public"."profiles"
-  WHERE (("profiles"."id" = "auth"."uid"()) AND ("profiles"."role" = ANY (ARRAY['admin'::"public"."user_role", 'barber'::"public"."user_role"]))))));
 
 
 
@@ -1382,9 +1260,6 @@ CREATE POLICY "reviews_select_all" ON "public"."reviews" FOR SELECT TO "authenti
 
 CREATE POLICY "reviews_staff_manage" ON "public"."reviews" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
 
-
-
-ALTER TABLE "public"."sales_history" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."services" ENABLE ROW LEVEL SECURITY;
@@ -1603,21 +1478,9 @@ GRANT ALL ON FUNCTION "public"."fn_on_order_loyalty_update"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."fn_on_sale_deleted"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_on_sale_deleted"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_on_sale_deleted"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_on_sale_loyalty_update"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_on_sales_truncated"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_on_sales_truncated"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_on_sales_truncated"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."fn_on_orders_truncated"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_on_orders_truncated"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_on_orders_truncated"() TO "service_role";
 
 
 
@@ -1753,12 +1616,6 @@ GRANT ALL ON TABLE "public"."profiles" TO "service_role";
 GRANT ALL ON TABLE "public"."reviews" TO "anon";
 GRANT ALL ON TABLE "public"."reviews" TO "authenticated";
 GRANT ALL ON TABLE "public"."reviews" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."sales_history" TO "anon";
-GRANT ALL ON TABLE "public"."sales_history" TO "authenticated";
-GRANT ALL ON TABLE "public"."sales_history" TO "service_role";
 
 
 

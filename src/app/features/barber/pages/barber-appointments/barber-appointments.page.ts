@@ -1,14 +1,61 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { Appointment, AppointmentStatus } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
-import { BarberSchedule } from '../../components/barber-schedule/barber-schedule';
+
+export interface WeekDayItem {
+  dateStr: string;
+  dayName: string;
+  dayNumber: number;
+  monthName: string;
+  isToday: boolean;
+  isSelected: boolean;
+  appointmentCount: number;
+}
+
+function addDaysToDateStr(dateStr: string, days: number): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getDayName(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const names = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  return names[date.getDay()];
+}
+
+function getMonthShortName(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  return months[date.getMonth()];
+}
 
 @Component({
   selector: 'app-barber-appointments',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, BarberSchedule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './barber-appointments.page.html',
   styleUrl: './barber-appointments.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,18 +65,26 @@ export class BarberAppointmentsPage {
   readonly haptics = inject(HapticsService);
   private readonly fb = inject(FormBuilder);
 
+  // Estados de navegación y filtros
+  readonly selectedDate = signal<string>(new Date().toISOString().slice(0, 10));
+  readonly selectedBarberFilter = signal<string>('all');
+  readonly selectedStatusFilter = signal<string>('all');
+  readonly viewMode = signal<'timeline' | 'list'>('timeline');
+
+  // Estados de Modal y Acción
   readonly isBookAppointmentModalOpen = signal(false);
   readonly isSubmitting = signal(false);
-
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  // Franjas horarias estándar del negocio
   readonly availableTimeSlots = [
-    '09:00', '09:45', '10:30', '11:15', '12:00',
-    '14:00', '14:45', '15:30', '16:15', '17:00',
-    '17:45', '18:30', '19:15',
+    '08:30', '09:15', '10:00', '10:45', '11:30', '12:15',
+    '14:00', '14:45', '15:30', '16:15', '17:00', '17:45',
+    '18:30', '19:15', '20:00'
   ];
 
+  // Formulario Reactivo para Cita
   readonly bookingForm: FormGroup = this.fb.group({
     clientId: ['', [Validators.required]],
     serviceId: ['', [Validators.required]],
@@ -39,26 +94,270 @@ export class BarberAppointmentsPage {
     notes: [''],
   });
 
+  // --- COMPUTADAS REACTIVAS ---
+
+  // Fecha actual en string ISO
+  readonly todayDateStr = computed(() => new Date().toISOString().slice(0, 10));
+
+  // Es el día de hoy?
+  readonly isViewingToday = computed(() => this.selectedDate() === this.todayDateStr());
+
+  // Formato legible de la fecha seleccionada (ej. "Jueves, 11 de Septiembre 2026")
+  readonly formattedSelectedDate = computed(() => {
+    const [y, m, d] = this.selectedDate().split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  });
+
+  // Franja semanal de 7 días centrada alrededor de la fecha seleccionada
+  readonly weekStrip = computed<WeekDayItem[]>(() => {
+    const centerDate = this.selectedDate();
+    const today = this.todayDateStr();
+    const allAppointments = this.barberService.appointments();
+
+    const strip: WeekDayItem[] = [];
+    // Generar desde -3 días hasta +3 días
+    for (let offset = -3; offset <= 3; offset++) {
+      const dateStr = addDaysToDateStr(centerDate, offset);
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const count = allAppointments.filter((a) => a.date === dateStr && a.status !== 'cancelled').length;
+
+      strip.push({
+        dateStr,
+        dayName: getDayName(dateStr),
+        dayNumber: d,
+        monthName: getMonthShortName(dateStr),
+        isToday: dateStr === today,
+        isSelected: dateStr === centerDate,
+        appointmentCount: count,
+      });
+    }
+    return strip;
+  });
+
+  // Todas las citas de la fecha seleccionada (ordenadas cronológicamente)
+  readonly dateAppointments = computed<Appointment[]>(() => {
+    const targetDate = this.selectedDate();
+    return this.barberService
+      .appointments()
+      .filter((a) => a.date === targetDate)
+      .sort((a, b) => a.time.localeCompare(b.time));
+  });
+
+  // Citas filtradas por barbero y estado
+  readonly filteredAppointments = computed<Appointment[]>(() => {
+    const list = this.dateAppointments();
+    const barberId = this.selectedBarberFilter();
+    const status = this.selectedStatusFilter();
+
+    return list.filter((apt) => {
+      if (barberId !== 'all' && apt.barberId !== barberId) return false;
+      if (status !== 'all' && apt.status !== status) return false;
+      return true;
+    });
+  });
+
+  // Métricas del día seleccionado (KPIs)
+  readonly dateKPIs = computed(() => {
+    const list = this.dateAppointments();
+    const total = list.length;
+    const confirmed = list.filter((a) => a.status === 'confirmed').length;
+    const inProgress = list.filter((a) => a.status === 'in-progress').length;
+    const completed = list.filter((a) => a.status === 'completed').length;
+    const cancelled = list.filter((a) => a.status === 'cancelled').length;
+
+    const projectedRevenue = list
+      .filter((a) => a.status !== 'cancelled')
+      .reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+
+    const activeSlots = list.filter((a) => a.status !== 'cancelled').length;
+    const occupancyRate = Math.min(
+      100,
+      Math.round((activeSlots / (this.availableTimeSlots.length * Math.max(1, this.barberService.barbers().length))) * 100)
+    );
+
+    return {
+      total,
+      confirmed,
+      inProgress,
+      completed,
+      cancelled,
+      projectedRevenue,
+      occupancyRate,
+    };
+  });
+
+  // Horarios ya ocupados en la fecha seleccionada (para feedback visual)
+  readonly occupiedSlotsOnSelectedDate = computed<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    for (const apt of this.dateAppointments()) {
+      if (apt.status !== 'cancelled') {
+        map.set(apt.time, apt.clientName);
+      }
+    }
+    return map;
+  });
+
+  // Estructura de Timeline enriquecida para cada slot horario
+  readonly timelineSlots = computed(() => {
+    const appointments = this.filteredAppointments();
+    const slots = this.availableTimeSlots;
+
+    return slots.map((time) => {
+      const aptsAtThisTime = appointments.filter((a) => a.time === time);
+      return {
+        time,
+        appointments: aptsAtThisTime,
+        isOccupied: aptsAtThisTime.length > 0,
+      };
+    });
+  });
+
+  // Servicio seleccionado en el modal para calcular resumen en vivo
+  readonly modalSelectedService = computed(() => {
+    const srvId = this.bookingForm.get('serviceId')?.value;
+    return this.barberService.services().find((s) => s.id === srvId) || null;
+  });
+
+  // Barbero seleccionado en el modal
+  readonly modalSelectedBarber = computed(() => {
+    const bId = this.bookingForm.get('barberId')?.value;
+    return this.barberService.barbers().find((b) => b.id === bId) || null;
+  });
+
+  // --- ATAJOS DE TECLADO POWER USER ---
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement;
+    const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+
+    if (event.key === 'Escape') {
+      if (this.isBookAppointmentModalOpen()) {
+        this.closeBookAppointmentModal();
+      }
+      return;
+    }
+
+    if (isEditing) return;
+
+    // Alt+A: Agendar Nueva Cita
+    if (event.altKey && (event.key === 'a' || event.key === 'A')) {
+      event.preventDefault();
+      this.openBookAppointmentModal();
+      return;
+    }
+
+    // Flecha Izquierda: Día anterior
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      this.goToPreviousDay();
+      return;
+    }
+
+    // Flecha Derecha: Día siguiente
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      this.goToNextDay();
+      return;
+    }
+
+    // Tecla T: Volver a Hoy
+    if (event.key === 't' || event.key === 'T') {
+      event.preventDefault();
+      this.goToToday();
+      return;
+    }
+  }
+
+  // --- NAVEGACIÓN TEMPORAL ---
+  goToPreviousDay(): void {
+    this.haptics.lightTap();
+    this.selectedDate.update((d) => addDaysToDateStr(d, -1));
+  }
+
+  goToNextDay(): void {
+    this.haptics.lightTap();
+    this.selectedDate.update((d) => addDaysToDateStr(d, 1));
+  }
+
+  goToToday(): void {
+    this.haptics.lightTap();
+    this.selectedDate.set(this.todayDateStr());
+  }
+
+  selectDate(dateStr: string): void {
+    this.haptics.selection();
+    this.selectedDate.set(dateStr);
+  }
+
+  onDateInputChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.value) {
+      this.haptics.selection();
+      this.selectedDate.set(input.value);
+    }
+  }
+
+  // --- FILTROS ---
+  setBarberFilter(barberId: string): void {
+    this.haptics.lightTap();
+    this.selectedBarberFilter.set(barberId);
+  }
+
+  setStatusFilter(status: string): void {
+    this.haptics.lightTap();
+    this.selectedStatusFilter.set(status);
+  }
+
+  setViewMode(mode: 'timeline' | 'list'): void {
+    this.haptics.lightTap();
+    this.viewMode.set(mode);
+  }
+
+  // --- NOTIFICACIONES TOAST ---
   showToast(msg: string): void {
     this.toastMessage.set(msg);
     if (this.toastTimeout) clearTimeout(this.toastTimeout);
     this.toastTimeout = setTimeout(() => this.toastMessage.set(null), 3500);
   }
 
-  openBookAppointmentModal(): void {
+  // --- GESTIÓN RÁPIDA DE CITAS ---
+  updateStatus(apt: Appointment, newStatus: AppointmentStatus): void {
+    this.haptics.success();
+    this.barberService.updateAppointmentStatus(apt.id, newStatus);
+    const label = this.getStatusLabel(newStatus);
+    this.showToast(`Cita de ${apt.clientName} actualizada a: ${label}`);
+  }
+
+  cancelAppointment(apt: Appointment): void {
+    this.haptics.warning();
+    this.barberService.updateAppointmentStatus(apt.id, 'cancelled');
+    this.showToast(`Cita de las ${apt.time} cancelada`);
+  }
+
+  // --- MODAL AGENDAR CITA ---
+  openBookAppointmentModal(defaultTime?: string): void {
     this.haptics.lightTap();
     const firstClient = this.barberService.clients()[0];
     const firstService = this.barberService.services()[0];
     const firstBarber = this.barberService.barbers()[0];
 
+    const time = defaultTime || '10:00';
+
     this.bookingForm.reset({
       clientId: firstClient?.id || '',
       serviceId: firstService?.id || '',
       barberId: firstBarber?.id || '',
-      date: new Date().toISOString().slice(0, 10),
-      time: '10:00',
+      date: this.selectedDate(),
+      time,
       notes: '',
     });
+
     this.isBookAppointmentModalOpen.set(true);
   }
 
@@ -67,16 +366,22 @@ export class BarberAppointmentsPage {
     this.isBookAppointmentModalOpen.set(false);
   }
 
+  selectTimeChip(time: string): void {
+    this.haptics.selection();
+    this.bookingForm.patchValue({ time });
+  }
+
   async submitBookAppointment(): Promise<void> {
     if (this.bookingForm.invalid || this.isSubmitting()) {
       this.bookingForm.markAllAsTouched();
       this.haptics.warning();
-      this.showToast('Completa los campos requeridos');
+      this.showToast('Por favor completa los campos obligatorios');
       return;
     }
 
     const { clientId, serviceId, barberId, date, time, notes } = this.bookingForm.value;
     this.isSubmitting.set(true);
+
     try {
       await this.barberService.bookAppointment({
         clientId: clientId || this.barberService.clients()[0]?.id || '',
@@ -84,17 +389,48 @@ export class BarberAppointmentsPage {
         barberId,
         date,
         time,
-        notes,
+        notes: notes?.trim() || undefined,
       });
 
       this.haptics.success();
-      this.showToast('Cita agendada con éxito');
+      this.showToast('✓ Cita agendada con éxito');
       this.closeBookAppointmentModal();
+
+      // Si la fecha agendada es distinta a la actual, ofrecer navegar o fijarla
+      if (date !== this.selectedDate()) {
+        this.selectedDate.set(date);
+      }
     } catch {
       this.haptics.warning();
-      this.showToast('Error al agendar la cita');
+      this.showToast('Error al agendar la cita. Inténtalo de nuevo.');
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  // Helper visual para etiquetas de estado
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'confirmed':
+        return 'Confirmada';
+      case 'in-progress':
+        return 'En atención';
+      case 'completed':
+        return 'Completada';
+      case 'cancelled':
+        return 'Cancelada';
+      default:
+        return 'Pendiente';
+    }
+  }
+
+  // Generar iniciales de cliente
+  getClientInitials(name: string): string {
+    if (!name) return 'CL';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
   }
 }

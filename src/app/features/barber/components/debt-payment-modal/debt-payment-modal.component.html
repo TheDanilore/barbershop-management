@@ -1,0 +1,192 @@
+@if (isOpen && client) {
+<div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="debtModalTitle" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <!-- Tirador táctil móvil -->
+    <div class="sheet-drag-handle"></div>
+
+    <!-- Cabecera -->
+    <header class="sheet-header">
+      <div class="sheet-title-group">
+        <span class="sheet-badge-pill">Cuentas por Cobrar • Fiados</span>
+        <h3 id="debtModalTitle" class="sheet-title">Registrar Abono a Deuda</h3>
+        <p class="sheet-desc">
+          <strong>{{ client.name }}</strong> • Deuda pendiente:
+          <span class="text-danger-bold">{{ barberService.currencySymbol() }}{{ (client.currentDebt || 0).toFixed(2) }}</span>
+        </p>
+      </div>
+      <button
+        type="button"
+        class="sheet-close-btn"
+        (click)="closeModal()"
+        title="Cerrar (Esc)"
+        aria-label="Cerrar modal">
+        ✕
+      </button>
+    </header>
+
+    <!-- Formulario Reactivo de Abono -->
+    <form [formGroup]="form" (ngSubmit)="submitPayment()" class="sheet-form">
+      <div class="form-body">
+        <!-- Banner de Error si ocurre algún fallo -->
+        @if (errorMessage()) {
+        <div class="modal-error-alert" role="alert">
+          <span class="mea-icon">⚠️</span>
+          <span class="mea-text">{{ errorMessage() }}</span>
+        </div>
+        }
+
+        <!-- Botones de Sugerencia Rápida de Monto -->
+        <div class="quick-amounts-wrap">
+          <span class="qa-label">Atajos rápidos:</span>
+          <div class="qa-chips">
+            <button
+              type="button"
+              class="qa-chip"
+              [class.active]="enteredAmount() === client.currentDebt"
+              (click)="setAmount(client.currentDebt || 0)">
+              Pagar Total ({{ barberService.currencySymbol() }}{{ (client.currentDebt || 0).toFixed(2) }})
+            </button>
+            @if ((client.currentDebt || 0) > 10) {
+            <button
+              type="button"
+              class="qa-chip"
+              (click)="setAmountPercentage(0.5)">
+              50% ({{ barberService.currencySymbol() }}{{ ((client.currentDebt || 0) / 2).toFixed(2) }})
+            </button>
+            }
+            @if ((client.currentDebt || 0) > 20) {
+            <button
+              type="button"
+              class="qa-chip"
+              (click)="setAmount(20)">
+              {{ barberService.currencySymbol() }}20.00
+            </button>
+            }
+            @if ((client.currentDebt || 0) > 10) {
+            <button
+              type="button"
+              class="qa-chip"
+              (click)="setAmount(10)">
+              {{ barberService.currencySymbol() }}10.00
+            </button>
+            }
+          </div>
+        </div>
+
+        <!-- Campo Monto a Abonar -->
+        <div class="form-group">
+          <label class="form-label" for="debtAmount">Monto a Abonar ({{ barberService.currencySymbol() }}) *</label>
+          <div class="input-currency-wrap">
+            <span class="input-currency-prefix">{{ barberService.currencySymbol() }}</span>
+            <input
+              id="debtAmount"
+              type="number"
+              step="0.50"
+              min="0.5"
+              [max]="client.currentDebt || 0"
+              class="form-input form-input-lg"
+              placeholder="0.00"
+              formControlName="amount" />
+          </div>
+        </div>
+
+        <!-- Fila 2: Cuenta Financiera Destino y Método de Pago -->
+        <div class="form-row-2">
+          <!-- Cuenta Financiera -->
+          <div class="form-group">
+            <label class="form-label" for="debtAccount">Cuenta Destino *</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">🏦</span>
+              <select id="debtAccount" class="form-input" formControlName="accountId">
+                @for (acc of barberService.financialAccounts(); track acc.id) {
+                <option [value]="acc.id">
+                  {{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})
+                </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Método de Pago -->
+          <div class="form-group">
+            <label class="form-label" for="debtPaymentMethod">Método de Cobro *</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">💳</span>
+              <select id="debtPaymentMethod" class="form-input" formControlName="paymentMethod">
+                <option value="cash">💵 Efectivo (Caja Física)</option>
+                <option value="card">💳 Tarjeta (POS)</option>
+                <option value="transfer">📱 Transferencia / Yape / Plin</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comprobante / Notas -->
+        <div class="form-group">
+          <label class="form-label" for="debtNotes">Notas / N° de Operación (Opcional)</label>
+          <input
+            id="debtNotes"
+            type="text"
+            class="form-input"
+            placeholder="Ej: Yape ref 489201, abono parcial en sillón..."
+            formControlName="notes" />
+        </div>
+
+        <!-- Tarjeta de Simulación Contable y Liberación FIFO en Vivo -->
+        <div class="simulation-card">
+          <div class="sim-header">
+            <span class="sim-title">Liquidación Contable FIFO</span>
+            <span class="sim-badge" [class.success]="remainingDebtSimulated() === 0">
+              {{ remainingDebtSimulated() === 0 ? '✓ Saldará Totalidad' : 'Abono Parcial' }}
+            </span>
+          </div>
+          <div class="sim-body">
+            <div class="sim-row">
+              <span class="sim-label">Deuda actual:</span>
+              <span class="sim-val">{{ barberService.currencySymbol() }}{{ (client.currentDebt || 0).toFixed(2) }}</span>
+            </div>
+            <div class="sim-row">
+              <span class="sim-label">Abono a registrar:</span>
+              <span class="sim-val text-gold">-{{ barberService.currencySymbol() }}{{ enteredAmount().toFixed(2) }}</span>
+            </div>
+            <div class="sim-divider"></div>
+            <div class="sim-row total">
+              <span class="sim-label">Saldo restante:</span>
+              <span class="sim-val" [class.text-green]="remainingDebtSimulated() === 0" [class.text-danger]="remainingDebtSimulated() > 0">
+                {{ barberService.currencySymbol() }}{{ remainingDebtSimulated().toFixed(2) }}
+              </span>
+            </div>
+          </div>
+          <div class="sim-footer-note">
+            <span class="sfn-icon">⚖️</span>
+            <span class="sfn-text">
+              Imputación FIFO: El dinero liquidará primero las órdenes y visitas más antiguas. Los sellos de fidelización se liberarán automáticamente al completar el pago de cada orden.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer con Botones de Acción -->
+      <footer class="sheet-footer">
+        <button
+          type="button"
+          class="btn-secondary-action"
+          (click)="closeModal()">
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn-primary-confirm"
+          [disabled]="form.invalid || isSubmitting() || enteredAmount() <= 0 || enteredAmount() > (client.currentDebt || 0)">
+          @if (isSubmitting()) {
+          <span class="spinner-inline"></span>
+          <span>Procesando abono...</span>
+          } @else {
+          <span>✓ Confirmar Abono de {{ barberService.currencySymbol() }}{{ enteredAmount().toFixed(2) }}</span>
+          }
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
+}

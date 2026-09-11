@@ -175,6 +175,20 @@ export class BarberService {
     this.registerCutModalInitialData.set(null);
   }
 
+  // Modal global centralizado de Abono de Deuda (Cuentas por Cobrar / Fiados)
+  readonly isDebtPaymentModalOpen = signal<boolean>(false);
+  readonly debtPaymentModalClient = signal<Client | null>(null);
+
+  openDebtPaymentModal(client: Client): void {
+    this.debtPaymentModalClient.set(client);
+    this.isDebtPaymentModalOpen.set(true);
+  }
+
+  closeDebtPaymentModal(): void {
+    this.isDebtPaymentModalOpen.set(false);
+    this.debtPaymentModalClient.set(null);
+  }
+
   // Loyalty Rewards System (0..N premios configurables)
   readonly loyaltyRewards = signal<LoyaltyReward[]>([]);
   readonly pendingRewardClaims = signal<LoyaltyRewardClaim[]>([]);
@@ -1123,6 +1137,10 @@ export class BarberService {
       paymentMethod: actualPaymentMethod,
       notes: params.notes,
       items: lineItems,
+      isCredit: Boolean(params.isCredit),
+      amountDebt: params.isCredit ? finalPrice : 0,
+      amountPaid: params.isCredit ? 0 : finalPrice,
+      isPaid: !params.isCredit,
     };
 
     const updatedCuts = [newCut, ...this.cuts()];
@@ -1290,10 +1308,64 @@ export class BarberService {
     if (!client) return;
 
     const amount = Number(params.amount);
+    if (amount <= 0) return;
+
+    // Actualizar saldo de deuda del cliente
     client.currentDebt = Math.max(0, (client.currentDebt || 0) - amount);
 
-    // Acreditar sello de fidelización al saldar/abonar su servicio
-    client.loyaltyStamps = (client.loyaltyStamps || 0) + 1;
+    // 1. Algoritmo FIFO de Liquidación de Órdenes Fiadas y Liberación Estricta de Sellos
+    let remainingAbono = amount;
+    let stampsEarned = 0;
+    const mode = this.loyaltyMode();
+
+    const allCuts = this.cuts();
+    const updatedCuts = allCuts.map((cut) => {
+      // Si el corte pertenece a este cliente y es fiado/crédito y aún no está saldado al 100%
+      if (cut.clientId === client.id && (cut.isCredit || cut.paymentMethod === 'credit') && !cut.isPaid) {
+        if (remainingAbono <= 0) return cut;
+
+        const cutUnpaid = cut.amountDebt !== undefined ? cut.amountDebt : cut.price;
+        if (remainingAbono >= cutUnpaid) {
+          // Orden completamente liquidada -> Se liberan sus sellos
+          remainingAbono -= cutUnpaid;
+          const serviceCount = cut.items?.reduce((acc, it) => acc + (it.quantity || 1), 0) || 1;
+          const earned = mode === 'per_service' ? Math.max(1, serviceCount) : 1;
+          stampsEarned += earned;
+
+          return {
+            ...cut,
+            amountDebt: 0,
+            amountPaid: cut.price,
+            isPaid: true,
+          };
+        } else {
+          // Orden parcialmente amortizada -> Se reduce deuda pero NO se liberan sellos aún
+          const newDebt = cutUnpaid - remainingAbono;
+          const newPaid = (cut.amountPaid || 0) + remainingAbono;
+          remainingAbono = 0;
+
+          return {
+            ...cut,
+            amountDebt: newDebt,
+            amountPaid: newPaid,
+            isPaid: false,
+          };
+        }
+      }
+      return cut;
+    });
+
+    // Fallback de fidelización: si la deuda total llegó a 0 y no se habían liberado sellos
+    if (stampsEarned === 0 && client.currentDebt === 0 && (client.loyaltyStamps || 0) === 0) {
+      stampsEarned = 1;
+    }
+
+    if (stampsEarned > 0) {
+      client.loyaltyStamps = (client.loyaltyStamps || 0) + stampsEarned;
+    }
+
+    this.cuts.set(updatedCuts);
+    this.saveToStorage(STORAGE_KEYS.CUTS, updatedCuts);
 
     this.clients.set([...this.clients()]);
     this.saveToStorage(STORAGE_KEYS.CLIENTS, this.clients());

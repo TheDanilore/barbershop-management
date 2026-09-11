@@ -1,190 +1,377 @@
 <div class="clients-page fade-in">
+  <!-- Toast Notificaciones -->
   @if (toastMessage()) {
-  <div class="local-toast">
+  <div class="local-toast" role="alert">
     <div class="toast-dot"></div>
     <span>{{ toastMessage() }}</span>
   </div>
   }
 
+  <!-- ============================================================================== -->
+  <!-- 1. HEADER PRINCIPAL -->
+  <!-- ============================================================================== -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
-        <span class="badge-blue">Directorio</span>
+        <span class="badge-blue">Directorio ERP</span>
         <span class="badge-counter">{{ barberService.clients().length }} Clientes Registrados</span>
         @if (clientsWithDebt().length > 0) {
         <span class="badge-debt-alert">⚠️ {{ clientsWithDebt().length }} con Deuda Activa</span>
         }
       </div>
       <h1 class="page-title">Directorio de Clientes</h1>
-      <p class="page-subtitle">Historial de visitas, sellos acumulados y control de cuentas por cobrar (fiado)</p>
+      <p class="page-subtitle">
+        Historial de visitas, sellos acumulados y control de cuentas por cobrar (fiados)
+      </p>
     </div>
 
     <div class="header-actions">
-      <button class="btn-primary-create" (click)="openNewClientModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-          <circle cx="8.5" cy="7" r="4"></circle>
-          <line x1="20" y1="8" x2="20" y2="14"></line>
-          <line x1="23" y1="11" x2="17" y2="11"></line>
-        </svg>
-        <span>+ Nuevo Cliente</span>
+      <button
+        type="button"
+        class="btn-primary-create"
+        (click)="openNewClientModal()"
+        title="Dar de alta un nuevo cliente">
+        <span class="btn-icon">+</span>
+        <span>Nuevo Cliente</span>
       </button>
     </div>
   </header>
 
-  <!-- Buscador en Tiempo Real -->
-  <div class="search-bar-wrap">
-    <div class="search-input-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-      <input type="text" class="search-input" [ngModel]="clientSearchQuery()"
-        (ngModelChange)="clientSearchQuery.set($event)" placeholder="Buscar cliente por nombre o teléfono..." />
+  <!-- ============================================================================== -->
+  <!-- 2. COMMAND CENTER: KPIS DE CARTERA Y CRÉDITO -->
+  <!-- ============================================================================== -->
+  <section class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-icon">👥</span>
+        <span class="kpi-label">Total Clientes</span>
+      </div>
+      <div class="kpi-val">{{ barberService.clients().length }}</div>
+      <div class="kpi-sub">
+        <span>Cartera activa</span>
+      </div>
     </div>
-  </div>
 
-  <!-- Grid de Tarjetas de Clientes v2 -->
-  <div class="clients-cards-grid">
+    <div class="kpi-card" [class.danger-accent]="clientsWithDebt().length > 0">
+      <div class="kpi-top">
+        <span class="kpi-icon">⚠️</span>
+        <span class="kpi-label">Clientes con Deuda</span>
+      </div>
+      <div class="kpi-val" [class.text-danger]="clientsWithDebt().length > 0">
+        {{ clientsWithDebt().length }}
+      </div>
+      <div class="kpi-sub">
+        <span>Cuentas fiadas pendientes</span>
+      </div>
+    </div>
+
+    <div class="kpi-card gold-accent">
+      <div class="kpi-top">
+        <span class="kpi-icon">💰</span>
+        <span class="kpi-label">Cartera por Cobrar</span>
+      </div>
+      <div class="kpi-val text-gold">
+        {{ barberService.currencySymbol() }}{{ totalReceivableDebt().toFixed(2) }}
+      </div>
+      <div class="kpi-sub">
+        <span>Total pendiente de abono</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <span class="kpi-icon">⭐</span>
+        <span class="kpi-label">Fidelizados VIP &amp; Gold</span>
+      </div>
+      <div class="kpi-val text-purple">{{ vipClientsCount() }}</div>
+      <div class="kpi-sub">
+        <span>Clientes recurrentes</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================================== -->
+  <!-- 3. BARRA DE HERRAMIENTAS: BÚSQUEDA Y FILTROS SEGMENTADOS -->
+  <!-- ============================================================================== -->
+  <section class="clients-toolbar">
+    <!-- Pestañas de Segmentación -->
+    <div class="segment-tabs">
+      <button
+        type="button"
+        class="seg-btn"
+        [class.active]="selectedSegment() === 'all'"
+        (click)="setSegment('all')">
+        <span>Todos</span>
+        <span class="seg-count">{{ barberService.clients().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="seg-btn"
+        [class.active]="selectedSegment() === 'debt'"
+        (click)="setSegment('debt')">
+        <span class="dot-debt"></span>
+        <span>Con Deuda</span>
+        <span class="seg-count debt">{{ clientsWithDebt().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="seg-btn"
+        [class.active]="selectedSegment() === 'vip'"
+        (click)="setSegment('vip')">
+        <span>⭐ VIP &amp; Gold</span>
+        <span class="seg-count">{{ vipClientsCount() }}</span>
+      </button>
+      <button
+        type="button"
+        class="seg-btn"
+        [class.active]="selectedSegment() === 'clear'"
+        (click)="setSegment('clear')">
+        <span>✓ Al Día</span>
+        <span class="seg-count">{{ barberService.clients().length - clientsWithDebt().length }}</span>
+      </button>
+    </div>
+
+    <!-- Buscador Reactivo -->
+    <div class="search-input-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        class="search-input"
+        [ngModel]="clientSearchQuery()"
+        (ngModelChange)="clientSearchQuery.set($event)"
+        placeholder="Buscar por nombre o teléfono..." />
+      @if (clientSearchQuery()) {
+      <button
+        type="button"
+        class="btn-clear-search"
+        (click)="clearSearch()"
+        title="Limpiar búsqueda">
+        ✕
+      </button>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================================== -->
+  <!-- 4. GRID MODERNO DE TARJETAS DE CLIENTES -->
+  <!-- ============================================================================== -->
+  <main class="clients-cards-grid">
     @for (cli of filteredClients(); track cli.id) {
-    <div class="client-card-v2">
+    <article class="client-card-v2" [class.has-debt]="(cli.currentDebt || 0) > 0">
       <!-- Franja lateral de membresía -->
       <div class="ccv2-tier-stripe" [attr.data-tier]="cli.membershipLevel"></div>
 
       <div class="ccv2-main">
+        <!-- Cabecera de la Tarjeta: Avatar, Datos e Indicador de Deuda -->
         <div class="ccv2-header">
           <div class="ccv2-avatar-wrap">
             <div class="ccv2-avatar" [attr.data-tier]="cli.membershipLevel">
-              {{ cli.name.charAt(0) }}
+              {{ cli.name.charAt(0).toUpperCase() }}
             </div>
             <div class="ccv2-info">
               <div class="ccv2-name-row">
-                <h3 class="ccv2-name">{{ cli.name }}</h3>
-                <span class="ccv2-tier-badge" [attr.data-tier]="cli.membershipLevel">{{ cli.membershipLevel }}</span>
+                <h3 class="ccv2-name" title="{{ cli.name }}">{{ cli.name }}</h3>
+                <span class="ccv2-tier-badge" [attr.data-tier]="cli.membershipLevel">
+                  {{ cli.membershipLevel }}
+                </span>
               </div>
-              <span class="ccv2-phone">{{ cli.phone || 'Sin teléfono' }}</span>
+              <div class="ccv2-phone-row">
+                <a
+                  href="tel:{{ cli.phone }}"
+                  class="ccv2-phone"
+                  title="Llamar al cliente"
+                  (click)="$event.stopPropagation()">
+                  📞 {{ cli.phone || 'Sin teléfono' }}
+                </a>
+              </div>
             </div>
           </div>
 
+          <!-- Badge Destacado de Deuda (si aplica) -->
           @if ((cli.currentDebt || 0) > 0) {
-          <div class="ccv2-debt-badge" title="Deuda pendiente">
-            <span class="debt-lbl">Debe</span>
-            <strong class="debt-val">{{ barberService.currencySymbol() }}{{ (cli.currentDebt || 0).toFixed(2) }}</strong>
+          <div class="ccv2-debt-badge" title="Deuda fiada acumulada">
+            <span class="debt-lbl">DEBE</span>
+            <strong class="debt-val">
+              {{ barberService.currencySymbol() }}{{ (cli.currentDebt || 0).toFixed(2) }}
+            </strong>
+          </div>
+          } @else {
+          <div class="ccv2-status-clean" title="Sin deudas pendientes">
+            <span class="status-clean-dot">✓</span>
+            <span class="status-clean-txt">Al día</span>
           </div>
           }
+        </div>
+
+        <!-- Métricas Rápidas: Cortes y Última Visita -->
+        <div class="ccv2-stats-row">
+          <div class="stat-pill">
+            <span class="stat-icon">✂️</span>
+            <span class="stat-txt"><strong>{{ cli.cutsCount }}</strong> cortes totales</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-icon">📅</span>
+            <span class="stat-txt">{{ cli.lastVisitDate ? 'Última: ' + cli.lastVisitDate : 'Cliente nuevo' }}</span>
+          </div>
         </div>
 
         <!-- Barra de Progreso de Fidelización -->
         <div class="ccv2-loyalty-section">
           <div class="ccv2-loyalty-header">
-            <span class="clh-label">Progreso de Fidelización:</span>
-            <span class="clh-stamps">★ {{ cli.loyaltyStamps }} cortes acumulados</span>
+            <span class="clh-label">Sellos de Fidelización:</span>
+            <span class="clh-stamps">
+              ★ <strong>{{ cli.loyaltyStamps }}</strong> / 10 acumulados
+            </span>
           </div>
           <div class="ccv2-loyalty-bar">
-            <div class="ccv2-loyalty-fill" [style.width.%]="(cli.loyaltyStamps / 10) * 100"></div>
+            <div
+              class="ccv2-loyalty-fill"
+              [style.width.%]="Math.min(100, (cli.loyaltyStamps / 10) * 100)">
+            </div>
           </div>
         </div>
 
-        <!-- Acciones del Cliente -->
+        <!-- Acciones Operativas Rápidas (Power User) -->
         <div class="ccv2-actions">
+          <!-- Si tiene deuda: Botón Prioritario de Abono -->
           @if ((cli.currentDebt || 0) > 0) {
-          <button class="btn-debt-pay" (click)="openDebtPaymentModal(cli)">
-            💰 Registrar Abono
+          <button
+            type="button"
+            class="btn-card-action debt-pay"
+            (click)="openDebtPaymentModal(cli)"
+            title="Registrar abono a la deuda de {{ cli.name }}">
+            💰 Abonar Deuda
           </button>
+          }
+
+          <!-- Cobrar Servicio Directo en POS -->
+          <button
+            type="button"
+            class="btn-card-action pos"
+            (click)="openRegisterCutForClient(cli)"
+            title="Registrar nuevo corte / venta para {{ cli.name }}">
+            ✂️ Cobrar
+          </button>
+
+          <!-- Agendar Cita en Calendario -->
+          <button
+            type="button"
+            class="btn-card-action schedule"
+            (click)="openBookAppointmentForClient(cli)"
+            title="Agendar turno en agenda para {{ cli.name }}">
+            📅 Cita
+          </button>
+
+          <!-- Contacto Directo WhatsApp -->
+          @if (cli.phone) {
+          <a
+            [href]="getWhatsAppUrl(cli.phone)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-card-action wa"
+            (click)="$event.stopPropagation()"
+            title="Enviar mensaje por WhatsApp a {{ cli.name }}">
+            📱 WA
+          </a>
           }
         </div>
       </div>
-    </div>
+    </article>
     } @empty {
     <div class="empty-clients-box">
-      <p>No se encontraron clientes con el criterio "{{ clientSearchQuery() }}".</p>
+      <div class="empty-icon">👥</div>
+      <h3 class="empty-title">Sin clientes que coincidan</h3>
+      <p class="empty-desc">
+        No se encontraron clientes con el filtro o término
+        <strong>"{{ clientSearchQuery() }}"</strong>.
+      </p>
+      <div class="empty-actions">
+        @if (clientSearchQuery() || selectedSegment() !== 'all') {
+        <button type="button" class="btn-reset-filters" (click)="clearSearch(); setSegment('all')">
+          Restablecer Filtros
+        </button>
+        }
+        <button type="button" class="btn-create-empty" (click)="openNewClientModal()">
+          + Registrar Nuevo Cliente
+        </button>
+      </div>
     </div>
     }
-  </div>
+  </main>
 
-  <!-- Modal Alta Rápida de Cliente -->
+  <!-- ============================================================================== -->
+  <!-- 5. MODAL ALTA RÁPIDA DE CLIENTE (LOCAL) -->
+  <!-- ============================================================================== -->
   @if (isNewClientModalOpen()) {
-  <div class="modal-backdrop" (click)="closeNewClientModal()">
+  <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="newCliTitle" (click)="closeNewClientModal()">
     <div class="modal-sheet" (click)="$event.stopPropagation()">
       <div class="sheet-drag-handle"></div>
 
-      <div class="sheet-header">
+      <header class="sheet-header">
         <div class="sheet-title-group">
-          <span class="sheet-badge gold">Directorio</span>
-          <h3 class="sheet-title">Nuevo Cliente</h3>
+          <span class="sheet-badge-pill">Directorio de Clientes</span>
+          <h3 id="newCliTitle" class="sheet-title">Registrar Nuevo Cliente</h3>
         </div>
-        <button class="sheet-close-btn" (click)="closeNewClientModal()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
+        <button
+          type="button"
+          class="sheet-close-btn"
+          (click)="closeNewClientModal()"
+          title="Cerrar (Esc)"
+          aria-label="Cerrar modal">
+          ✕
         </button>
-      </div>
+      </header>
 
       <form [formGroup]="newClientForm" (ngSubmit)="submitNewClient()" class="sheet-form">
-        <div class="form-group">
-          <label class="form-label" for="clientFullName">Nombre Completo *</label>
-          <input id="clientFullName" type="text" class="form-input" formControlName="fullName"
-            placeholder="Ej: Carlos Mendoza" />
+        <div class="form-body">
+          <div class="form-group">
+            <label class="form-label" for="clientFullName">Nombre Completo *</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">👤</span>
+              <input
+                id="clientFullName"
+                type="text"
+                class="form-input"
+                formControlName="fullName"
+                placeholder="Ej: Carlos Mendoza" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="clientPhone">Teléfono / WhatsApp</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">📞</span>
+              <input
+                id="clientPhone"
+                type="tel"
+                class="form-input"
+                formControlName="phone"
+                placeholder="+51 987 654 321" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="clientNotes">Notas / Preferencias (Opcional)</label>
+            <input
+              id="clientNotes"
+              type="text"
+              class="form-input"
+              formControlName="notes"
+              placeholder="Ej: Prefiere corte degradado bajo con tijera..." />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="clientPhone">Teléfono / WhatsApp</label>
-          <input id="clientPhone" type="tel" class="form-input" formControlName="phone" placeholder="+51 987 654 321" />
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeNewClientModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="newClientForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Registrando...' : 'Registrar Cliente' }}
+        <footer class="sheet-footer">
+          <button type="button" class="btn-secondary-action" (click)="closeNewClientModal()">
+            Cancelar
           </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
-
-  <!-- Modal Abonar Deuda -->
-  @if (isDebtPaymentModalOpen() && debtPaymentClient()) {
-  <div class="modal-backdrop" (click)="closeDebtPaymentModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
-
-      <div class="sheet-header">
-        <div class="sheet-title-group">
-          <span class="sheet-badge blue">Cuentas por Cobrar</span>
-          <h3 class="sheet-title">Abonar a Deuda</h3>
-          <p class="sheet-desc">{{ debtPaymentClient()?.name }} — Deuda actual: {{ barberService.currencySymbol() }}{{ debtPaymentClient()?.currentDebt?.toFixed(2) }}</p>
-        </div>
-        <button class="sheet-close-btn" (click)="closeDebtPaymentModal()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <form [formGroup]="debtPaymentForm" (ngSubmit)="submitPayClientDebt()" class="sheet-form">
-        <div class="form-group">
-          <label class="form-label" for="paymentAmount">Monto a Abonar ({{ barberService.currencySymbol() }}) *</label>
-          <input id="paymentAmount" type="number" step="0.50" min="0.5" class="form-input" formControlName="amount" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="paymentMethodSelect">Método de Cobro *</label>
-          <select id="paymentMethodSelect" class="form-input" formControlName="paymentMethod">
-            <option value="cash">💵 Efectivo</option>
-            <option value="card">💳 Tarjeta</option>
-            <option value="transfer">📱 Transferencia / Yape</option>
-          </select>
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeDebtPaymentModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="debtPaymentForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Procesando...' : 'Confirmar Abono' }}
+          <button
+            type="submit"
+            class="btn-primary-confirm"
+            [disabled]="newClientForm.invalid || isSubmitting()">
+            {{ isSubmitting() ? 'Registrando...' : '✓ Guardar Cliente' }}
           </button>
-        </div>
+        </footer>
       </form>
     </div>
   </div>

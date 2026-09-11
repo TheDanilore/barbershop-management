@@ -1,0 +1,537 @@
+:host {
+  display: contents;
+}
+
+/* 1. Fondo Atenuado (Backdrop) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 4, 8, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 2. Contenedor Sheet Modal */
+.modal-sheet {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  background: #111116;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.7);
+  animation: modalSlideUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (min-width: 640px) {
+  .modal-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .modal-sheet {
+    border-radius: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(229, 169, 60, 0.15);
+    animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Tirador móvil */
+.sheet-drag-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  align-self: center;
+  margin: 10px 0 4px;
+}
+
+@media (min-width: 640px) {
+  .sheet-drag-handle {
+    display: none;
+  }
+}
+
+/* 3. Header */
+.sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 22px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  gap: 12px;
+}
+
+.sheet-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheet-badge-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 4px;
+  padding: 2px 7px;
+  width: fit-content;
+}
+
+.sheet-title {
+  font-size: 1.18rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.sheet-desc {
+  font-size: 0.82rem;
+  color: #9292a8;
+  margin: 0;
+}
+
+.sheet-desc strong {
+  color: #ffffff;
+}
+
+.text-danger-bold {
+  color: #ef4444;
+  font-weight: 800;
+}
+
+.sheet-close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: #9292a8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sheet-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* 4. Formulario & Scroll */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.form-body {
+  overflow-y: auto;
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: calc(90vh - 160px);
+}
+
+.form-body::-webkit-scrollbar {
+  width: 5px;
+}
+.form-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Banner de error */
+.modal-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.82rem;
+}
+
+.mea-icon {
+  font-size: 1rem;
+}
+
+.mea-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* Atajos Rápidos de Monto */
+.quick-amounts-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qa-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #7d7d92;
+  letter-spacing: 0.04em;
+}
+
+.qa-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qa-chip {
+  padding: 6px 11px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #c4c4d6;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.qa-chip:hover {
+  background: rgba(229, 169, 60, 0.1);
+  border-color: rgba(229, 169, 60, 0.35);
+  color: var(--gold-primary, #e5a93c);
+  transform: translateY(-1px);
+}
+
+.qa-chip.active {
+  background: linear-gradient(135deg, #e5a93c 0%, #c88a1e 100%);
+  color: #0b0b0f;
+  border-color: #f7ca6d;
+  box-shadow: 0 2px 10px rgba(229, 169, 60, 0.3);
+}
+
+/* Campos de formulario */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a4a4ba;
+}
+
+.input-currency-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-currency-prefix {
+  position: absolute;
+  left: 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--gold-primary, #e5a93c);
+  pointer-events: none;
+}
+
+.form-input-lg {
+  padding-left: 42px !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  height: 48px;
+  background: rgba(229, 169, 60, 0.04) !important;
+  border: 1px solid rgba(229, 169, 60, 0.3) !important;
+}
+
+.form-input-lg:focus {
+  border-color: var(--gold-primary, #e5a93c) !important;
+  box-shadow: 0 0 0 3px rgba(229, 169, 60, 0.2) !important;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 0.95rem;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  padding: 9px 12px 9px 36px;
+  transition: all 0.18s ease;
+}
+
+.form-input:not(.input-icon-wrap *) {
+  padding: 9px 12px;
+}
+
+.form-input option {
+  background-color: #16161d !important;
+  color: #f0f0f5 !important;
+  padding: 8px 12px;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--gold-primary, #e5a93c);
+  box-shadow: 0 0 0 2px rgba(229, 169, 60, 0.2);
+}
+
+/* Tarjeta de Simulación Contable */
+.simulation-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sim-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #8c8ca1;
+  letter-spacing: 0.03em;
+}
+
+.sim-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.sim-badge.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.sim-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+.sim-label {
+  color: #a4a4ba;
+}
+
+.sim-val {
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-gold {
+  color: var(--gold-primary, #e5a93c);
+}
+
+.text-green {
+  color: #10b981;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.sim-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 2px 0;
+}
+
+.sim-row.total .sim-label {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sim-row.total .sim-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.sim-footer-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.015);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 2px;
+}
+
+.sfn-icon {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.sfn-text {
+  font-size: 0.71rem;
+  color: #7d7d92;
+  line-height: 1.35;
+}
+
+/* 5. Footer con botones */
+.sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(10, 10, 14, 0.6);
+}
+
+.btn-secondary-action {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c4c4d6;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.btn-primary-confirm {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 9px;
+  background: var(--gold-gradient, linear-gradient(135deg, #e5a93c 0%, #c88a1e 100%));
+  border: none;
+  color: #0b0b0f;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(229, 169, 60, 0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-primary-confirm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 18px rgba(229, 169, 60, 0.45);
+}
+
+.btn-primary-confirm:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.spinner-inline {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  border-top-color: #000000;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

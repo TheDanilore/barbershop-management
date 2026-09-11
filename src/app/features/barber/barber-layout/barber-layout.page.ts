@@ -27,6 +27,8 @@ import { LoggerService } from '../../../core/services/logger.service';
 import { getLocalDateString } from '../../../core/utils/date.utils';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { BookAppointmentModalComponent } from '../components/book-appointment-modal/book-appointment-modal.component';
+import { DebtPaymentModalComponent } from '../components/debt-payment-modal/debt-payment-modal.component';
+import { Client } from '../../../core/models/barber.models';
 
 export type BarberTab =
   | 'overview'
@@ -42,7 +44,14 @@ export type BarberTab =
 @Component({
   selector: 'app-barber-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, BookAppointmentModalComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    BookAppointmentModalComponent,
+    DebtPaymentModalComponent,
+  ],
   templateUrl: './barber-layout.page.html',
   styleUrl: './barber-layout.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -486,6 +495,10 @@ export class BarberLayoutPage implements OnInit {
 
   onAppointmentUpdated(apt: any): void {
     this.showToast(`✓ Cita de ${apt.clientName || 'Cliente'} actualizada correctamente`);
+  }
+
+  onDebtPaymentSuccess(event: { client: Client; amount: number }): void {
+    this.showToast(`✓ Abono de ${this.barberService.currencySymbol()}${event.amount.toFixed(2)} registrado a ${event.client.name}`);
   }
 
   getRoleLabelProfile(role: string | undefined): string {

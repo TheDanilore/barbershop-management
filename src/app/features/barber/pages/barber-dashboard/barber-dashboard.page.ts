@@ -37,21 +37,11 @@ export class BarberDashboardPage {
   readonly isShiftModalOpen = signal(false);
   readonly shiftMode = signal<'open' | 'close'>('open');
   readonly activeShift = computed(() => this.barberService.activeCashShift());
-  readonly isDebtPaymentModalOpen = signal(false);
-  readonly debtPaymentClient = signal<Client | null>(null);
   readonly isSubmitting = signal(false);
 
   // Toast Notificaciones
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  // Formulario Reactivo de Abono de Deuda
-  readonly debtPaymentForm = this.fb.group({
-    amount: [null as number | null, [Validators.required, Validators.min(0.5)]],
-    accountId: ['', Validators.required],
-    paymentMethod: ['cash', Validators.required],
-    notes: [''],
-  });
 
   // Clientes con deuda pendiente
   readonly clientsWithDebt = computed(() => {
@@ -100,52 +90,11 @@ export class BarberDashboardPage {
   }
 
   // ---------------------------------------------------------------------------
-  // ABONO DE DEUDAS (FIADOS)
+  // ABONO DE DEUDAS (FIADOS) - CENTRALIZADO
   // ---------------------------------------------------------------------------
   openDebtPaymentModal(client: Client): void {
     this.haptics.lightTap();
-    this.debtPaymentClient.set(client);
-    const defaultAcc = this.barberService.financialAccounts()[0]?.id || '';
-    this.debtPaymentForm.reset({
-      amount: client.currentDebt || null,
-      accountId: defaultAcc,
-      paymentMethod: 'cash',
-      notes: '',
-    });
-    this.isDebtPaymentModalOpen.set(true);
-  }
-
-  closeDebtPaymentModal(): void {
-    this.haptics.lightTap();
-    this.isDebtPaymentModalOpen.set(false);
-    this.debtPaymentClient.set(null);
-  }
-
-  async submitDebtPayment(): Promise<void> {
-    const client = this.debtPaymentClient();
-    if (!client || this.debtPaymentForm.invalid || this.isSubmitting()) return;
-
-    const { amount, accountId, paymentMethod, notes } = this.debtPaymentForm.value;
-
-    this.isSubmitting.set(true);
-    try {
-      await this.barberService.registerCreditPayment({
-        clientId: client.id,
-        amount: Number(amount),
-        accountId: accountId!,
-        paymentMethod: paymentMethod || 'cash',
-        notes: notes?.trim(),
-      });
-      this.haptics.success();
-      this.closeDebtPaymentModal();
-      this.showToast(`Abono de ${this.barberService.currencySymbol()}${amount} registrado a ${client.name}`);
-    } catch (err: unknown) {
-      this.logger.error('BarberDashboardPage', 'Error al procesar el abono de deuda', err);
-      this.haptics.warning();
-      this.showToast('Error al procesar el abono');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.barberService.openDebtPaymentModal(client);
   }
 
   // ---------------------------------------------------------------------------

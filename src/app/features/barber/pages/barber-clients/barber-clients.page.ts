@@ -5,6 +5,8 @@ import { Client } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 
+export type ClientFilterSegment = 'all' | 'debt' | 'vip' | 'clear';
+
 @Component({
   selector: 'app-barber-clients',
   standalone: true,
@@ -14,41 +16,63 @@ import { HapticsService } from '../../../../core/services/haptics.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BarberClientsPage {
+  protected readonly Math = Math;
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
   private readonly fb = inject(FormBuilder);
 
+  // Filtros y Segmentación
   readonly clientSearchQuery = signal('');
+  readonly selectedSegment = signal<ClientFilterSegment>('all');
+
+  // Estados de Modales Locales
   readonly isNewClientModalOpen = signal(false);
-  readonly isDebtPaymentModalOpen = signal(false);
-  readonly debtPaymentClient = signal<Client | null>(null);
   readonly isSubmitting = signal(false);
 
+  // Notificaciones Toast
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  // Formulario de Alta Rápida de Cliente
   readonly newClientForm: FormGroup = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
     phone: ['', [Validators.pattern(/^[+0-9\s-]{7,20}$/)]],
     notes: [''],
   });
 
-  readonly debtPaymentForm: FormGroup = this.fb.group({
-    amount: [null, [Validators.required, Validators.min(0.5)]],
-    paymentMethod: ['cash', [Validators.required]],
-    notes: [''],
-  });
-
-  readonly filteredClients = computed(() => {
-    const q = this.clientSearchQuery().toLowerCase().trim();
-    if (!q) return this.barberService.clients();
-    return this.barberService
-      .clients()
-      .filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q));
-  });
-
+  // Clientes con Deuda Activa
   readonly clientsWithDebt = computed(() => {
     return this.barberService.clients().filter((c) => (c.currentDebt || 0) > 0);
+  });
+
+  // Saldo Total de Cartera por Cobrar (Deuda global)
+  readonly totalReceivableDebt = computed(() => {
+    return this.clientsWithDebt().reduce((sum, c) => sum + (c.currentDebt || 0), 0);
+  });
+
+  // Clientes VIP y Gold
+  readonly vipClientsCount = computed(() => {
+    return this.barberService.clients().filter((c) => c.membershipLevel === 'VIP' || c.membershipLevel === 'Gold').length;
+  });
+
+  // Clientes Filtrados Reactivos (Búsqueda + Pestaña de Segmentación)
+  readonly filteredClients = computed(() => {
+    const q = this.clientSearchQuery().toLowerCase().trim();
+    const segment = this.selectedSegment();
+    let list = this.barberService.clients();
+
+    // Filtro por Segmento
+    if (segment === 'debt') {
+      list = list.filter((c) => (c.currentDebt || 0) > 0);
+    } else if (segment === 'vip') {
+      list = list.filter((c) => c.membershipLevel === 'VIP' || c.membershipLevel === 'Gold');
+    } else if (segment === 'clear') {
+      list = list.filter((c) => (c.currentDebt || 0) <= 0);
+    }
+
+    // Filtro por Búsqueda (Nombre o Teléfono)
+    if (!q) return list;
+    return list.filter((c) => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)));
   });
 
   showToast(msg: string): void {
@@ -57,6 +81,17 @@ export class BarberClientsPage {
     this.toastTimeout = setTimeout(() => this.toastMessage.set(null), 3500);
   }
 
+  setSegment(segment: ClientFilterSegment): void {
+    this.haptics.selection();
+    this.selectedSegment.set(segment);
+  }
+
+  clearSearch(): void {
+    this.haptics.lightTap();
+    this.clientSearchQuery.set('');
+  }
+
+  // --- ALTA DE CLIENTE ---
   openNewClientModal(): void {
     this.haptics.lightTap();
     this.newClientForm.reset({ fullName: '', phone: '', notes: '' });
@@ -72,7 +107,7 @@ export class BarberClientsPage {
     if (this.newClientForm.invalid || this.isSubmitting()) {
       this.newClientForm.markAllAsTouched();
       this.haptics.warning();
-      this.showToast('Ingresa el nombre del cliente');
+      this.showToast('Ingresa un nombre válido para el cliente');
       return;
     }
 
@@ -89,63 +124,36 @@ export class BarberClientsPage {
       );
 
       this.haptics.success();
-      this.showToast(`Cliente "${newClient.name}" registrado`);
+      this.showToast(`Cliente "${newClient.name}" registrado con éxito`);
       this.closeNewClientModal();
     } catch {
       this.haptics.warning();
-      this.showToast('Error al registrar cliente');
+      this.showToast('Error al registrar el cliente');
     } finally {
       this.isSubmitting.set(false);
     }
   }
 
+  // --- ACCIONES RÁPIDAS OPERATIVAS ---
   openDebtPaymentModal(client: Client): void {
     this.haptics.lightTap();
-    this.debtPaymentClient.set(client);
-    this.debtPaymentForm.reset({
-      amount: client.currentDebt,
-      paymentMethod: 'cash',
-      notes: '',
-    });
-    this.isDebtPaymentModalOpen.set(true);
+    this.barberService.openDebtPaymentModal(client);
   }
 
-  closeDebtPaymentModal(): void {
+  openRegisterCutForClient(client: Client): void {
     this.haptics.lightTap();
-    this.isDebtPaymentModalOpen.set(false);
-    this.debtPaymentClient.set(null);
+    this.barberService.openRegisterCutModal({ clientId: client.id });
   }
 
-  async submitPayClientDebt(): Promise<void> {
-    if (this.debtPaymentForm.invalid || this.isSubmitting() || !this.debtPaymentClient()) {
-      this.debtPaymentForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Ingresa un monto válido para abonar');
-      return;
-    }
+  openBookAppointmentForClient(client: Client): void {
+    this.haptics.lightTap();
+    this.barberService.openBookingModal();
+  }
 
-    const client = this.debtPaymentClient()!;
-    const { amount, paymentMethod, notes } = this.debtPaymentForm.value;
-    const defaultAcc = this.barberService.financialAccounts()[0]?.id || '';
-
-    this.isSubmitting.set(true);
-    try {
-      await this.barberService.registerCreditPayment({
-        clientId: client.id,
-        amount: Number(amount),
-        accountId: defaultAcc,
-        paymentMethod: paymentMethod || 'cash',
-        notes: notes ? notes.trim() : undefined,
-      });
-
-      this.haptics.success();
-      this.showToast(`Abono de $${amount} registrado a ${client.name}`);
-      this.closeDebtPaymentModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al procesar el abono');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+  getWhatsAppUrl(phone: string): string {
+    if (!phone) return '#';
+    const digits = phone.replace(/\D/g, '');
+    const cleanNumber = digits.length === 9 ? `51${digits}` : digits;
+    return `https://wa.me/${cleanNumber}?text=Hola%20te%20escribimos%20de%20BarberTrack%20PRO`;
   }
 }

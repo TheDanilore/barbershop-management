@@ -557,6 +557,14 @@
     (appointmentUpdated)="onAppointmentUpdated($event)">
   </app-book-appointment-modal>
 
+  <!-- MODAL GLOBAL: ABONO DE DEUDA (FIADOS) -->
+  <app-debt-payment-modal
+    [isOpen]="barberService.isDebtPaymentModalOpen()"
+    [client]="barberService.debtPaymentModalClient()"
+    (closed)="barberService.closeDebtPaymentModal()"
+    (paymentSuccess)="onDebtPaymentSuccess($event)">
+  </app-debt-payment-modal>
+
   <!-- MODAL: ALTA RÁPIDA DE CLIENTE -->
   @if (isNewClientModalOpen()) {
   <div class="modal-backdrop" (click)="closeNewClientModal()">

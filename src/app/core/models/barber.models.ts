@@ -222,6 +222,10 @@ export interface CutRecord {
   paymentMethod: PaymentMethod;
   notes?: string;
   items?: OrderItem[];
+  isCredit?: boolean;
+  amountDebt?: number;
+  amountPaid?: number;
+  isPaid?: boolean;
 }
 
 export interface AppointmentServiceItem {

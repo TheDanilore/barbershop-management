@@ -218,49 +218,4 @@
     (closed)="closeShiftModal()"
     (shiftSuccess)="showToast($event)">
   </app-cash-shift-modal>
-
-  <!-- MODAL: ABONO DE DEUDA (FIADO) -->
-  @if (isDebtPaymentModalOpen()) {
-  <div class="modal-backdrop" (click)="closeDebtPaymentModal()">
-    <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
-
-      <div class="sheet-header">
-        <div class="sheet-title-group">
-          <h2 class="sheet-title">Abonar a Deuda de Cliente</h2>
-          <p class="sheet-subtitle">{{ debtPaymentClient()?.name }} • Deuda actual: {{ barberService.currencySymbol() }}{{ (debtPaymentClient()?.currentDebt || 0).toFixed(2) }}</p>
-        </div>
-        <button class="btn-close-sheet" (click)="closeDebtPaymentModal()" title="Cerrar">✕</button>
-      </div>
-
-      <form [formGroup]="debtPaymentForm" (ngSubmit)="submitDebtPayment()" class="sheet-body">
-        <div class="form-group">
-          <label class="form-label" for="dashDebtAmount">Monto a Abonar ({{ barberService.currencySymbol() }}) *</label>
-          <input id="dashDebtAmount" type="number" step="0.50" min="0.5" class="form-input" formControlName="amount" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="dashDebtAccount">Cuenta Destino *</label>
-          <select id="dashDebtAccount" class="form-input form-select" formControlName="accountId">
-            @for (acc of barberService.financialAccounts(); track acc.id) {
-            <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="dashDebtNotes">Notas / Comprobante</label>
-          <input id="dashDebtNotes" type="text" class="form-input" formControlName="notes" placeholder="Ej: Pago parcial efectivo" />
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeDebtPaymentModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="debtPaymentForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Registrando...' : 'Confirmar Abono' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
 </div>

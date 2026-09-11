@@ -23,11 +23,11 @@
       <div
         class="stamp-slot"
         [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
-        [class.reward-slot]="slot === barberService.stampsRequired()"
+        [class.reward-slot]="isRewardSlot(slot)"
       >
         @if (slot <= barberService.currentClient().loyaltyStamps) {
           <span class="stamp-icon">✂</span>
-        } @else if (slot === barberService.stampsRequired()) {
+        } @else if (isRewardSlot(slot)) {
           <span class="stamp-icon reward">🎁</span>
         } @else {
           <span class="stamp-number">{{ slot }}</span>
@@ -38,7 +38,7 @@
 
   <div class="vlc-footer">
     <div class="vlc-progress-text">
-      <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de {{ barberService.stampsRequired() }} cortes</span>
+      <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de {{ targetStamps() }} cortes</span>
       <strong>{{ progressPercentage() }}%</strong>
     </div>
     <div class="stamps-progress-bar light">
@@ -52,7 +52,13 @@
   <h3 class="rules-title">¿Cómo funciona tu tarjeta?</h3>
   <ul class="rules-list">
     <li><span class="bullet">✓</span> Recibes 1 sello por cada corte registrado en BarberTrack.</li>
-    <li><span class="bullet">✓</span> Al completar los {{ barberService.stampsRequired() }} sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
+    @if (barberService.loyaltyRewards().length > 0) {
+      @for (reward of barberService.loyaltyRewards(); track reward.id) {
+        <li><span class="bullet">★</span> Al alcanzar <strong>{{ reward.stampsRequired }} cortes</strong>: {{ reward.name }}</li>
+      }
+    } @else {
+      <li><span class="bullet">✓</span> Al completar los {{ targetStamps() }} sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
+    }
     <li><span class="bullet">✓</span> Tus sellos no vencen y son válidos con cualquier barbero del staff.</li>
   </ul>
 </div>

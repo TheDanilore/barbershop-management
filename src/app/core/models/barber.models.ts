@@ -7,6 +7,37 @@ export type MembershipTier = 'Bronze' | 'Silver' | 'Gold' | 'VIP';
 export type AppointmentStatus = 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'credit';
 
+// Loyalty Rewards System
+export type RewardType = 'free_cut' | 'discount_pct' | 'discount_fixed' | 'gift';
+
+export interface LoyaltyReward {
+  id: string;
+  name: string;
+  description?: string;
+  rewardType: RewardType;
+  stampsRequired: number;
+  rewardValue?: number | null;  // % for discount_pct, fixed amount for discount_fixed, null otherwise
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+}
+
+export interface LoyaltyRewardClaim {
+  id: string;
+  customerId: string;
+  customerName?: string;  // joined
+  rewardId: string;
+  rewardName?: string;    // joined
+  rewardType?: RewardType; // joined
+  rewardValue?: number | null; // joined
+  saleId?: string | null;
+  claimedAt: string;
+  redeemedAt?: string | null;
+  redeemedBy?: string | null;
+  notes?: string | null;
+  stampsAtClaim: number;
+}
+
 // Tipos reflejo de la base de datos Supabase (PostgreSQL)
 export interface ProfileRow {
   id: string; // uuid

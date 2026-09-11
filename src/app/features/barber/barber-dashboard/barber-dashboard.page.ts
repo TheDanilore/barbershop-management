@@ -18,14 +18,14 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AccountType, Client, FinancialAccount, MovementType, PaymentMethod, ServiceItem, SystemUser, UserRole } from '../../../core/models/barber.models';
+import { AccountType, Client, FinancialAccount, LoyaltyReward, LoyaltyRewardClaim, MovementType, PaymentMethod, RewardType, ServiceItem, SystemUser, UserRole } from '../../../core/models/barber.models';
 import { BarberService } from '../../../core/services/barber.service';
 import { HapticsService } from '../../../core/services/haptics.service';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { BarberMetrics } from '../components/barber-metrics/barber-metrics';
 import { BarberSchedule } from '../components/barber-schedule/barber-schedule';
 
-export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'cash' | 'stats' | 'users' | 'profile';
+export type BarberTabType = 'overview' | 'appointments' | 'clients' | 'services' | 'loyalty' | 'cash' | 'stats' | 'users' | 'profile';
 
 @Component({
   selector: 'app-barber-dashboard',
@@ -79,6 +79,10 @@ export class BarberDashboardPage implements OnInit {
 
   readonly isAccountModalOpen = signal(false);
   readonly editingAccountId = signal<string | null>(null);
+
+  // Modal de Fidelización (Multi-Premios)
+  readonly isLoyaltyRewardModalOpen = signal(false);
+  readonly editingRewardId = signal<string | null>(null);
 
   // Prevención multi-tap
   readonly isSubmitting = signal(false);
@@ -169,10 +173,21 @@ export class BarberDashboardPage implements OnInit {
   });
 
   readonly accountForm: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
-    type: ['cash', [Validators.required]],
+    name: ['', [Validators.required, Validators.minLength(2)]],
+    accountType: ['cash', [Validators.required]],
+    currency: ['USD', [Validators.required]],
     initialBalance: [0, [Validators.min(0)]],
+    notes: [''],
+  });
+
+  readonly loyaltyRewardForm: FormGroup = this.fb.group({
+    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
+    description: [''],
+    rewardType: ['free_cut', [Validators.required]],
+    stampsRequired: [10, [Validators.required, Validators.min(1), Validators.max(100)]],
+    rewardValue: [null, [Validators.min(0)]],
     isActive: [true],
+    sortOrder: [0, [Validators.min(0)]],
   });
 
   readonly profileForm: FormGroup = this.fb.group({
@@ -217,7 +232,7 @@ export class BarberDashboardPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         const tabParam = params.get('tab') as string;
-        if (tabParam && ['overview', 'appointments', 'clients', 'services', 'cash', 'stats', 'users', 'profile'].includes(tabParam)) {
+        if (tabParam && ['overview', 'appointments', 'clients', 'services', 'loyalty', 'cash', 'stats', 'users', 'profile'].includes(tabParam)) {
           this.activeTab.set(tabParam as BarberTabType);
         } else if (tabParam === 'inicio') {
           this.setTab('overview');
@@ -227,6 +242,8 @@ export class BarberDashboardPage implements OnInit {
           this.setTab('clients');
         } else if (tabParam === 'servicios') {
           this.setTab('services');
+        } else if (tabParam === 'fidelizacion' || tabParam === 'premios') {
+          this.setTab('loyalty');
         } else if (tabParam === 'caja') {
           this.setTab('cash');
         } else if (tabParam === 'usuarios') {
@@ -276,6 +293,7 @@ export class BarberDashboardPage implements OnInit {
     this.isDebtPaymentModalOpen.set(false);
     this.isUserModalOpen.set(false);
     this.isAccountModalOpen.set(false);
+    this.isLoyaltyRewardModalOpen.set(false);
   }
 
   setTab(tab: BarberTabType): void {
@@ -946,6 +964,128 @@ export class BarberDashboardPage implements OnInit {
       case 'transfer': return 'Yape / Transf.';
       case 'credit': return 'Crédito (Fiado)';
       default: return method;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // PROGRAMA DE FIDELIZACIÓN (MULTI-PREMIOS Y CANJE DE CLAIMS)
+  // ---------------------------------------------------------------------------
+  openLoyaltyRewardModal(rewardId?: string): void {
+    this.haptics.lightTap();
+    if (rewardId) {
+      const reward = this.barberService.loyaltyRewards().find((r) => r.id === rewardId);
+      if (reward) {
+        this.editingRewardId.set(rewardId);
+        this.loyaltyRewardForm.patchValue({
+          name: reward.name,
+          description: reward.description || '',
+          rewardType: reward.rewardType,
+          stampsRequired: reward.stampsRequired,
+          rewardValue: reward.rewardValue ?? null,
+          isActive: reward.isActive,
+          sortOrder: reward.sortOrder ?? 0,
+        });
+      }
+    } else {
+      this.editingRewardId.set(null);
+      this.loyaltyRewardForm.reset({
+        name: '',
+        description: '',
+        rewardType: 'free_cut',
+        stampsRequired: 10,
+        rewardValue: null,
+        isActive: true,
+        sortOrder: this.barberService.loyaltyRewards().length,
+      });
+    }
+    this.isLoyaltyRewardModalOpen.set(true);
+  }
+
+  closeLoyaltyRewardModal(): void {
+    this.haptics.lightTap();
+    this.isLoyaltyRewardModalOpen.set(false);
+    this.editingRewardId.set(null);
+  }
+
+  async submitLoyaltyReward(): Promise<void> {
+    if (this.loyaltyRewardForm.invalid || this.isSubmitting()) {
+      this.loyaltyRewardForm.markAllAsTouched();
+      this.haptics.warning();
+      this.showToast('Completa los campos requeridos para la recompensa');
+      return;
+    }
+
+    const { name, description, rewardType, stampsRequired, rewardValue, isActive, sortOrder } = this.loyaltyRewardForm.value;
+
+    this.isSubmitting.set(true);
+    try {
+      await this.barberService.saveLoyaltyReward({
+        id: this.editingRewardId() || undefined,
+        name: name.trim(),
+        description: description?.trim() || undefined,
+        rewardType,
+        stampsRequired: Number(stampsRequired),
+        rewardValue: rewardValue !== null && rewardValue !== '' ? Number(rewardValue) : undefined,
+        isActive: Boolean(isActive),
+        sortOrder: Number(sortOrder || 0),
+      });
+
+      this.haptics.success();
+      this.showToast(this.editingRewardId() ? 'Recompensa actualizada' : 'Recompensa creada con éxito');
+      this.closeLoyaltyRewardModal();
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(err?.message || 'Error al guardar la recompensa');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async confirmToggleReward(id: string, currentActive: boolean): Promise<void> {
+    try {
+      await this.barberService.toggleLoyaltyReward(id, !currentActive);
+      this.haptics.lightTap();
+      this.showToast(!currentActive ? 'Recompensa activada' : 'Recompensa pausada');
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(err?.message || 'Error al cambiar estado');
+    }
+  }
+
+  async confirmDeleteReward(id: string, name: string): Promise<void> {
+    if (!confirm(`¿Eliminar la recompensa "${name}"?`)) return;
+    try {
+      await this.barberService.deleteLoyaltyReward(id);
+      this.haptics.success();
+      this.showToast('Recompensa eliminada');
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(err?.message || 'Error al eliminar');
+    }
+  }
+
+  async submitRedeemClaim(claimId: string): Promise<void> {
+    if (this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+    try {
+      await this.barberService.redeemRewardClaim(claimId);
+      this.haptics.success();
+      this.showToast('¡Premio canjeado con éxito!');
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(err?.message || 'Error al canjear premio');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  getRewardTypeLabel(type: RewardType | undefined): string {
+    switch (type) {
+      case 'free_cut': return 'Corte Gratis';
+      case 'discount_pct': return 'Descuento %';
+      case 'discount_fixed': return 'Descuento Monto';
+      case 'gift': return 'Regalo / Producto';
+      default: return 'Recompensa';
     }
   }
 }

@@ -15,6 +15,8 @@ import {
   CutRecord,
   DashboardKpis,
   FinancialAccount,
+  LoyaltyReward,
+  LoyaltyRewardClaim,
   MovementType,
   PaymentMethod,
   ReferenceType,
@@ -85,6 +87,22 @@ export class BarberService {
   readonly reviews = signal<Review[]>(this.loadFromStorage(STORAGE_KEYS.REVIEWS, INITIAL_REVIEWS));
   readonly serverKpis = signal<DashboardKpis | null>(null);
   readonly systemUsers = signal<SystemUser[]>([]);
+
+  // Loyalty Rewards System (0..N premios configurables)
+  readonly loyaltyRewards = signal<LoyaltyReward[]>([]);
+  readonly pendingRewardClaims = signal<LoyaltyRewardClaim[]>([]);
+
+  // Próximo hito de fidelización que el cliente actual aún no ha alcanzado
+  readonly nextLoyaltyMilestone = computed<LoyaltyReward | null>(() => {
+    const stamps = this.currentClient().loyaltyStamps;
+    const active = this.loyaltyRewards().filter((r) => r.isActive);
+    if (!active.length) return null;
+    return (
+      active
+        .filter((r) => r.stampsRequired > stamps)
+        .sort((a, b) => a.stampsRequired - b.stampsRequired)[0] ?? null
+    );
+  });
 
   // Configuración dinámica de negocio y aplicación
   readonly businessSettings = signal<BusinessSettings>(
@@ -694,6 +712,73 @@ export class BarberService {
         }
       } catch (err) {
         this.logger.warn('BarberService', 'Aviso sincronizando citas', err);
+      }
+
+      // 10. Cargar Premios de Fidelización configurables (0..N)
+      try {
+        const { data: rewardsData, error: rewardsErr } = await this.supabaseService.supabase
+          .from('loyalty_rewards')
+          .select('id, name, description, reward_type, stamps_required, reward_value, is_active, sort_order, created_at')
+          .order('sort_order')
+          .order('stamps_required');
+
+        if (rewardsErr) {
+          this.logger.error('BarberService', 'Error al cargar loyalty_rewards', rewardsErr);
+        } else if (rewardsData) {
+          this.loyaltyRewards.set(
+            rewardsData.map((r: any) => ({
+              id: r.id,
+              name: r.name,
+              description: r.description ?? undefined,
+              rewardType: r.reward_type,
+              stampsRequired: r.stamps_required,
+              rewardValue: r.reward_value != null ? Number(r.reward_value) : null,
+              isActive: r.is_active,
+              sortOrder: r.sort_order,
+              createdAt: r.created_at,
+            }))
+          );
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando loyalty_rewards', err);
+      }
+
+      // 11. Cargar Premios Pendientes de Canje
+      try {
+        const { data: claimsData, error: claimsErr } = await this.supabaseService.supabase
+          .from('loyalty_reward_claims')
+          .select(`
+            id, customer_id, reward_id, sale_id, claimed_at, redeemed_at, redeemed_by, notes, stamps_at_claim,
+            customer:profiles!loyalty_reward_claims_customer_id_fkey (full_name),
+            reward:loyalty_rewards!loyalty_reward_claims_reward_id_fkey (name, reward_type, reward_value)
+          `)
+          .is('redeemed_at', null)
+          .order('claimed_at', { ascending: false })
+          .limit(100);
+
+        if (claimsErr) {
+          this.logger.error('BarberService', 'Error al cargar loyalty_reward_claims', claimsErr);
+        } else if (claimsData) {
+          this.pendingRewardClaims.set(
+            claimsData.map((c: any) => ({
+              id: c.id,
+              customerId: c.customer_id,
+              customerName: c.customer?.full_name ?? 'Cliente',
+              rewardId: c.reward_id,
+              rewardName: c.reward?.name ?? 'Premio',
+              rewardType: c.reward?.reward_type ?? 'gift',
+              rewardValue: c.reward?.reward_value != null ? Number(c.reward.reward_value) : null,
+              saleId: c.sale_id ?? null,
+              claimedAt: c.claimed_at,
+              redeemedAt: c.redeemed_at ?? null,
+              redeemedBy: c.redeemed_by ?? null,
+              notes: c.notes ?? null,
+              stampsAtClaim: c.stamps_at_claim,
+            }))
+          );
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando loyalty_reward_claims', err);
       }
 
       this.logger.info('BarberService', 'Sincronización completada con éxito');
@@ -1587,6 +1672,105 @@ export class BarberService {
       role: target.role,
       isActive,
     });
+  }
+
+  // ===========================================================================
+  // LOYALTY REWARDS CRUD
+  // ===========================================================================
+
+  /**
+   * Create or update a loyalty reward rule.
+   */
+  async saveLoyaltyReward(params: {
+    id?: string;
+    name: string;
+    description?: string;
+    rewardType: string;
+    stampsRequired: number;
+    rewardValue?: number | null;
+    isActive: boolean;
+    sortOrder?: number;
+  }): Promise<void> {
+    const payload = {
+      name: params.name.trim(),
+      description: params.description?.trim() || null,
+      reward_type: params.rewardType,
+      stamps_required: params.stampsRequired,
+      reward_value: params.rewardValue ?? null,
+      is_active: params.isActive,
+      sort_order: params.sortOrder ?? 0,
+    };
+
+    try {
+      if (params.id) {
+        const { error } = await this.supabaseService.supabase
+          .from('loyalty_rewards')
+          .update(payload)
+          .eq('id', params.id);
+        if (error) throw error;
+      } else {
+        const { error } = await this.supabaseService.supabase
+          .from('loyalty_rewards')
+          .insert(payload);
+        if (error) throw error;
+      }
+      await this.syncFromSupabase();
+    } catch (err) {
+      this.logger.error('BarberService', 'Error al guardar loyalty_reward', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Toggle active/inactive state of a loyalty reward.
+   */
+  async toggleLoyaltyReward(id: string, isActive: boolean): Promise<void> {
+    try {
+      const { error } = await this.supabaseService.supabase
+        .from('loyalty_rewards')
+        .update({ is_active: isActive })
+        .eq('id', id);
+      if (error) throw error;
+      this.loyaltyRewards.update((list) =>
+        list.map((r) => (r.id === id ? { ...r, isActive } : r))
+      );
+    } catch (err) {
+      this.logger.error('BarberService', 'Error al cambiar estado de loyalty_reward', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Permanently delete a loyalty reward (only if no claims reference it).
+   */
+  async deleteLoyaltyReward(id: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseService.supabase
+        .from('loyalty_rewards')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      this.loyaltyRewards.update((list) => list.filter((r) => r.id !== id));
+    } catch (err) {
+      this.logger.error('BarberService', 'Error al eliminar loyalty_reward', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Mark a pending reward claim as redeemed via the Supabase RPC.
+   */
+  async redeemRewardClaim(claimId: string, notes?: string): Promise<void> {
+    try {
+      const { error } = await this.supabaseService.supabase
+        .rpc('redeem_loyalty_claim', { p_claim_id: claimId, p_notes: notes ?? null });
+      if (error) throw error;
+      // Remove from pending list locally (optimistic)
+      this.pendingRewardClaims.update((list) => list.filter((c) => c.id !== claimId));
+    } catch (err) {
+      this.logger.error('BarberService', 'Error al canjear loyalty_reward_claim', err);
+      throw err;
+    }
   }
 
   private loadRole(): 'landing' | 'barber' | 'client' {

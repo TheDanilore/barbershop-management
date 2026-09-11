@@ -254,6 +254,10 @@
 }
 
 @media (max-width: 768px) {
+  .sheet-shortcut-badge {
+    display: none !important;
+  }
+
   .nc-backdrop {
     align-items: flex-end;
     padding: 0;

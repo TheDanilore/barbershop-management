@@ -266,6 +266,23 @@
   border-color: var(--gold-primary, #e5a93c);
 }
 
+.btn-input-addon-link {
+  background: rgba(229, 169, 60, 0.12);
+  border: 1px solid rgba(229, 169, 60, 0.28);
+  color: var(--gold-primary, #e5a93c);
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-input-addon-link:hover {
+  background: rgba(229, 169, 60, 0.22);
+  border-color: var(--gold-primary, #e5a93c);
+}
+
 /* Service chips multi-select */
 .services-header-row {
   display: flex;
@@ -805,6 +822,11 @@ input:checked + .slider:before {
    MOBILE & TABLET BREAKPOINTS (APPLE HIG BOTTOM SHEET)
    ========================================================================== */
 @media (max-width: 768px) {
+  .sheet-shortcut-badge,
+  .kbd-badge {
+    display: none !important;
+  }
+
   .pos-backdrop {
     align-items: flex-end;
     padding: 0;
@@ -826,6 +848,10 @@ input:checked + .slider:before {
     display: block;
   }
 
+  .sheet-header {
+    padding: 14px 18px 12px;
+  }
+
   .pos-layout-split {
     grid-template-columns: 1fr;
     min-height: auto;
@@ -835,12 +861,13 @@ input:checked + .slider:before {
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     max-height: none;
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .pos-ticket-col {
     max-height: none;
-    padding: 16px;
+    padding: 14px 16px;
+    background: #0f0f14;
   }
 
   .pos-actions-bar {

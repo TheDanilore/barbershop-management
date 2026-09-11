@@ -961,34 +961,40 @@
   cursor: pointer;
 }
 
-.mas-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.mas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.mas-item {
+.mas-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #101016;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #111117;
   border: 1px solid var(--surface-border);
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.mas-item:active {
-  background: #181822;
-  border-color: rgba(255, 255, 255, 0.16);
+.mas-row:hover, .mas-row:active {
+  background: #191924;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.mas-row:active {
+  transform: scale(0.985);
 }
 
 .mas-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -996,8 +1002,8 @@
 }
 
 .mas-icon-wrap svg {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
 }
 
 .mas-icon-wrap.gold { background: rgba(229, 169, 60, 0.16); color: var(--gold-primary); }
@@ -1007,27 +1013,55 @@
 .mas-icon-wrap.gray { background: rgba(255, 255, 255, 0.08); color: #d4d4d8; }
 .mas-icon-wrap.amber { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
 
-.mas-info {
+.mas-row-info {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  flex: 1;
   min-width: 0;
 }
 
-.mas-item-title {
-  font-size: 0.82rem;
+.mas-row-title {
+  font-size: 0.9rem;
   font-weight: 700;
   color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
-.mas-item-desc {
+.mas-row-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.mas-row-badge {
   font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d4d4d8;
+  flex-shrink: 0;
+}
+
+.mas-row-badge.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.mas-row-badge.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.mas-chevron {
+  font-size: 1.2rem;
   color: var(--text-subtle);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 300;
+  margin-left: 2px;
+  flex-shrink: 0;
 }
 
 .mas-footer-actions {
@@ -1317,4 +1351,15 @@
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring) !important;
+}
+
+/* Erradicación absoluta de atajos de teclado físicos en dispositivos móviles táctiles */
+@media (max-width: 768px), (pointer: coarse) {
+  .sheet-shortcut-badge,
+  .shortcut-chip,
+  .shortcut-key,
+  .kbd-badge,
+  .tst-kbd {
+    display: none !important;
+  }
 }

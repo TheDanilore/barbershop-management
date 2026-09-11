@@ -42,20 +42,17 @@
           <div class="form-group">
             <div class="label-row">
               <label class="form-label" for="cutClient">Cliente *</label>
-              <span class="label-hint">Selecciona o da de alta</span>
-            </div>
-            <div class="client-select-wrap">
-              <select id="cutClient" class="form-input" formControlName="clientId">
-                @for (cli of barberService.clients(); track cli.id) {
-                  <option [value]="cli.id">
-                    {{ cli.name }} — {{ cli.phone || 'Sin tel.' }} ({{ cli.loyaltyStamps }} sellos)
-                  </option>
-                }
-              </select>
-              <button type="button" class="btn-input-addon" (click)="triggerOpenNewClient()" title="Dar de alta nuevo cliente">
-                + Nuevo
+              <button type="button" class="btn-input-addon-link" (click)="triggerOpenNewClient()" title="Dar de alta nuevo cliente">
+                ＋ Nuevo Cliente
               </button>
             </div>
+            <select id="cutClient" class="form-input client-select-full" formControlName="clientId">
+              @for (cli of barberService.clients(); track cli.id) {
+                <option [value]="cli.id">
+                  {{ cli.name }} — {{ cli.phone || 'Sin tel.' }} ({{ cli.loyaltyStamps }} sellos)
+                </option>
+              }
+            </select>
           </div>
 
           <!-- Selección Múltiple de Servicios -->

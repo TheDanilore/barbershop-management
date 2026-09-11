@@ -14,11 +14,12 @@ import { HapticsService } from '../../../../core/services/haptics.service';
 import { SupabaseService } from '../../../../core/services/supabase.service';
 import { BarberMetrics } from '../../components/barber-metrics/barber-metrics';
 import { BarberSchedule } from '../../components/barber-schedule/barber-schedule';
+import { CashShiftModalComponent } from '../../components/cash-shift-modal/cash-shift-modal.component';
 
 @Component({
   selector: 'app-barber-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BarberMetrics, BarberSchedule],
+  imports: [CommonModule, ReactiveFormsModule, BarberMetrics, BarberSchedule, CashShiftModalComponent],
   templateUrl: './barber-dashboard.page.html',
   styleUrl: './barber-dashboard.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,24 +35,10 @@ export class BarberDashboardPage {
   readonly isRegisterCutModalOpen = signal(false);
   readonly isShiftModalOpen = signal(false);
   readonly shiftMode = signal<'open' | 'close'>('open');
-  readonly actualCashInput = signal<number>(0);
   readonly activeShift = computed(() => this.barberService.activeCashShift());
   readonly isDebtPaymentModalOpen = signal(false);
   readonly debtPaymentClient = signal<Client | null>(null);
   readonly isSubmitting = signal(false);
-
-  // Cálculo interactivo de Descuadre de Turno (Arqueo)
-  readonly shiftDiscrepancy = computed(() => {
-    const shift = this.activeShift();
-    if (!shift) return { difference: 0, status: 'none' as const, expected: 0, actual: 0 };
-    const expected = Number(shift.expectedCash || 0);
-    const actual = Number(this.actualCashInput() || 0);
-    const difference = actual - expected;
-    let status: 'perfect' | 'shortage' | 'surplus' = 'perfect';
-    if (difference < -0.01) status = 'shortage';
-    else if (difference > 0.01) status = 'surplus';
-    return { difference, status, expected, actual };
-  });
 
   // Toast Notificaciones
   readonly toastMessage = signal<string | null>(null);
@@ -62,16 +49,6 @@ export class BarberDashboardPage {
     clientId: ['', Validators.required],
     serviceId: ['', Validators.required],
     paymentMethod: ['cash' as PaymentMethod, Validators.required],
-    notes: [''],
-  });
-
-  readonly openShiftForm = this.fb.group({
-    initialCash: [50, [Validators.required, Validators.min(0)]],
-    notes: [''],
-  });
-
-  readonly closeShiftForm = this.fb.group({
-    actualCash: [0, [Validators.required, Validators.min(0)]],
     notes: [''],
   });
 
@@ -183,61 +160,11 @@ export class BarberDashboardPage {
   openShiftModal(mode: 'open' | 'close'): void {
     this.haptics.lightTap();
     this.shiftMode.set(mode);
-    if (mode === 'open') {
-      this.openShiftForm.reset({ initialCash: 50, notes: '' });
-    } else {
-      const shift = this.activeShift();
-      const expected = shift?.expectedCash ?? 0;
-      this.actualCashInput.set(expected);
-      this.closeShiftForm.reset({
-        actualCash: expected,
-        notes: '',
-      });
-    }
     this.isShiftModalOpen.set(true);
   }
 
-  onActualCashChange(event: Event): void {
-    const val = Number((event.target as HTMLInputElement).value);
-    this.actualCashInput.set(val || 0);
-  }
-
   closeShiftModal(): void {
-    this.haptics.lightTap();
     this.isShiftModalOpen.set(false);
-  }
-
-  async submitShift(): Promise<void> {
-    if (this.isSubmitting()) return;
-    this.isSubmitting.set(true);
-
-    try {
-      if (this.shiftMode() === 'open') {
-        if (this.openShiftForm.invalid) {
-          this.openShiftForm.markAllAsTouched();
-          return;
-        }
-        const { initialCash, notes } = this.openShiftForm.value;
-        await this.barberService.openCashShift(Number(initialCash), notes?.trim());
-        this.haptics.success();
-        this.showToast('🟢 Turno de caja abierto correctamente');
-      } else {
-        if (this.closeShiftForm.invalid) {
-          this.closeShiftForm.markAllAsTouched();
-          return;
-        }
-        const { actualCash, notes } = this.closeShiftForm.value;
-        await this.barberService.closeCashShift(Number(actualCash), notes?.trim());
-        this.haptics.success();
-        this.showToast('🔴 Turno cerrado y arqueado');
-      }
-      this.closeShiftModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al procesar el turno');
-    } finally {
-      this.isSubmitting.set(false);
-    }
   }
 
   // ---------------------------------------------------------------------------

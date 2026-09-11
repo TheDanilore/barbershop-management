@@ -14,10 +14,12 @@ import { HapticsService } from '../../../../core/services/haptics.service';
 
 export type MovementFilterType = 'all' | 'income' | 'expense' | 'transfer';
 
+import { CashShiftModalComponent } from '../../components/cash-shift-modal/cash-shift-modal.component';
+
 @Component({
   selector: 'app-barber-cash',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CashShiftModalComponent],
   templateUrl: './barber-cash.page.html',
   styleUrl: './barber-cash.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,9 +46,6 @@ export class BarberCashPage {
   // Paginación en memoria (15 por página para máximo rendimiento DOM)
   readonly pageSize = signal<number>(15);
   readonly currentPage = signal<number>(1);
-
-  // Input de Arqueo interactivo (en vivo)
-  readonly actualCashInput = signal<number>(0);
 
   // Toast
   readonly toastMessage = signal<string | null>(null);
@@ -81,19 +80,6 @@ export class BarberCashPage {
       .financialAccounts()
       .filter((a) => a.type === 'digital_wallet' && a.isActive)
       .reduce((sum, a) => sum + (Number(a.currentBalance) || 0), 0);
-  });
-
-  // Cálculo interactivo de Descuadre de Turno (Arqueo)
-  readonly shiftDiscrepancy = computed(() => {
-    const shift = this.activeShift();
-    if (!shift) return { difference: 0, status: 'none' as const, expected: 0, actual: 0 };
-    const expected = Number(shift.expectedCash || 0);
-    const actual = Number(this.actualCashInput() || 0);
-    const difference = actual - expected;
-    let status: 'perfect' | 'shortage' | 'surplus' = 'perfect';
-    if (difference < -0.01) status = 'shortage';
-    else if (difference > 0.01) status = 'surplus';
-    return { difference, status, expected, actual };
   });
 
   // Movimientos Filtrados
@@ -165,16 +151,6 @@ export class BarberCashPage {
   }
 
   // Formularios Reactivos
-  readonly openShiftForm = this.fb.group({
-    initialCash: [50, [Validators.required, Validators.min(0)]],
-    notes: [''],
-  });
-
-  readonly closeShiftForm = this.fb.group({
-    actualCash: [0, [Validators.required, Validators.min(0)]],
-    notes: [''],
-  });
-
   readonly accountForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     type: ['cash', Validators.required],
@@ -238,70 +214,11 @@ export class BarberCashPage {
   openShiftModal(mode: 'open' | 'close'): void {
     this.haptics.lightTap();
     this.shiftMode.set(mode);
-    if (mode === 'open') {
-      this.openShiftForm.reset({ initialCash: 50, notes: '' });
-    } else {
-      const shift = this.activeShift();
-      const expected = shift?.expectedCash ?? 0;
-      this.actualCashInput.set(expected);
-      this.closeShiftForm.reset({
-        actualCash: expected,
-        notes: '',
-      });
-    }
     this.isShiftModalOpen.set(true);
   }
 
-  onActualCashChange(event: Event): void {
-    const val = Number((event.target as HTMLInputElement).value) || 0;
-    this.actualCashInput.set(val);
-  }
-
   closeShiftModal(): void {
-    this.haptics.lightTap();
     this.isShiftModalOpen.set(false);
-  }
-
-  async submitShift(): Promise<void> {
-    if (this.isSubmitting()) return;
-
-    if (this.shiftMode() === 'open') {
-      if (this.openShiftForm.invalid) {
-        this.openShiftForm.markAllAsTouched();
-        return;
-      }
-      this.isSubmitting.set(true);
-      try {
-        const { initialCash, notes } = this.openShiftForm.value;
-        await this.barberService.openCashShift(Number(initialCash), notes?.trim());
-        this.haptics.success();
-        this.showToast('🟢 Turno de caja abierto correctamente');
-        this.closeShiftModal();
-      } catch (err: any) {
-        this.haptics.warning();
-        this.showToast(err?.message || 'Error al abrir el turno');
-      } finally {
-        this.isSubmitting.set(false);
-      }
-    } else {
-      if (this.closeShiftForm.invalid) {
-        this.closeShiftForm.markAllAsTouched();
-        return;
-      }
-      this.isSubmitting.set(true);
-      try {
-        const { actualCash, notes } = this.closeShiftForm.value;
-        await this.barberService.closeCashShift(Number(actualCash), notes?.trim());
-        this.haptics.success();
-        this.showToast('🔴 Turno cerrado y arqueado con éxito');
-        this.closeShiftModal();
-      } catch (err: any) {
-        this.haptics.warning();
-        this.showToast(err?.message || 'Error al arquear el turno');
-      } finally {
-        this.isSubmitting.set(false);
-      }
-    }
   }
 
   // --- GESTIÓN DE CUENTAS FINANCIERAS ---

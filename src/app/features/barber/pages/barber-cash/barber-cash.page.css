@@ -1245,57 +1245,6 @@
 .callout-icon { font-size: 1.1rem; }
 .callout-text { font-size: 0.8rem; color: var(--gold-light); line-height: 1.4; }
 
-.audit-summary-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: 0.84rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.as-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.as-label { color: var(--text-muted); }
-.as-value { font-weight: 700; color: var(--text-main); }
-.as-divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 4px 0; }
-.as-row.highlight .as-label { font-weight: 700; color: #ffffff; }
-.as-value.gold { color: var(--gold-primary); font-size: 1.1rem; font-weight: 900; }
-
-/* Discrepancy Card */
-.discrepancy-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  font-size: 0.82rem;
-}
-.discrepancy-card.perfect {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: #34d399;
-}
-.discrepancy-card.shortage {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #f87171;
-}
-.discrepancy-card.surplus {
-  background: rgba(56, 189, 248, 0.12);
-  border-color: rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
-}
-.disc-icon { font-size: 1.3rem; }
-.disc-sub { margin: 2px 0 0 0; font-size: 0.74rem; opacity: 0.85; }
-
 /* Checkbox */
 .checkbox-container {
   display: flex;

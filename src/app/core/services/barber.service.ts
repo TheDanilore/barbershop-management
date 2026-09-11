@@ -797,78 +797,24 @@ export class BarberService {
         : service.price;
 
     const actualPaymentMethod: PaymentMethod = params.isCredit ? 'credit' : params.paymentMethod;
-
-    const newCut: CutRecord = {
-      id: 'cut-' + Date.now(),
-      clientId: params.clientId,
-      clientName: client ? client.name : 'Cliente General',
-      barberId: barber.id,
-      barberName: barber.name,
-      serviceId: service.id,
-      serviceName: service.name,
-      price: finalPrice,
-      date: new Date().toISOString(),
-      paymentMethod: actualPaymentMethod,
-      notes: params.notes,
-    };
-
-    // Actualización local inmediata (Optimistic UI)
-    const updatedCuts = [newCut, ...this.cuts()];
-    this.cuts.set(updatedCuts);
-    this.saveToStorage(STORAGE_KEYS.CUTS, updatedCuts);
-
-    if (client) {
-      const newCutsCount = client.cutsCount + 1;
-      const newStamps = client.loyaltyStamps + 1;
-      let newLevel: MembershipTier = client.membershipLevel;
-
-      if (newCutsCount >= 15) newLevel = 'VIP';
-      else if (newCutsCount >= 8) newLevel = 'Gold';
-      else if (newCutsCount >= 3) newLevel = 'Silver';
-      else newLevel = 'Bronze';
-
-      const newDebt = params.isCredit ? (client.currentDebt || 0) + finalPrice : (client.currentDebt || 0);
-
-      const updatedClients = this.clients().map((c) =>
-        c.id === client.id
-          ? {
-            ...c,
-            cutsCount: newCutsCount,
-            loyaltyStamps: newStamps,
-            membershipLevel: newLevel,
-            currentDebt: newDebt,
-            lastVisitDate: getLocalDateString(),
-          }
-          : c
-      );
-      this.clients.set(updatedClients);
-      this.saveToStorage(STORAGE_KEYS.CLIENTS, updatedClients);
-    }
-
     const activeShift = this.activeCashShift();
+    let saleId = '';
 
-    // Persistir en Supabase
+    // Persistir en Supabase primero para obtener el UUID generado automáticamente por PostgreSQL
     if (this.supabaseService.isConfigured()) {
       try {
-        const isClientReal = !params.clientId.startsWith('cli-');
         const activeProfile = this.supabaseService.userProfile();
         const availableBarbers = this.barbers();
         const availableServices = this.services();
 
-        const realBarberId = (!params.barberId.startsWith('barber-') && params.barberId)
-          ? params.barberId
-          : (activeProfile?.id || availableBarbers[0]?.id || null);
-
-        const realServiceId = (!params.serviceId.startsWith('srv-') && params.serviceId)
-          ? params.serviceId
-          : (availableServices[0]?.id || null);
-
-        const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
+        const realBarberId = params.barberId || activeProfile?.id || availableBarbers[0]?.id || null;
+        const realServiceId = params.serviceId || availableServices[0]?.id || null;
+        const shiftIdReal = activeShift?.id || null;
 
         const { data: saleData, error } = await this.supabaseService.supabase
           .from('sales_history')
           .insert({
-            customer_id: isClientReal ? params.clientId : null,
+            customer_id: params.clientId || null,
             barber_id: realBarberId,
             service_id: realServiceId,
             final_price: finalPrice,
@@ -880,25 +826,17 @@ export class BarberService {
           .select('id')
           .single();
 
-        const saleId = saleData?.id;
-
-        if (saleId) {
-          newCut.id = saleId;
-          const currentCuts = this.cuts().map((c) => (c.id === newCut.id ? newCut : c));
-          this.cuts.set(currentCuts);
-          this.saveToStorage(STORAGE_KEYS.CUTS, currentCuts);
-        }
-
         if (error) {
           this.logger.error('BarberService', 'Error al insertar venta en Supabase', error);
-        } else {
-          this.logger.info('BarberService', 'Venta persistida con éxito en Supabase');
+          throw error;
+        } else if (saleData) {
+          saleId = saleData.id;
+          this.logger.info('BarberService', 'Venta persistida con éxito en Supabase con ID:', saleId);
         }
 
         // Si es crédito, registrar en customer_credit_movements (CHARGE)
-        if (params.isCredit && isClientReal) {
+        if (params.isCredit && params.clientId) {
           try {
-            // Asegurar cuenta de crédito
             let creditAccId: string | null = null;
             const { data: cData } = await this.supabaseService.supabase
               .from('customer_credits')
@@ -936,7 +874,7 @@ export class BarberService {
           const targetType = actualPaymentMethod === 'cash' ? 'cash' : actualPaymentMethod === 'card' ? 'bank' : 'digital_wallet';
           const targetAcc = this.financialAccounts().find((a) => a.type === targetType) || this.financialAccounts()[0];
 
-          if (targetAcc && !targetAcc.id.startsWith('acc-')) {
+          if (targetAcc) {
             try {
               await this.supabaseService.supabase.from('account_movements').insert({
                 account_id: targetAcc.id,
@@ -957,20 +895,67 @@ export class BarberService {
             activeShift.cashSales += finalPrice;
             activeShift.expectedCash += finalPrice;
             this.activeCashShift.set({ ...activeShift });
-            if (!activeShift.id.startsWith('shift-')) {
-              await this.supabaseService.supabase
-                .from('cash_shifts')
-                .update({
-                  cash_sales: activeShift.cashSales,
-                  expected_cash: activeShift.expectedCash,
-                })
-                .eq('id', activeShift.id);
-            }
+            await this.supabaseService.supabase
+              .from('cash_shifts')
+              .update({
+                cash_sales: activeShift.cashSales,
+                expected_cash: activeShift.expectedCash,
+              })
+              .eq('id', activeShift.id);
           }
         }
       } catch (e) {
         this.logger.error('BarberService', 'Excepción de red en registerCut', e);
+        throw e;
       }
+    } else {
+      saleId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-cut';
+    }
+
+    const newCut: CutRecord = {
+      id: saleId,
+      clientId: params.clientId,
+      clientName: client ? client.name : 'Cliente General',
+      barberId: barber.id,
+      barberName: barber.name,
+      serviceId: service.id,
+      serviceName: service.name,
+      price: finalPrice,
+      date: new Date().toISOString(),
+      paymentMethod: actualPaymentMethod,
+      notes: params.notes,
+    };
+
+    const updatedCuts = [newCut, ...this.cuts()];
+    this.cuts.set(updatedCuts);
+    this.saveToStorage(STORAGE_KEYS.CUTS, updatedCuts);
+
+    if (client) {
+      const newCutsCount = client.cutsCount + 1;
+      const newStamps = client.loyaltyStamps + 1;
+      let newLevel: MembershipTier = client.membershipLevel;
+
+      if (newCutsCount >= 15) newLevel = 'VIP';
+      else if (newCutsCount >= 8) newLevel = 'Gold';
+      else if (newCutsCount >= 3) newLevel = 'Silver';
+      else newLevel = 'Bronze';
+
+      const newDebt = params.isCredit ? (client.currentDebt || 0) + finalPrice : (client.currentDebt || 0);
+
+      const updatedClients = this.clients().map((c) =>
+        c.id === client.id
+          ? {
+            ...c,
+            cutsCount: newCutsCount,
+            loyaltyStamps: newStamps,
+            membershipLevel: newLevel,
+            currentDebt: newDebt,
+            lastVisitDate: getLocalDateString(),
+          }
+          : c
+      );
+      this.clients.set(updatedClients);
+      this.saveToStorage(STORAGE_KEYS.CLIENTS, updatedClients);
     }
 
     return newCut;
@@ -983,25 +968,9 @@ export class BarberService {
     const cleanName = name.trim();
     const cleanPhone = phone && phone.trim() ? phone.trim() : '';
 
-    const newClient: Client = {
-      id: 'cli-' + Date.now(),
-      name: cleanName,
-      phone: cleanPhone,
-      email: email?.trim(),
-      cutsCount: 0,
-      loyaltyStamps: 0,
-      membershipLevel: 'Bronze',
-      lastVisitDate: getLocalDateString(),
-      notes,
-      currentDebt: 0,
-      creditLimit: 0,
-    };
+    let clientId = '';
 
-    const updated = [newClient, ...this.clients()];
-    this.clients.set(updated);
-    this.saveToStorage(STORAGE_KEYS.CLIENTS, updated);
-
-    // Persistir en Supabase
+    // Persistir en Supabase primero para obtener el UUID generado automáticamente por PostgreSQL
     if (this.supabaseService.isConfigured()) {
       try {
         const { data, error } = await this.supabaseService.supabase
@@ -1017,12 +986,11 @@ export class BarberService {
 
         if (error) {
           this.logger.error('BarberService', 'Error al crear perfil en Supabase', error);
+          throw error;
         } else if (data) {
-          newClient.id = data.id;
-          this.clients.set([newClient, ...this.clients().filter((c) => c.id !== newClient.id)]);
-          this.saveToStorage(STORAGE_KEYS.CLIENTS, this.clients());
+          clientId = data.id;
 
-          // Inicializar cuenta de crédito
+          // Inicializar cuenta de crédito con el UUID real de la base de datos
           await this.supabaseService.supabase.from('customer_credits').insert({
             profile_id: data.id,
             current_debt: 0,
@@ -1031,8 +999,29 @@ export class BarberService {
         }
       } catch (e) {
         this.logger.error('BarberService', 'Excepción al crear cliente en Supabase', e);
+        throw e;
       }
+    } else {
+      clientId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-cli';
     }
+
+    const newClient: Client = {
+      id: clientId,
+      name: cleanName,
+      phone: cleanPhone,
+      email: email?.trim(),
+      cutsCount: 0,
+      loyaltyStamps: 0,
+      membershipLevel: 'Bronze',
+      lastVisitDate: getLocalDateString(),
+      notes,
+      currentDebt: 0,
+      creditLimit: 0,
+    };
+
+    const updated = [newClient, ...this.clients()];
+    this.clients.set(updated);
+    this.saveToStorage(STORAGE_KEYS.CLIENTS, updated);
 
     return newClient;
   }
@@ -1069,7 +1058,7 @@ export class BarberService {
     }
 
     // Registrar en Supabase
-    if (this.supabaseService.isConfigured() && !params.clientId.startsWith('cli-')) {
+    if (this.supabaseService.isConfigured() && params.clientId) {
       try {
         const { data: cData } = await this.supabaseService.supabase
           .from('customer_credits')
@@ -1077,7 +1066,7 @@ export class BarberService {
           .eq('profile_id', params.clientId)
           .maybeSingle();
 
-        const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
+        const shiftIdReal = activeShift ? activeShift.id : null;
 
         if (cData) {
           await this.supabaseService.supabase.from('customer_credit_movements').insert({
@@ -1090,7 +1079,7 @@ export class BarberService {
           });
         }
 
-        if (acc && !acc.id.startsWith('acc-')) {
+        if (acc) {
           await this.supabaseService.supabase.from('account_movements').insert({
             account_id: acc.id,
             movement_type: 'income',
@@ -1101,7 +1090,7 @@ export class BarberService {
           });
 
           // Sincronizar cash_shifts en Supabase ante abono en efectivo
-          if (acc.type === 'cash' && activeShift && !activeShift.id.startsWith('shift-')) {
+          if (acc.type === 'cash' && activeShift) {
             await this.supabaseService.supabase
               .from('cash_shifts')
               .update({
@@ -1123,27 +1112,13 @@ export class BarberService {
   async openCashShift(initialCash: number, notes?: string): Promise<CashShift> {
     const cashAcc = this.financialAccounts().find((a) => a.type === 'cash') || this.financialAccounts()[0];
     const profile = this.supabaseService.userProfile();
-    const barberId = profile?.id || this.barbers()[0].id;
+    const barberId = profile?.id || this.barbers()[0]?.id;
 
-    const newShift: CashShift = {
-      id: 'shift-' + Date.now(),
-      accountId: cashAcc.id,
-      barberId: barberId,
-      openedAt: new Date().toISOString(),
-      initialCash: Number(initialCash),
-      cashSales: 0,
-      cashExpenses: 0,
-      expectedCash: Number(initialCash),
-      status: 'open',
-      notes: notes || null,
-      barberName: profile?.full_name || 'Master Barber',
-    };
+    let shiftId = '';
 
-    this.activeCashShift.set(newShift);
-
-    if (this.supabaseService.isConfigured() && !cashAcc.id.startsWith('acc-') && !barberId.startsWith('barber-')) {
+    if (this.supabaseService.isConfigured() && cashAcc?.id && barberId) {
       try {
-        const { data } = await this.supabaseService.supabase
+        const { data, error } = await this.supabaseService.supabase
           .from('cash_shifts')
           .insert({
             account_id: cashAcc.id,
@@ -1158,15 +1133,35 @@ export class BarberService {
           .select('id')
           .single();
 
-        if (data) {
-          newShift.id = data.id;
-          this.activeCashShift.set(newShift);
+        if (error) {
+          this.logger.error('BarberService', 'Error al abrir turno en Supabase', error);
+          throw error;
+        } else if (data) {
+          shiftId = data.id;
         }
       } catch (err) {
-        this.logger.error('BarberService', 'Error al abrir turno en Supabase', err);
+        this.logger.error('BarberService', 'Excepción al abrir turno en Supabase', err);
+        throw err;
       }
+    } else {
+      shiftId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-shift';
     }
 
+    const newShift: CashShift = {
+      id: shiftId,
+      accountId: cashAcc ? cashAcc.id : '',
+      barberId: barberId || '',
+      openedAt: new Date().toISOString(),
+      initialCash: Number(initialCash),
+      cashSales: 0,
+      cashExpenses: 0,
+      expectedCash: Number(initialCash),
+      status: 'open',
+      notes: notes || null,
+      barberName: profile?.full_name || 'Master Barber',
+    };
+
+    this.activeCashShift.set(newShift);
     return newShift;
   }
 
@@ -1181,7 +1176,7 @@ export class BarberService {
     const diff = actual - current.expectedCash;
     const closedAt = new Date().toISOString();
 
-    if (this.supabaseService.isConfigured() && !current.id.startsWith('shift-')) {
+    if (this.supabaseService.isConfigured() && current.id) {
       try {
         await this.supabaseService.supabase
           .from('cash_shifts')
@@ -1215,8 +1210,50 @@ export class BarberService {
     const amount = Number(params.amount);
     const activeShift = this.activeCashShift();
 
+    let movementId = '';
+
+    if (this.supabaseService.isConfigured() && acc?.id) {
+      try {
+        const { data, error } = await this.supabaseService.supabase
+          .from('account_movements')
+          .insert({
+            account_id: acc.id,
+            movement_type: params.movementType,
+            amount: amount,
+            description: params.description.trim(),
+            reference_type: params.referenceType || 'manual',
+            shift_id: acc.type === 'cash' && activeShift ? activeShift.id : null,
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          this.logger.error('BarberService', 'Error al crear movimiento en Supabase', error);
+          throw error;
+        } else if (data) {
+          movementId = data.id;
+        }
+
+        // Sincronizar cash_shifts en Supabase ante egreso en efectivo
+        if (acc.type === 'cash' && params.movementType === 'expense' && activeShift) {
+          await this.supabaseService.supabase
+            .from('cash_shifts')
+            .update({
+              cash_expenses: activeShift.cashExpenses + amount,
+              expected_cash: activeShift.expectedCash - amount,
+            })
+            .eq('id', activeShift.id);
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Excepción al crear movimiento en Supabase', err);
+        throw err;
+      }
+    } else {
+      movementId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-mov';
+    }
+
     const newMov: AccountMovement = {
-      id: 'mov-' + Date.now(),
+      id: movementId,
       accountId: acc.id,
       movementType: params.movementType,
       amount: amount,
@@ -1241,33 +1278,6 @@ export class BarberService {
       activeShift.cashExpenses += amount;
       activeShift.expectedCash -= amount;
       this.activeCashShift.set({ ...activeShift });
-    }
-
-    if (this.supabaseService.isConfigured() && !acc.id.startsWith('acc-')) {
-      try {
-        const shiftIdReal = activeShift && !activeShift.id.startsWith('shift-') ? activeShift.id : null;
-        await this.supabaseService.supabase.from('account_movements').insert({
-          account_id: acc.id,
-          movement_type: params.movementType,
-          amount: amount,
-          description: params.description.trim(),
-          reference_type: params.referenceType || 'manual',
-          shift_id: acc.type === 'cash' ? shiftIdReal : null,
-        });
-
-        // Sincronizar cash_shifts en Supabase ante egreso en efectivo
-        if (acc.type === 'cash' && params.movementType === 'expense' && activeShift && !activeShift.id.startsWith('shift-')) {
-          await this.supabaseService.supabase
-            .from('cash_shifts')
-            .update({
-              cash_expenses: activeShift.cashExpenses,
-              expected_cash: activeShift.expectedCash,
-            })
-            .eq('id', activeShift.id);
-        }
-      } catch (err) {
-        this.logger.error('BarberService', 'Error al crear movimiento en Supabase', err);
-      }
     }
   }
 
@@ -1307,19 +1317,8 @@ export class BarberService {
     const cleanName = params.name.trim();
     const balance = Number(params.initialBalance) || 0;
 
-    const newAccount: FinancialAccount = {
-      id: 'acc-' + Date.now(),
-      name: cleanName,
-      type: params.type,
-      currentBalance: balance,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Actualización local inmediata
-    const updatedAccounts = [...this.financialAccounts(), newAccount];
-    this.financialAccounts.set(updatedAccounts);
-    this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, updatedAccounts);
+    let accountId = '';
+    let createdAt = new Date().toISOString();
 
     if (this.supabaseService.isConfigured()) {
       try {
@@ -1336,12 +1335,10 @@ export class BarberService {
 
         if (error) {
           this.logger.error('BarberService', 'Error creando cuenta en Supabase', error);
+          throw error;
         } else if (data) {
-          newAccount.id = data.id;
-          newAccount.currentBalance = Number(data.current_balance);
-          const finalAccounts = this.financialAccounts().map((a) => (a.id === newAccount.id ? newAccount : a));
-          this.financialAccounts.set(finalAccounts);
-          this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, finalAccounts);
+          accountId = data.id;
+          createdAt = data.created_at || createdAt;
 
           // Si se indicó un saldo inicial mayor a cero, registrar movimiento contable
           if (balance > 0) {
@@ -1359,9 +1356,25 @@ export class BarberService {
           }
         }
       } catch (err) {
-        this.logger.error('BarberService', 'Excepción creando cuenta', err);
+        this.logger.error('BarberService', 'Excepción creando cuenta en Supabase', err);
+        throw err;
       }
+    } else {
+      accountId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-acc';
     }
+
+    const newAccount: FinancialAccount = {
+      id: accountId,
+      name: cleanName,
+      type: params.type,
+      currentBalance: balance,
+      isActive: true,
+      createdAt,
+    };
+
+    const updatedAccounts = [...this.financialAccounts(), newAccount];
+    this.financialAccounts.set(updatedAccounts);
+    this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, updatedAccounts);
 
     return newAccount;
   }
@@ -1383,7 +1396,7 @@ export class BarberService {
     this.financialAccounts.set([...accounts]);
     this.saveToStorage(STORAGE_KEYS.FINANCIAL_ACCOUNTS, accounts);
 
-    if (this.supabaseService.isConfigured() && !id.startsWith('acc-')) {
+    if (this.supabaseService.isConfigured()) {
       try {
         const payload: any = {};
         if (updates.name !== undefined) payload.name = updates.name.trim();
@@ -1407,40 +1420,50 @@ export class BarberService {
    * Crear Servicio en Catálogo
    */
   async createService(name: string, price: number, durationMinutes: number): Promise<ServiceItem> {
-    const newSrv: ServiceItem = {
-      id: 'srv-' + Date.now(),
-      name: name.trim(),
-      price: Number(price),
-      durationMinutes: Number(durationMinutes),
-      isActive: true,
-    };
+    const cleanName = name.trim();
+    const cleanPrice = Number(price);
+    const cleanDuration = Number(durationMinutes);
 
-    const updated = [...this.services(), newSrv];
-    this.services.set(updated);
-    this.saveToStorage(STORAGE_KEYS.SERVICES, updated);
+    let serviceId = '';
 
     if (this.supabaseService.isConfigured()) {
       try {
         const { data, error } = await this.supabaseService.supabase
           .from('services')
           .insert({
-            name: newSrv.name,
-            base_price: newSrv.price,
-            duration_minutes: newSrv.durationMinutes,
+            name: cleanName,
+            base_price: cleanPrice,
+            duration_minutes: cleanDuration,
             is_active: true,
           })
           .select('id')
           .single();
 
-        if (data) {
-          newSrv.id = data.id;
-          this.services.set([...this.services().filter((s) => s.id !== newSrv.id), newSrv]);
-          this.saveToStorage(STORAGE_KEYS.SERVICES, this.services());
+        if (error) {
+          this.logger.error('BarberService', 'Error al insertar servicio en Supabase', error);
+          throw error;
+        } else if (data) {
+          serviceId = data.id;
         }
       } catch (err) {
-        this.logger.error('BarberService', 'Error al insertar servicio en Supabase', err);
+        this.logger.error('BarberService', 'Excepción insertando servicio en Supabase', err);
+        throw err;
       }
+    } else {
+      serviceId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-srv';
     }
+
+    const newSrv: ServiceItem = {
+      id: serviceId,
+      name: cleanName,
+      price: cleanPrice,
+      durationMinutes: cleanDuration,
+      isActive: true,
+    };
+
+    const updated = [...this.services(), newSrv];
+    this.services.set(updated);
+    this.saveToStorage(STORAGE_KEYS.SERVICES, updated);
 
     return newSrv;
   }
@@ -1455,7 +1478,7 @@ export class BarberService {
     this.services.set(updated);
     this.saveToStorage(STORAGE_KEYS.SERVICES, updated);
 
-    if (this.supabaseService.isConfigured() && !id.startsWith('srv-')) {
+    if (this.supabaseService.isConfigured()) {
       try {
         await this.supabaseService.supabase
           .from('services')
@@ -1496,8 +1519,39 @@ export class BarberService {
     const barber = this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0];
     const service = this.services().find((s) => s.id === params.serviceId) || this.services()[0];
 
+    let appointmentId = '';
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const scheduledAt = new Date(`${params.date}T${params.time}:00`).toISOString();
+        const { data, error } = await this.supabaseService.supabase
+          .from('appointments')
+          .insert({
+            customer_id: client.id,
+            barber_id: barber.id,
+            service_id: service.id,
+            scheduled_at: scheduledAt,
+            status: 'confirmed',
+          })
+          .select('id')
+          .single();
+
+        if (error) {
+          this.logger.error('BarberService', 'Error al agendar cita en Supabase', error);
+          throw error;
+        } else if (data) {
+          appointmentId = data.id;
+        }
+      } catch (e) {
+        this.logger.error('BarberService', 'Excepción al agendar cita en Supabase', e);
+        throw e;
+      }
+    } else {
+      appointmentId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-apt';
+    }
+
     const newApt: Appointment = {
-      id: 'apt-' + Date.now(),
+      id: appointmentId,
       clientId: client.id,
       clientName: client.name,
       clientPhone: client.phone,
@@ -1515,22 +1569,6 @@ export class BarberService {
     const updated = [newApt, ...this.appointments()];
     this.appointments.set(updated);
     this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, updated);
-
-    if (this.supabaseService.isConfigured()) {
-      try {
-        const scheduledAt = new Date(`${params.date}T${params.time}:00`).toISOString();
-        const { error } = await this.supabaseService.supabase.from('appointments').insert({
-          customer_id: client.id.startsWith('cli-') ? null : client.id,
-          barber_id: barber.id.startsWith('barber-') ? null : barber.id,
-          service_id: service.id.startsWith('srv-') ? null : service.id,
-          scheduled_at: scheduledAt,
-          status: 'confirmed',
-        });
-        if (error) this.logger.error('BarberService', 'Error al agendar cita en Supabase', error);
-      } catch (e) {
-        this.logger.error('BarberService', 'Excepción al agendar cita en Supabase', e);
-      }
-    }
 
     return newApt;
   }
@@ -1553,7 +1591,7 @@ export class BarberService {
       });
     }
 
-    if (this.supabaseService.isConfigured() && !id.startsWith('apt-')) {
+    if (this.supabaseService.isConfigured()) {
       this.supabaseService.supabase
         .from('appointments')
         .update({ status })
@@ -1566,7 +1604,7 @@ export class BarberService {
 
   addReview(rating: number, comment: string): void {
     const newRev: Review = {
-      id: 'rev-' + Date.now(),
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '',
       clientName: this.currentClient().name,
       barberName: 'Carlos "Fade" Mendez',
       rating,
@@ -1587,41 +1625,52 @@ export class BarberService {
     role: UserRole;
     isActive?: boolean;
   }): Promise<SystemUser> {
-    const newUser: SystemUser = {
-      id: 'usr-' + Date.now(),
-      fullName: params.fullName.trim(),
-      phone: params.phone?.trim() || '',
-      role: params.role,
-      isActive: params.isActive ?? true,
-      createdAt: new Date().toISOString(),
-    };
+    const cleanName = params.fullName.trim();
+    const cleanPhone = params.phone?.trim() || '';
+    const role = params.role;
+    const isActive = params.isActive ?? true;
 
-    this.systemUsers.set([newUser, ...this.systemUsers()]);
+    let userId = '';
+    let createdAt = new Date().toISOString();
 
     if (this.supabaseService.isConfigured()) {
       try {
         const { data, error } = await this.supabaseService.supabase
           .from('profiles')
           .insert({
-            full_name: newUser.fullName,
-            phone: newUser.phone || null,
-            role: newUser.role,
-            is_active: newUser.isActive,
+            full_name: cleanName,
+            phone: cleanPhone || null,
+            role: role,
+            is_active: isActive,
           })
-          .select('id')
+          .select('id, created_at')
           .single();
 
-        if (data) {
-          newUser.id = data.id;
-          this.systemUsers.set([newUser, ...this.systemUsers().filter((u) => u.id !== newUser.id)]);
-        }
         if (error) {
           this.logger.error('BarberService', 'Error creando perfil de usuario en Supabase', error);
+          throw error;
+        } else if (data) {
+          userId = data.id;
+          createdAt = data.created_at || createdAt;
         }
       } catch (err) {
         this.logger.error('BarberService', 'Excepción creando usuario de sistema', err);
+        throw err;
       }
+    } else {
+      userId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-usr';
     }
+
+    const newUser: SystemUser = {
+      id: userId,
+      fullName: cleanName,
+      phone: cleanPhone,
+      role: role,
+      isActive: isActive,
+      createdAt,
+    };
+
+    this.systemUsers.set([newUser, ...this.systemUsers()]);
 
     return newUser;
   }
@@ -1646,7 +1695,7 @@ export class BarberService {
     );
     this.systemUsers.set(updated);
 
-    if (this.supabaseService.isConfigured() && !id.startsWith('usr-')) {
+    if (this.supabaseService.isConfigured()) {
       try {
         await this.supabaseService.supabase
           .from('profiles')
@@ -1662,6 +1711,7 @@ export class BarberService {
       }
     }
   }
+
 
   /**
    * Alternar estado activo/inactivo de Usuario de Sistema
@@ -1749,7 +1799,7 @@ export class BarberService {
    */
   async deleteLoyaltyReward(id: string): Promise<void> {
     try {
-      if (this.supabaseService.isConfigured() && !id.startsWith('rwd-')) {
+      if (this.supabaseService.isConfigured()) {
         const { error } = await this.supabaseService.supabase
           .from('loyalty_rewards')
           .delete()

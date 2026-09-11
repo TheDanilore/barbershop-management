@@ -1,0 +1,145 @@
+@if (isOpen) {
+<div class="modal-backdrop" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="sheet-drag-handle"></div>
+
+    <div class="sheet-header">
+      <div class="sh-title-group">
+        <span class="sh-badge-pill">
+          {{ mode === 'open' ? 'Apertura de Gaveta' : 'Conciliación Financiera' }}
+        </span>
+        <h3 class="sheet-title">
+          {{ mode === 'open' ? 'Abrir Turno de Caja' : 'Cierre de Turno & Arqueo' }}
+        </h3>
+      </div>
+      <button class="sheet-close-btn" (click)="closeModal()" title="Cerrar (Esc)">✕</button>
+    </div>
+
+    <form [formGroup]="mode === 'open' ? openShiftForm : closeShiftForm" (ngSubmit)="submitShift()" class="sheet-form">
+      @if (mode === 'open') {
+      <!-- Modo Apertura -->
+      <div class="info-callout">
+        <span class="callout-icon">💡</span>
+        <span class="callout-text">Ingresa el dinero en efectivo que dejas en la gaveta física para dar cambio durante la jornada.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="shiftInitialCash">Fondo Inicial en Efectivo ($) *</label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">$</span>
+          <input
+            id="shiftInitialCash"
+            type="number"
+            step="0.50"
+            min="0"
+            class="form-input with-prefix"
+            formControlName="initialCash"
+            placeholder="Ej: 50.00"
+            autofocus />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="shiftOpenNotes">Observaciones de Apertura (Opcional)</label>
+        <input
+          id="shiftOpenNotes"
+          type="text"
+          class="form-input"
+          formControlName="notes"
+          placeholder="Ej: Billetes de 10 y monedas" />
+      </div>
+      } @else {
+      <!-- Modo Cierre con Auditoría y Descuadre en Tiempo Real -->
+      @if (activeShift(); as shift) {
+      <div class="audit-summary-box">
+        <div class="as-row">
+          <span class="as-label">Fondo Inicial Apertura:</span>
+          <span class="as-value">${{ shift.initialCash.toFixed(2) }}</span>
+        </div>
+        <div class="as-row">
+          <span class="as-label">Ventas en Efectivo (+):</span>
+          <span class="as-value text-green">+${{ shift.cashSales.toFixed(2) }}</span>
+        </div>
+        <div class="as-row">
+          <span class="as-label">Egresos de Caja (-):</span>
+          <span class="as-value text-red">-${{ shift.cashExpenses.toFixed(2) }}</span>
+        </div>
+        <div class="as-divider"></div>
+        <div class="as-row highlight">
+          <span class="as-label">Efectivo Teórico Esperado:</span>
+          <strong class="as-value gold">${{ shift.expectedCash.toFixed(2) }}</strong>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="shiftActualCash">Efectivo Real Contado en Gaveta ($) *</label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">$</span>
+          <input
+            id="shiftActualCash"
+            type="number"
+            step="0.50"
+            min="0"
+            class="form-input with-prefix"
+            formControlName="actualCash"
+            (input)="onActualCashChange($event)"
+            placeholder="Ingresa el conteo físico"
+            autofocus />
+        </div>
+      </div>
+
+      <!-- Indicador de Descuadre Reactivo -->
+      @if (shiftDiscrepancy().status === 'perfect') {
+      <div class="discrepancy-card perfect">
+        <span class="disc-icon">✨</span>
+        <div>
+          <strong>Cuadre Perfecto ($0.00)</strong>
+          <p class="disc-sub">El efectivo físico coincide exactamente con los registros del sistema.</p>
+        </div>
+      </div>
+      } @else if (shiftDiscrepancy().status === 'shortage') {
+      <div class="discrepancy-card shortage">
+        <span class="disc-icon">⚠️</span>
+        <div>
+          <strong>Faltante de Dinero: -${{ (shiftDiscrepancy().difference * -1).toFixed(2) }}</strong>
+          <p class="disc-sub">Falta dinero en la gaveta física. Por favor, indica la causa en las observaciones.</p>
+        </div>
+      </div>
+      } @else {
+      <div class="discrepancy-card surplus">
+        <span class="disc-icon">ℹ️</span>
+        <div>
+          <strong>Sobrante de Dinero: +${{ shiftDiscrepancy().difference.toFixed(2) }}</strong>
+          <p class="disc-sub">Hay más efectivo del registrado teóricamente en el sistema.</p>
+        </div>
+      </div>
+      }
+
+      <div class="form-group">
+        <label class="form-label" for="shiftCloseNotes">
+          Observaciones &amp; Justificación de Arqueo
+          @if (shiftDiscrepancy().status !== 'perfect') { <span class="text-red">*</span> }
+        </label>
+        <input
+          id="shiftCloseNotes"
+          type="text"
+          class="form-input"
+          formControlName="notes"
+          placeholder="Ej: Faltante atribuido a cambio entregado incorrectamente" />
+      </div>
+      }
+      }
+
+      <div class="sheet-footer">
+        <button type="button" class="btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button
+          type="submit"
+          class="btn-primary-action"
+          [disabled]="isSubmitting() || (mode === 'open' ? openShiftForm.invalid : closeShiftForm.invalid)">
+          {{ isSubmitting() ? 'Procesando...' : mode === 'open' ? '🟢 Confirmar Apertura' : '🔴 Confirmar Cierre & Arqueo' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

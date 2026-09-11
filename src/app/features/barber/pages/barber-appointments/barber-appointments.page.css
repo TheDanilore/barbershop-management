@@ -814,6 +814,28 @@
   transform: translateY(-1px);
 }
 
+.combo-pill-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(229, 169, 60, 0.15);
+  color: var(--gold-primary);
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  white-space: nowrap;
+}
+
+.btn-apt-act.edit {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e0e0ec;
+}
+.btn-apt-act.edit:hover {
+  background: rgba(229, 169, 60, 0.15);
+  border-color: rgba(229, 169, 60, 0.4);
+  color: var(--gold-primary);
+}
+
 .btn-apt-act.cancel {
   background: rgba(239, 68, 68, 0.1);
   border-color: rgba(239, 68, 68, 0.25);

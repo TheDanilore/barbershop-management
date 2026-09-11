@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { Client, PaymentMethod } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { LoggerService } from '../../../../core/services/logger.service';
 import { SupabaseService } from '../../../../core/services/supabase.service';
 import { BarberMetrics } from '../../components/barber-metrics/barber-metrics';
 import { BarberSchedule } from '../../components/barber-schedule/barber-schedule';
@@ -28,6 +29,7 @@ export class BarberDashboardPage {
   readonly barberService = inject(BarberService);
   readonly supabaseService = inject(SupabaseService);
   readonly haptics = inject(HapticsService);
+  private readonly logger = inject(LoggerService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
@@ -207,7 +209,8 @@ export class BarberDashboardPage {
       this.haptics.success();
       this.closeDebtPaymentModal();
       this.showToast(`Abono de $${amount} registrado a ${client.name}`);
-    } catch {
+    } catch (err: unknown) {
+      this.logger.error('BarberDashboardPage', 'Error al procesar el abono de deuda', err);
       this.haptics.warning();
       this.showToast('Error al procesar el abono');
     } finally {

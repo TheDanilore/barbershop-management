@@ -293,10 +293,15 @@ export class BarberAppointmentsPage {
     this.showToast(`Cita de las ${apt.time} cancelada`);
   }
 
-  // --- MODAL AGENDAR CITA ---
+  // --- MODAL AGENDAR / EDITAR CITA ---
   openBookAppointmentModal(defaultTime?: string): void {
     this.haptics.lightTap();
     this.barberService.openBookingModal(this.selectedDate(), defaultTime || '10:00');
+  }
+
+  openEditAppointmentModal(apt: Appointment): void {
+    this.haptics.lightTap();
+    this.barberService.openBookingModal(apt.date, apt.time, apt);
   }
 
   closeBookAppointmentModal(): void {

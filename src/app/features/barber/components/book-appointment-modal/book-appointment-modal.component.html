@@ -7,8 +7,12 @@
     <!-- Cabecera del Modal -->
     <header class="sheet-header">
       <div class="sheet-title-group">
-        <span class="sheet-badge-pill">Reserva &amp; Planificación</span>
-        <h3 id="modalTitle" class="sheet-title">Nueva Cita</h3>
+        <span class="sheet-badge-pill">
+          {{ isEditMode() ? 'Modificación de Cita' : 'Reserva & Planificación' }}
+        </span>
+        <h3 id="modalTitle" class="sheet-title">
+          {{ isEditMode() ? 'Editar Cita y Servicios' : 'Nueva Cita' }}
+        </h3>
       </div>
       <button
         type="button"
@@ -20,40 +24,35 @@
       </button>
     </header>
 
-    <!-- Formulario Reactivo de Reserva -->
+    <!-- Formulario Reactivo de Reserva / Edición -->
     <form [formGroup]="bookingForm" (ngSubmit)="submitBookAppointment()" class="sheet-form">
       <div class="form-body">
-        <!-- 1. Selección de Cliente -->
-        <div class="form-group">
-          <label class="form-label" for="bookingClient">Cliente *</label>
-          <div class="input-icon-wrap">
-            <span class="input-icon">👤</span>
-            <select id="bookingClient" class="form-input" formControlName="clientId">
-              @for (cli of barberService.clients(); track cli.id) {
-              <option [value]="cli.id">
-                {{ cli.name }} {{ cli.phone ? ' • ' + cli.phone : '' }}
-              </option>
-              }
-            </select>
-          </div>
+        <!-- Banner de Error si ocurre algún fallo -->
+        @if (errorMessage()) {
+        <div class="modal-error-alert" role="alert">
+          <span class="mea-icon">⚠️</span>
+          <span class="mea-text">{{ errorMessage() }}</span>
         </div>
+        }
 
-        <!-- 2. Selección de Servicio y Barbero (2 Columnas) -->
+        <!-- 1. Fila: Cliente y Barbero Asignado (2 Columnas) -->
         <div class="form-row-2">
+          <!-- Selección de Cliente -->
           <div class="form-group">
-            <label class="form-label" for="bookingService">Servicio *</label>
+            <label class="form-label" for="bookingClient">Cliente *</label>
             <div class="input-icon-wrap">
-              <span class="input-icon">✂️</span>
-              <select id="bookingService" class="form-input" formControlName="serviceId">
-                @for (srv of barberService.services(); track srv.id) {
-                <option [value]="srv.id">
-                  {{ srv.name }} — ${{ srv.price.toFixed(2) }} ({{ srv.durationMinutes }} min)
+              <span class="input-icon">👤</span>
+              <select id="bookingClient" class="form-input" formControlName="clientId">
+                @for (cli of barberService.clients(); track cli.id) {
+                <option [value]="cli.id">
+                  {{ cli.name }} {{ cli.phone ? ' • ' + cli.phone : '' }}
                 </option>
                 }
               </select>
             </div>
           </div>
 
+          <!-- Selección de Barbero -->
           <div class="form-group">
             <label class="form-label" for="bookingBarber">Barbero Asignado *</label>
             <div class="input-icon-wrap">
@@ -61,11 +60,65 @@
               <select id="bookingBarber" class="form-input" formControlName="barberId">
                 @for (barber of barberService.barbers(); track barber.id) {
                 <option [value]="barber.id">
-                  {{ barber.name }}
+                  {{ barber.name }} ({{ barber.specialty }})
                 </option>
                 }
               </select>
             </div>
+          </div>
+        </div>
+
+        <!-- 2. Selección Multi-Servicio & Combos -->
+        <div class="form-group services-multi-section">
+          <div class="sms-header">
+            <div class="sms-titles">
+              <label class="form-label">Servicios a Realizar *</label>
+              <span class="sms-sub">Puedes seleccionar varios o combo</span>
+            </div>
+            @if (selectedServicesList().length > 0) {
+            <span class="sms-counter-badge">
+              {{ isToDefine() ? 'Asesoría' : selectedServicesList().length + ' seleccionado(s)' }}
+            </span>
+            }
+          </div>
+
+          <!-- Botón de Cita Abierta / Asesoría en Sillón -->
+          <div class="to-define-action-row">
+            <button
+              type="button"
+              class="to-define-btn"
+              [class.active]="isToDefine()"
+              (click)="setToDefineService()"
+              title="El cliente decidirá los servicios en el sillón">
+              <span class="td-icon">❓</span>
+              <div class="td-texts">
+                <span class="td-title">Por definir / Asesoría en sillón</span>
+                <span class="td-sub">Reserva de 30 min • Tarifa a definir al atender</span>
+              </div>
+              <span class="td-radio">{{ isToDefine() ? '✓' : '' }}</span>
+            </button>
+          </div>
+
+          <!-- Matriz de Servicios Disponibles (Chips Multi-Selección) -->
+          <div class="services-chips-matrix">
+            @for (srv of barberService.services(); track srv.id) {
+            <button
+              type="button"
+              class="multi-service-chip"
+              [class.selected]="isServiceSelected(srv.id)"
+              (click)="toggleService(srv.id)">
+              <div class="msc-check">
+                {{ isServiceSelected(srv.id) ? '✓' : '+' }}
+              </div>
+              <div class="msc-info">
+                <span class="msc-name">{{ srv.name }}</span>
+                <div class="msc-meta">
+                  <span class="msc-price">${{ srv.price.toFixed(2) }}</span>
+                  <span class="msc-duration">{{ srv.durationMinutes }}m</span>
+                </div>
+              </div>
+            </button>
+            }
           </div>
         </div>
 
@@ -117,7 +170,7 @@
             id="bookingNotes"
             class="form-textarea"
             rows="2"
-            placeholder="Ej: Degradado medio, diseño especial, barba perfilada..."
+            placeholder="Ej: Degradado bajo con navaja, perfilado de cejas, barba con toalla caliente..."
             formControlName="notes"></textarea>
         </div>
 
@@ -125,20 +178,39 @@
         <div class="live-summary-card">
           <div class="lsc-header">
             <span class="lsc-title">Resumen de la Cita</span>
-            <span class="lsc-badge">Confirmación Inmediata</span>
+            <span class="lsc-badge">
+              {{ isEditMode() ? 'Ajuste Operativo' : 'Confirmación Inmediata' }}
+            </span>
           </div>
           <div class="lsc-body">
             <div class="lsc-row">
-              <span class="lsc-label">Servicio:</span>
-              <span class="lsc-val">{{ selectedService()?.name || 'Servicio' }}</span>
+              <span class="lsc-label">Servicios:</span>
+              <div class="lsc-services-pills">
+                @if (isToDefine()) {
+                <span class="service-tag-badge gold">Por definir en sillón</span>
+                } @else if (selectedServicesList().length > 0) {
+                  @for (s of selectedServicesList(); track s.serviceId) {
+                  <span class="service-tag-badge">{{ s.name }} (${{ s.price }})</span>
+                  }
+                } @else {
+                <span class="lsc-val text-dim">Ninguno seleccionado</span>
+                }
+              </div>
             </div>
+
             <div class="lsc-row">
-              <span class="lsc-label">Profesional:</span>
+              <span class="lsc-label">Profesional Asignado:</span>
               <span class="lsc-val">{{ selectedBarber()?.name || 'Barbero' }}</span>
             </div>
+
+            <div class="lsc-row">
+              <span class="lsc-label">Tiempo Estimado:</span>
+              <span class="lsc-val">{{ totalEstimatedDuration() }} minutos</span>
+            </div>
+
             <div class="lsc-row total">
-              <span class="lsc-label">Total a Cobrar:</span>
-              <span class="lsc-val-price">${{ (selectedService()?.price || 0).toFixed(2) }}</span>
+              <span class="lsc-label">Total a Cobrar Estimado:</span>
+              <span class="lsc-val-price">${{ totalEstimatedPrice().toFixed(2) }}</span>
             </div>
           </div>
         </div>
@@ -155,10 +227,12 @@
         <button
           type="submit"
           class="btn-primary-confirm"
-          [disabled]="bookingForm.invalid || isSubmitting()">
+          [disabled]="bookingForm.invalid || isSubmitting() || (!isToDefine() && selectedServiceIds().length === 0)">
           @if (isSubmitting()) {
           <span class="spinner-inline"></span>
-          <span>Agendando...</span>
+          <span>Guardando...</span>
+          } @else if (isEditMode()) {
+          <span>✓ Guardar Cambios</span>
           } @else {
           <span>✓ Confirmar y Agendar Cita</span>
           }

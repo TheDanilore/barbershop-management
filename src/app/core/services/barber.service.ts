@@ -7,6 +7,8 @@ import {
   AccountType,
   Appointment,
   AppointmentRow,
+  AppointmentServiceItem,
+  AppointmentStatus,
   Barber,
   BusinessSettings,
   CashShift,
@@ -90,19 +92,28 @@ export class BarberService {
   readonly serverKpis = signal<DashboardKpis | null>(null);
   readonly systemUsers = signal<SystemUser[]>([]);
 
-  // Modal global centralizado de Agendar Cita
+  // Modal global centralizado de Agendar Cita (Creación y Edición)
   readonly isBookingModalOpen = signal<boolean>(false);
   readonly bookingModalDate = signal<string>(getLocalDateString());
   readonly bookingModalTime = signal<string>('10:00');
+  readonly bookingModalAppointmentToEdit = signal<Appointment | null>(null);
 
-  openBookingModal(date?: string, time?: string): void {
-    if (date) this.bookingModalDate.set(date);
-    if (time) this.bookingModalTime.set(time);
+  openBookingModal(date?: string, time?: string, appointmentToEdit?: Appointment | null): void {
+    if (appointmentToEdit) {
+      this.bookingModalAppointmentToEdit.set(appointmentToEdit);
+      this.bookingModalDate.set(appointmentToEdit.date);
+      this.bookingModalTime.set(appointmentToEdit.time);
+    } else {
+      this.bookingModalAppointmentToEdit.set(null);
+      if (date) this.bookingModalDate.set(date);
+      if (time) this.bookingModalTime.set(time);
+    }
     this.isBookingModalOpen.set(true);
   }
 
   closeBookingModal(): void {
     this.isBookingModalOpen.set(false);
+    this.bookingModalAppointmentToEdit.set(null);
   }
 
   // Loyalty Rewards System (0..N premios configurables)
@@ -1522,17 +1533,51 @@ export class BarberService {
   /**
    * Agendar cita / turno
    */
+  /**
+   * Agendar cita / turno (soporta multi-servicio, combos y citas abiertas)
+   */
   async bookAppointment(params: {
     clientId: string;
     barberId: string;
-    serviceId: string;
+    serviceId?: string;
+    services?: AppointmentServiceItem[];
     date: string;
     time: string;
     notes?: string;
   }): Promise<Appointment> {
     const client = this.clients().find((c) => c.id === params.clientId) || this.currentClient();
     const barber = this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0];
-    const service = this.services().find((s) => s.id === params.serviceId) || this.services()[0];
+
+    // Resolver lista de servicios (multi-servicio / combos / o por definir)
+    let servicesList: AppointmentServiceItem[] = [];
+    let primaryServiceId = '';
+    let serviceNames = '';
+    let totalPrice = 0;
+    let totalDuration = 30;
+
+    if (params.services && params.services.length > 0) {
+      servicesList = params.services;
+      const validFirst = servicesList.find((s) => s.serviceId !== 'to_define');
+      primaryServiceId = validFirst ? validFirst.serviceId : (this.services()[0]?.id || '');
+      serviceNames = servicesList.map((s) => s.name).join(' + ');
+      totalPrice = servicesList.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+      totalDuration = servicesList.reduce((sum, s) => sum + (Number(s.durationMinutes) || 0), 0);
+    } else if (params.serviceId === 'to_define') {
+      servicesList = [{ serviceId: 'to_define', name: 'Por definir / Asesoría en sillón', price: 0, durationMinutes: 30 }];
+      primaryServiceId = this.services()[0]?.id || '';
+      serviceNames = 'Por definir / Asesoría en sillón';
+      totalPrice = 0;
+      totalDuration = 30;
+    } else {
+      const s = this.services().find((srv) => srv.id === params.serviceId) || this.services()[0];
+      if (s) {
+        servicesList = [{ serviceId: s.id, name: s.name, price: s.price, durationMinutes: s.durationMinutes }];
+        primaryServiceId = s.id;
+        serviceNames = s.name;
+        totalPrice = s.price;
+        totalDuration = s.durationMinutes;
+      }
+    }
 
     let appointmentId = '';
 
@@ -1544,7 +1589,7 @@ export class BarberService {
           .insert({
             customer_id: client.id,
             barber_id: barber.id,
-            service_id: service.id,
+            service_id: primaryServiceId || this.services()[0]?.id,
             scheduled_at: scheduledAt,
             status: 'confirmed',
           })
@@ -1572,11 +1617,13 @@ export class BarberService {
       clientPhone: client.phone,
       barberId: barber.id,
       barberName: barber.name,
-      serviceId: service.id,
-      serviceName: service.name,
+      serviceId: primaryServiceId,
+      serviceName: serviceNames,
+      services: servicesList,
+      totalDurationMinutes: totalDuration,
       date: params.date,
       time: params.time,
-      price: service.price,
+      price: totalPrice,
       status: 'confirmed',
       notes: params.notes,
     };
@@ -1586,6 +1633,103 @@ export class BarberService {
     this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, updated);
 
     return newApt;
+  }
+
+  /**
+   * Actualizar / Editar cita existente (modificar servicios, barbero, horario o notas)
+   */
+  async updateAppointment(id: string, params: {
+    clientId?: string;
+    barberId?: string;
+    serviceId?: string;
+    services?: AppointmentServiceItem[];
+    date?: string;
+    time?: string;
+    notes?: string;
+    status?: AppointmentStatus;
+  }): Promise<Appointment> {
+    const existing = this.appointments().find((a) => a.id === id);
+    if (!existing) throw new Error('Cita no encontrada');
+
+    let servicesList = params.services || existing.services || [];
+    let primaryServiceId = existing.serviceId;
+    let serviceNames = existing.serviceName;
+    let totalPrice = existing.price;
+    let totalDuration = existing.totalDurationMinutes || 30;
+
+    if (params.services && params.services.length > 0) {
+      servicesList = params.services;
+      const validFirst = servicesList.find((s) => s.serviceId !== 'to_define');
+      primaryServiceId = validFirst ? validFirst.serviceId : (this.services()[0]?.id || '');
+      serviceNames = servicesList.map((s) => s.name).join(' + ');
+      totalPrice = servicesList.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+      totalDuration = servicesList.reduce((acc, s) => acc + (Number(s.durationMinutes) || 0), 0);
+    } else if (params.serviceId) {
+      if (params.serviceId === 'to_define') {
+        servicesList = [{ serviceId: 'to_define', name: 'Por definir / Asesoría en sillón', price: 0, durationMinutes: 30 }];
+        serviceNames = 'Por definir / Asesoría en sillón';
+        totalPrice = 0;
+        totalDuration = 30;
+      } else {
+        const s = this.services().find((srv) => srv.id === params.serviceId);
+        if (s) {
+          servicesList = [{ serviceId: s.id, name: s.name, price: s.price, durationMinutes: s.durationMinutes }];
+          primaryServiceId = s.id;
+          serviceNames = s.name;
+          totalPrice = s.price;
+          totalDuration = s.durationMinutes;
+        }
+      }
+    }
+
+    const client = params.clientId ? (this.clients().find((c) => c.id === params.clientId) || this.currentClient()) : { id: existing.clientId, name: existing.clientName, phone: existing.clientPhone };
+    const barber = params.barberId ? (this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0]) : { id: existing.barberId, name: existing.barberName };
+
+    const updatedApt: Appointment = {
+      ...existing,
+      clientId: client.id,
+      clientName: client.name,
+      clientPhone: client.phone,
+      barberId: barber.id,
+      barberName: barber.name,
+      serviceId: primaryServiceId,
+      serviceName: serviceNames,
+      services: servicesList,
+      totalDurationMinutes: totalDuration,
+      price: totalPrice,
+      date: params.date || existing.date,
+      time: params.time || existing.time,
+      notes: params.notes !== undefined ? params.notes : existing.notes,
+      status: params.status || existing.status,
+    };
+
+    const updated = this.appointments().map((a) => (a.id === id ? updatedApt : a));
+    this.appointments.set(updated);
+    this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, updated);
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const scheduledAt = new Date(`${updatedApt.date}T${updatedApt.time}:00`).toISOString();
+        const { error } = await this.supabaseService.supabase
+          .from('appointments')
+          .update({
+            customer_id: updatedApt.clientId,
+            barber_id: updatedApt.barberId,
+            service_id: updatedApt.serviceId,
+            scheduled_at: scheduledAt,
+            status: updatedApt.status,
+          })
+          .eq('id', id);
+
+        if (error) {
+          this.logger.error('BarberService', 'Error al actualizar cita en Supabase', error);
+        }
+      } catch (e) {
+        this.logger.error('BarberService', 'Excepción al actualizar cita en Supabase', e);
+      }
+    }
+
+    return updatedApt;
   }
 
   updateAppointmentStatus(id: string, status: Appointment['status']): void {
@@ -1601,8 +1745,9 @@ export class BarberService {
         clientId: target.clientId,
         barberId: target.barberId,
         serviceId: target.serviceId,
+        customPrice: target.price,
         paymentMethod: 'cash',
-        notes: `Cita completada (${target.time})`,
+        notes: target.notes ? `${target.notes} • (${target.serviceName})` : `Cita completada (${target.time} - ${target.serviceName})`,
       });
     }
 

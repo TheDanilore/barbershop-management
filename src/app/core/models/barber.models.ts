@@ -155,6 +155,13 @@ export interface CutRecord {
   notes?: string;
 }
 
+export interface AppointmentServiceItem {
+  serviceId: string;
+  name: string;
+  price: number;
+  durationMinutes: number;
+}
+
 export interface Appointment {
   id: string;
   clientId: string;
@@ -162,11 +169,13 @@ export interface Appointment {
   clientPhone: string;
   barberId: string;
   barberName: string;
-  serviceId: string;
-  serviceName: string;
+  serviceId: string; // ID del servicio primario o representativo
+  serviceName: string; // Nombre del servicio o resumen compuesto
+  services?: AppointmentServiceItem[]; // Lista detallada de servicios (combos / adicionales)
+  totalDurationMinutes?: number; // Duración total combinada en minutos
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
-  price: number;
+  price: number; // Precio total acumulado de todos los servicios
   status: AppointmentStatus;
   notes?: string;
 }

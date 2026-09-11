@@ -362,6 +362,10 @@ export class BarberLayoutPage implements OnInit {
     this.showToast(`✓ Cita agendada para ${apt.clientName || 'Cliente'} a las ${apt.time}`);
   }
 
+  onAppointmentUpdated(apt: any): void {
+    this.showToast(`✓ Cita de ${apt.clientName || 'Cliente'} actualizada correctamente`);
+  }
+
   getRoleLabelProfile(role: string | undefined): string {
     switch (role) {
       case 'admin': return 'Administrador';

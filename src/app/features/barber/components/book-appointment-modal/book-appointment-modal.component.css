@@ -30,8 +30,8 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
   width: 100%;
-  max-width: 580px;
-  max-height: 90vh;
+  max-width: 620px;
+  max-height: 92vh;
   box-shadow:
     0 25px 60px -10px rgba(0, 0, 0, 0.85),
     0 0 0 1px rgba(229, 169, 60, 0.18),
@@ -142,6 +142,29 @@
   border-radius: 3px;
 }
 
+/* Alerta de Error Reactiva */
+.modal-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.82rem;
+  animation: modalPopIn 0.18s ease-out;
+}
+
+.mea-icon {
+  font-size: 1rem;
+}
+
+.mea-text {
+  flex: 1;
+  font-weight: 500;
+}
+
 /* 5. Grupos de Campos e Inputs */
 .form-group {
   display: flex;
@@ -183,6 +206,21 @@
   transition: all 0.18s ease;
 }
 
+/* CORRECCIÓN CRÍTICA DE SELECTS: Opciones con fondo oscuro en Chromium/Windows */
+.form-input option,
+.form-input optgroup {
+  background-color: #16161d !important;
+  color: #f0f0f5 !important;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+}
+
+.form-input option:checked,
+.form-input option:hover {
+  background-color: #262633 !important;
+  color: var(--gold-primary, #e5a93c) !important;
+}
+
 .input-icon-wrap .form-input {
   padding: 8px 12px 8px 36px;
 }
@@ -194,8 +232,8 @@
 .form-textarea {
   padding: 8px 12px;
   resize: vertical;
-  min-height: 42px;
-  height: 42px;
+  min-height: 40px;
+  height: 40px;
 }
 
 .form-input:focus,
@@ -212,7 +250,214 @@
   gap: 10px;
 }
 
-/* 6. Selector Visual de Horarios (Time Chips Matrix) */
+/* 6. Sección Multi-Servicio & Combos */
+.services-multi-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sms-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sms-sub {
+  font-size: 0.7rem;
+  color: #7d7d92;
+}
+
+.sms-counter-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(229, 169, 60, 0.15);
+  color: var(--gold-primary, #e5a93c);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+}
+
+/* Botón Cita Abierta / Asesoría en Sillón */
+.to-define-action-row {
+  margin-bottom: 2px;
+}
+
+.to-define-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  color: #c4c4d6;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.to-define-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(229, 169, 60, 0.4);
+}
+
+.to-define-btn.active {
+  background: rgba(229, 169, 60, 0.1);
+  border: 1px solid var(--gold-primary, #e5a93c);
+  color: #ffffff;
+}
+
+.td-icon {
+  font-size: 1.1rem;
+}
+
+.td-texts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.td-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.td-sub {
+  font-size: 0.68rem;
+  color: #8c8ca1;
+}
+
+.td-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #0b0b0f;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.to-define-btn.active .td-radio {
+  background: var(--gold-primary, #e5a93c);
+  border-color: var(--gold-primary, #e5a93c);
+}
+
+/* Matriz de Chips Multi-Selección */
+.services-chips-matrix {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 7px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.services-chips-matrix::-webkit-scrollbar {
+  width: 4px;
+}
+.services-chips-matrix::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.multi-service-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  color: #c4c4d6;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.16s ease;
+  font-family: inherit;
+}
+
+.multi-service-chip:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.multi-service-chip.selected {
+  background: rgba(229, 169, 60, 0.12);
+  border-color: rgba(229, 169, 60, 0.5);
+  box-shadow: 0 2px 8px rgba(229, 169, 60, 0.2);
+}
+
+.msc-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #9292a8;
+  flex-shrink: 0;
+}
+
+.multi-service-chip.selected .msc-check {
+  background: var(--gold-primary, #e5a93c);
+  border-color: var(--gold-primary, #e5a93c);
+  color: #0c0c10;
+}
+
+.msc-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.msc-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msc-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+}
+
+.msc-price {
+  color: var(--gold-primary, #e5a93c);
+  font-weight: 700;
+}
+
+.msc-duration {
+  color: #8c8ca1;
+}
+
+/* 7. Selector Visual de Horarios (Time Chips Matrix) */
 .time-chips-section {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -224,11 +469,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .time-selected-badge {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   color: #a4a4ba;
 }
 
@@ -239,17 +484,17 @@
 .time-chips-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 7px;
+  gap: 6px;
 }
 
 .time-chip {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: 7px;
   color: #c4c4d6;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 8px 4px;
+  padding: 6px 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -287,27 +532,27 @@
   line-height: 1;
 }
 
-/* 7. Live Summary Card */
+/* 8. Live Summary Card */
 .live-summary-card {
   background: rgba(229, 169, 60, 0.04);
   border: 1px solid rgba(229, 169, 60, 0.18);
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: 11px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .lsc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 6px;
+  padding-bottom: 5px;
   border-bottom: 1px solid rgba(229, 169, 60, 0.12);
 }
 
 .lsc-title {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -315,7 +560,7 @@
 }
 
 .lsc-badge {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #34d399;
 }
@@ -323,14 +568,14 @@
 .lsc-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .lsc-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .lsc-label {
@@ -342,31 +587,55 @@
   font-weight: 600;
 }
 
+.lsc-services-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  max-width: 70%;
+}
+
+.service-tag-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.service-tag-badge.gold {
+  background: rgba(229, 169, 60, 0.15);
+  border-color: rgba(229, 169, 60, 0.35);
+  color: var(--gold-primary, #e5a93c);
+}
+
 .lsc-row.total {
-  margin-top: 4px;
-  padding-top: 6px;
+  margin-top: 3px;
+  padding-top: 5px;
   border-top: 1px dashed rgba(255, 255, 255, 0.08);
 }
 
 .lsc-row.total .lsc-label {
   color: #ffffff;
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
 }
 
 .lsc-val-price {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--gold-primary, #e5a93c);
 }
 
-/* 8. Footer con Botones de Acción */
+/* 9. Footer con Botones de Acción */
 .sheet-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 10px;
+  padding: 14px 22px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   background: rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
@@ -376,10 +645,10 @@
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #c4c4d6;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  padding: 10px 18px;
-  border-radius: 10px;
+  padding: 9px 16px;
+  border-radius: 9px;
   cursor: pointer;
   transition: all 0.18s ease;
   font-family: inherit;
@@ -394,12 +663,12 @@
   background: linear-gradient(135deg, #e5a93c 0%, #d4952b 100%);
   border: none;
   color: #0c0c10;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 800;
-  padding: 11px 22px;
-  border-radius: 10px;
+  padding: 10px 20px;
+  border-radius: 9px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(229, 169, 60, 0.35);
+  box-shadow: 0 4px 14px rgba(229, 169, 60, 0.35);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -410,7 +679,7 @@
 .btn-primary-confirm:hover:not(:disabled) {
   filter: brightness(1.08);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(229, 169, 60, 0.45);
+  box-shadow: 0 6px 18px rgba(229, 169, 60, 0.45);
 }
 
 .btn-primary-confirm:disabled {
@@ -421,8 +690,8 @@
 }
 
 .spinner-inline {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(0, 0, 0, 0.3);
   border-top-color: #000;
   border-radius: 50%;
@@ -435,7 +704,7 @@
 }
 
 /* ==============================================================================
-   9. MEDIA QUERIES ADAPTATIVAS (CAMALEÓNICO: MOBILE iOS BOTTOM SHEET)
+   10. MEDIA QUERIES ADAPTATIVAS (CAMALEÓNICO: MOBILE iOS BOTTOM SHEET)
    ============================================================================== */
 
 @media (max-width: 768px) {
@@ -447,9 +716,9 @@
   .modal-sheet {
     max-width: 100%;
     border-radius: 24px 24px 0 0;
-    max-height: 88vh;
+    max-height: 90vh;
     animation: slideUpSheet 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 14px));
     border-bottom: none;
   }
 
@@ -469,40 +738,44 @@
   }
 
   .sheet-header {
-    padding: 14px 20px 14px;
+    padding: 12px 18px;
   }
 
   .form-body {
-    padding: 16px 20px;
-    gap: 14px;
+    padding: 14px 18px;
+    gap: 12px;
   }
 
   .form-row-2 {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
+  }
+
+  .services-chips-matrix {
+    grid-template-columns: 1fr 1fr;
   }
 
   .time-chips-grid {
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 7px;
   }
 
   .time-chip {
-    padding: 10px 4px;
-    min-height: 44px;
-    font-size: 0.88rem;
+    padding: 9px 4px;
+    min-height: 42px;
+    font-size: 0.85rem;
   }
 
   .sheet-footer {
     flex-direction: column-reverse;
-    gap: 10px;
-    padding: 14px 20px;
+    gap: 8px;
+    padding: 12px 18px;
   }
 
   .btn-secondary-action,
   .btn-primary-confirm {
     width: 100%;
-    min-height: 48px;
+    min-height: 46px;
     justify-content: center;
   }
 }

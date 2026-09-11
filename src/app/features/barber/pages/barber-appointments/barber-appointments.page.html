@@ -299,6 +299,17 @@
                     <span class="meta-icon">✂️</span>
                     <span class="meta-text"><strong>{{ apt.serviceName }}</strong></span>
                   </div>
+                  @if (apt.totalDurationMinutes) {
+                  <div class="meta-item duration">
+                    <span class="meta-icon">⏱️</span>
+                    <span class="meta-text">{{ apt.totalDurationMinutes }}m</span>
+                  </div>
+                  }
+                  @if (apt.services && apt.services.length > 1) {
+                  <span class="combo-pill-badge" title="{{ apt.serviceName }}">
+                    Combo ({{ apt.services.length }})
+                  </span>
+                  }
                   <div class="meta-item price">
                     <span class="meta-price">${{ apt.price.toFixed(2) }}</span>
                   </div>
@@ -327,6 +338,13 @@
                   </button>
                   <button
                     type="button"
+                    class="btn-apt-act edit"
+                    (click)="openEditAppointmentModal(apt)"
+                    title="Modificar servicios, horario o notas">
+                    ✏️ Modificar
+                  </button>
+                  <button
+                    type="button"
                     class="btn-apt-act complete"
                     (click)="updateStatus(apt, 'completed')"
                     title="Marcar como finalizado">
@@ -346,6 +364,13 @@
                     (click)="updateStatus(apt, 'completed')"
                     title="Finalizar servicio y registrar">
                     ✓ Finalizar Servicio
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-apt-act edit"
+                    (click)="openEditAppointmentModal(apt)"
+                    title="Añadir servicios realizados en sillón">
+                    ✏️ Ajustar Servicios
                   </button>
                   <button
                     type="button"
@@ -434,6 +459,13 @@
                 </button>
                 <button
                   type="button"
+                  class="btn-tbl-action"
+                  (click)="openEditAppointmentModal(apt)"
+                  title="Editar Servicios / Cita">
+                  ✏️
+                </button>
+                <button
+                  type="button"
                   class="btn-tbl-action success"
                   (click)="updateStatus(apt, 'completed')"
                   title="Completar">
@@ -447,6 +479,13 @@
                   ✕
                 </button>
                 } @else if (apt.status === 'in-progress') {
+                <button
+                  type="button"
+                  class="btn-tbl-action"
+                  (click)="openEditAppointmentModal(apt)"
+                  title="Añadir servicios en sillón">
+                  ✏️
+                </button>
                 <button
                   type="button"
                   class="btn-tbl-action success"

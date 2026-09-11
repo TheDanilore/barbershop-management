@@ -414,13 +414,15 @@
   </div>
   }
 
-  <!-- MODAL: AGENDAR CITA (STANDALONE REUTILIZABLE) -->
+  <!-- MODAL: AGENDAR / EDITAR CITA (STANDALONE REUTILIZABLE) -->
   <app-book-appointment-modal
     [isOpen]="barberService.isBookingModalOpen()"
     [initialDate]="barberService.bookingModalDate()"
     [initialTime]="barberService.bookingModalTime()"
+    [appointmentToEdit]="barberService.bookingModalAppointmentToEdit()"
     (closed)="barberService.closeBookingModal()"
-    (appointmentBooked)="onAppointmentBooked($event)">
+    (appointmentBooked)="onAppointmentBooked($event)"
+    (appointmentUpdated)="onAppointmentUpdated($event)">
   </app-book-appointment-modal>
 
   <!-- MODAL: ALTA RÁPIDA DE CLIENTE -->

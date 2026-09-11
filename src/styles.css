@@ -137,6 +137,19 @@ select {
   padding-right: 40px;
 }
 
+select option,
+select optgroup {
+  background-color: #16161c;
+  color: #f9fafb;
+  padding: 10px 14px;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #262633;
+  color: #e5a93c;
+}
+
 /* Headings font style */
 h1, h2, h3, h4, .brand-font {
   font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;

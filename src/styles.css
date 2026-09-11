@@ -155,3 +155,42 @@ h1, h2, h3, h4, .brand-font {
   font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   letter-spacing: -0.02em;
 }
+
+/* --------------------------------------------------------------------------
+   GLOBAL FLOATING TOAST (TOP-CENTER DYNAMIC ISLAND / APPLE HIG PILL)
+   -------------------------------------------------------------------------- */
+.toast-banner,
+.local-toast {
+  position: fixed !important;
+  top: max(16px, env(safe-area-inset-top, 16px)) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: 10000 !important;
+  background: rgba(22, 22, 30, 0.92) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(229, 169, 60, 0.4) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 24px rgba(229, 169, 60, 0.16) !important;
+  padding: 10px 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  max-width: calc(100vw - 32px) !important;
+  animation: globalToastDropIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.15) forwards !important;
+  pointer-events: auto !important;
+}
+
+@keyframes globalToastDropIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+

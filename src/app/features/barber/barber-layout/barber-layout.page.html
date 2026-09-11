@@ -2,11 +2,22 @@
 <!-- BARBERTRACK PRO — LAYOUT SHELL (SIDEBAR + TOPBAR + ROUTER-OUTLET)          -->
 <!-- ========================================================================= -->
 <div class="dashboard-layout">
-  <!-- TOAST NOTIFICACIÓN GLOBAL -->
+  <!-- TOAST NOTIFICACIÓN GLOBAL (DYNAMIC ISLAND / APPLE HIG TOP-CENTER FLOATING PILL) -->
   @if (toastMessage()) {
-  <div class="toast-notification fade-in">
-    <div class="toast-indicator"></div>
-    <span class="toast-text">{{ toastMessage() }}</span>
+  <div class="toast-top-container">
+    <div class="toast-notification-pill" (click)="toastMessage.set(null)" role="alert" aria-live="assertive" tabindex="0">
+      <div class="toast-pill-glow"></div>
+      <div class="toast-indicator">
+        <span class="toast-dot-pulse"></span>
+      </div>
+      <span class="toast-text">{{ toastMessage() }}</span>
+      <button type="button" class="toast-dismiss-btn" (click)="$event.stopPropagation(); toastMessage.set(null)" aria-label="Cerrar notificación" title="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
   </div>
   }
 
@@ -314,17 +325,20 @@
   <!-- MODALES DE ACCIÓN RÁPIDA GLOBALES                                       -->
   <!-- ======================================================================= -->
 
-  <!-- MODAL: REGISTRAR CORTE (CONTADO O CRÉDITO/FIADO) -->
+  <!-- MODAL: REGISTRAR CORTE (COBRO EXPRESS POS CAMALEÓNICO) -->
   @if (isRegisterCutModalOpen()) {
   <div class="modal-backdrop" (click)="closeRegisterCutModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <div class="modal-sheet modal-sheet-pos" (click)="$event.stopPropagation()">
       <div class="sheet-drag-handle"></div>
 
-      <div class="sheet-header">
+      <div class="sheet-header pos-sheet-header">
         <div class="sheet-title-group">
-          <span class="sheet-badge gold">Cobro Express</span>
+          <div class="sheet-badge-row">
+            <span class="sheet-badge gold">Cobro Express POS</span>
+            <span class="sheet-shortcut-badge">Alt + N</span>
+          </div>
           <h3 class="sheet-title">Registrar Servicio</h3>
-          <p class="sheet-desc">Cobro al contado o a crédito (fiado)</p>
+          <p class="sheet-desc">Cobro rápido al contado o crédito (fiado) con selección de servicios</p>
         </div>
         <button class="sheet-close-btn" (click)="closeRegisterCutModal()" aria-label="Cerrar modal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -334,101 +348,198 @@
         </button>
       </div>
 
-      <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="sheet-form">
-        <div class="form-group">
-          <label class="form-label" for="cutClient">Cliente *</label>
-          <div class="client-select-wrap">
-            <select id="cutClient" class="form-input" formControlName="clientId">
-              @for (cli of barberService.clients(); track cli.id) {
-              <option [value]="cli.id">
-                {{ cli.name }} — {{ cli.phone }} ({{ cli.loyaltyStamps }} sellos)
-              </option>
-              }
-            </select>
-            <button type="button" class="btn-input-addon" (click)="openNewClientModal()" title="Alta de cliente express">
-              + Nuevo
-            </button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <div class="services-header-row">
-            <label class="form-label">Servicios Realizados (Selección múltiple) *</label>
-            <span class="badge-count">{{ selectedCutServices().length }} seleccionado{{ selectedCutServices().length > 1 ? 's' : '' }}</span>
-          </div>
-          <div class="services-chips-grid">
-            @for (srv of barberService.services(); track srv.id) {
-            <button type="button" class="service-chip" [class.selected]="selectedCutServiceIds().includes(srv.id)"
-              (click)="toggleCutService(srv.id)">
-              <div class="chip-content">
-                <span class="chip-name">{{ srv.name }}</span>
-                <span class="chip-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
+      <form [formGroup]="cutForm" (ngSubmit)="submitRegisterCut()" class="pos-sheet-form">
+        <div class="pos-layout-split">
+          <!-- COLUMNA IZQUIERDA: CLIENTE & SERVICIOS -->
+          <div class="pos-main-col">
+            <!-- Selector de Cliente -->
+            <div class="form-group">
+              <label class="form-label" for="cutClient">Cliente *</label>
+              <div class="client-select-wrap">
+                <select id="cutClient" class="form-input" formControlName="clientId">
+                  @for (cli of barberService.clients(); track cli.id) {
+                  <option [value]="cli.id">
+                    {{ cli.name }} — {{ cli.phone }} ({{ cli.loyaltyStamps }} sellos)
+                  </option>
+                  }
+                </select>
+                <button type="button" class="btn-input-addon" (click)="openNewClientModal()" title="Alta de cliente express">
+                  + Nuevo
+                </button>
               </div>
-              @if (selectedCutServiceIds().includes(srv.id)) {
-              <div class="chip-check-icon">✓</div>
-              }
-            </button>
+            </div>
+
+            <!-- Selección Múltiple de Servicios Realizados -->
+            <div class="form-group">
+              <div class="services-header-row">
+                <label class="form-label">Servicios Realizados (Selección múltiple) *</label>
+                <span class="badge-count">{{ selectedCutServices().length }} seleccionado{{ selectedCutServices().length > 1 ? 's' : '' }}</span>
+              </div>
+              <div class="services-chips-grid">
+                @for (srv of barberService.services(); track srv.id) {
+                <button type="button" class="service-chip" [class.selected]="selectedCutServiceIds().includes(srv.id)"
+                  (click)="toggleCutService(srv.id)">
+                  <div class="chip-content">
+                    <span class="chip-name">{{ srv.name }}</span>
+                    <span class="chip-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
+                  </div>
+                  @if (selectedCutServiceIds().includes(srv.id)) {
+                  <div class="chip-check-icon">✓</div>
+                  }
+                </button>
+                }
+              </div>
+            </div>
+
+            <!-- Venta a Crédito / Fiado -->
+            <div class="form-group">
+              <div class="toggle-card" [class.active]="cutForm.get('isCredit')?.value">
+                <div class="tc-info">
+                  <span class="tc-title">¿Venta a Crédito / Fiado?</span>
+                  <span class="tc-desc">El cliente pagará en una fecha posterior</span>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" formControlName="isCredit" (change)="toggleIsCredit($any($event.target).checked)" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Notas Adicionales (Opcional) -->
+            <div class="form-group">
+              <label class="form-label" for="cutNotes">Notas u Observaciones (Opcional)</label>
+              <input id="cutNotes" type="text" class="form-input" formControlName="notes"
+                placeholder="Ej: Cliente frecuente, degradado con navaja..." />
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: TICKET POS EN VIVO & MÉTODO DE PAGO -->
+          <div class="pos-ticket-col">
+            <!-- Voucher / Ticket Card -->
+            <div class="pos-receipt-card">
+              <div class="receipt-header">
+                <div class="receipt-brand">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="receipt-icon">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  <span class="receipt-title">Ticket POS</span>
+                </div>
+                <span class="receipt-badge-live">EN VIVO</span>
+              </div>
+
+              <!-- Lista de Items en el Ticket -->
+              <div class="receipt-items-list">
+                @if (selectedCutServices().length === 0) {
+                  <div class="receipt-empty-state">
+                    <span>Selecciona al menos un servicio</span>
+                  </div>
+                } @else {
+                  @for (srv of selectedCutServices(); track srv.id) {
+                    <div class="receipt-item-row">
+                      <span class="item-name">{{ srv.name }}</span>
+                      <span class="item-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
+                    </div>
+                  }
+                }
+              </div>
+
+              <div class="receipt-divider"></div>
+
+              <!-- Desglose de Totales -->
+              <div class="receipt-totals-section">
+                <div class="total-row subtotal-row">
+                  <span class="sub-label">Subtotal sugerido:</span>
+                  <span class="sub-val">{{ barberService.currencySymbol() }}{{ cutCalculatedSubtotal().toFixed(2) }}</span>
+                </div>
+
+                <div class="custom-price-block">
+                  <label class="custom-price-label" for="cutPrice">
+                    <span>Precio Final Acordado:</span>
+                    @if (cutForm.get('customPrice')?.value) {
+                      <button type="button" class="btn-clear-price" (click)="cutForm.patchValue({ customPrice: null })">Resetear</button>
+                    }
+                  </label>
+                  <div class="custom-price-input-wrap">
+                    <span class="currency-prefix">{{ barberService.currencySymbol() }}</span>
+                    <input id="cutPrice" type="number" step="0.50" min="0.01" class="form-input custom-price-input"
+                      formControlName="customPrice" [placeholder]="cutCalculatedSubtotal().toFixed(2)" />
+                  </div>
+                </div>
+
+                <div class="total-row final-total-row">
+                  <span class="final-label">TOTAL A COBRAR</span>
+                  <span class="final-amount">
+                    {{ barberService.currencySymbol() }}{{ (cutForm.get('customPrice')?.value ? (cutForm.get('customPrice')?.value | number:'1.2-2') : (cutCalculatedSubtotal() | number:'1.2-2')) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Métodos de Pago (si no es fiado) -->
+            @if (!cutForm.get('isCredit')?.value) {
+              <div class="form-group pos-payment-group">
+                <label class="form-label">Método de Pago *</label>
+                <div class="payment-methods-grid">
+                  <button type="button" class="payment-btn" [class.selected]="cutForm.get('paymentMethod')?.value === 'cash'"
+                    (click)="selectPaymentMethod('cash')">
+                    <span>💵 Efectivo</span>
+                    @if (!barberService.activeCashShift()) {
+                      <span class="warn-dot" title="Caja cerrada">⚠️</span>
+                    }
+                  </button>
+                  <button type="button" class="payment-btn" [class.selected]="cutForm.get('paymentMethod')?.value === 'card'"
+                    (click)="selectPaymentMethod('card')">
+                    <span>💳 Tarjeta</span>
+                  </button>
+                  <button type="button" class="payment-btn" [class.selected]="cutForm.get('paymentMethod')?.value === 'transfer'"
+                    (click)="selectPaymentMethod('transfer')">
+                    <span>📱 Yape/Transf.</span>
+                  </button>
+                </div>
+
+                <!-- Alerta Preventiva: Caja Cerrada para Efectivo -->
+                @if (cutForm.get('paymentMethod')?.value === 'cash' && !barberService.activeCashShift()) {
+                  <div class="cash-drawer-alert">
+                    <div class="cda-icon">⚠️</div>
+                    <div class="cda-text">
+                      <strong>Caja cerrada:</strong> No se pueden registrar pagos en efectivo sin un turno abierto.
+                    </div>
+                    <button type="button" class="cda-btn" (click)="goToCashRegister()">
+                      Abrir Caja
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="credit-badge-banner">
+                <span class="cbb-icon">⏳</span>
+                <div class="cbb-text">
+                  <strong>Cuenta por Cobrar (Fiado)</strong>
+                  <p>Se creará un saldo pendiente en la cuenta corriente del cliente.</p>
+                </div>
+              </div>
             }
-          </div>
 
-          @if (selectedCutServices().length > 0) {
-          <div class="combo-summary-banner">
-            <div class="csb-left">
-              <span class="csb-tag">Ticket POS</span>
-              <span class="csb-names">{{ selectedCutServices().length === 1 ? selectedCutServices()[0].name : 'Combo: ' + selectedCutServices().length + ' servicios' }}</span>
+            <!-- Botones de Acción (Desktop y Mobile Sticky) -->
+            <div class="pos-actions-bar">
+              <button type="button" class="btn-secondary" (click)="closeRegisterCutModal()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary-action"
+                [disabled]="cutForm.invalid || isSubmitting() || (cutForm.get('paymentMethod')?.value === 'cash' && !cutForm.get('isCredit')?.value && !barberService.activeCashShift())">
+                @if (isSubmitting()) {
+                  <span>Guardando...</span>
+                } @else {
+                  <span>{{ cutForm.get('isCredit')?.value ? 'Registrar al Fiado' : 'Cobrar Servicio' }}</span>
+                  <span class="kbd-badge">↵</span>
+                }
+              </button>
             </div>
-            <div class="csb-right">
-              <span class="csb-subtotal-label">Subtotal sugerido:</span>
-              <span class="csb-subtotal-value">{{ barberService.currencySymbol() }}{{ cutCalculatedSubtotal().toFixed(2) }}</span>
-            </div>
           </div>
-          }
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="cutPrice">Precio Final Acordado / Especial (Opcional)</label>
-          <input id="cutPrice" type="number" step="0.50" min="0.01" class="form-input"
-            formControlName="customPrice" [placeholder]="'Dejar vacío para cobrar el subtotal (' + barberService.currencySymbol() + cutCalculatedSubtotal().toFixed(2) + ')'" />
-        </div>
-
-        <div class="form-group">
-          <div class="toggle-card" [class.active]="cutForm.get('isCredit')?.value">
-            <div class="tc-info">
-              <span class="tc-title">¿Venta a Crédito / Fiado?</span>
-              <span class="tc-desc">El cliente pagará en una fecha posterior</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" formControlName="isCredit" (change)="toggleIsCredit($any($event.target).checked)" />
-              <span class="slider round"></span>
-            </label>
-          </div>
-        </div>
-
-        @if (!cutForm.get('isCredit')?.value) {
-        <div class="form-group">
-          <label class="form-label">Método de Pago *</label>
-          <div class="payment-methods-grid">
-            <button type="button" class="payment-btn" [class.selected]="cutForm.get('paymentMethod')?.value === 'cash'"
-              (click)="selectPaymentMethod('cash')">
-              <span>💵 Efectivo</span>
-            </button>
-            <button type="button" class="payment-btn" [class.selected]="cutForm.get('paymentMethod')?.value === 'card'"
-              (click)="selectPaymentMethod('card')">
-              <span>💳 Tarjeta</span>
-            </button>
-            <button type="button" class="payment-btn" [class.selected]="cutForm.get('paymentMethod')?.value === 'transfer'"
-              (click)="selectPaymentMethod('transfer')">
-              <span>📱 Yape/Transf.</span>
-            </button>
-          </div>
-        </div>
-        }
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeRegisterCutModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="cutForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Guardando...' : cutForm.get('isCredit')?.value ? 'Registrar al Fiado' : 'Cobrar Servicio' }}
-          </button>
         </div>
       </form>
     </div>

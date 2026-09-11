@@ -176,6 +176,36 @@ export class BarberLayoutPage implements OnInit {
       return;
     }
 
+    // Atajos dentro del Modal de Cobro Express POS
+    if (this.isRegisterCutModalOpen()) {
+      if (event.key === 'Enter' && !(event.target instanceof HTMLTextAreaElement)) {
+        event.preventDefault();
+        this.submitRegisterCut();
+        return;
+      }
+
+      if (event.altKey) {
+        const key = event.key.toLowerCase();
+        if (key === '1') {
+          event.preventDefault();
+          this.selectPaymentMethod('cash');
+          return;
+        } else if (key === '2') {
+          event.preventDefault();
+          this.selectPaymentMethod('card');
+          return;
+        } else if (key === '3') {
+          event.preventDefault();
+          this.selectPaymentMethod('transfer');
+          return;
+        } else if (key === 'f') {
+          event.preventDefault();
+          this.toggleIsCredit(!this.cutForm.get('isCredit')?.value);
+          return;
+        }
+      }
+    }
+
     if (event.altKey) {
       const key = event.key.toLowerCase();
       if (key === 'n') {
@@ -189,6 +219,12 @@ export class BarberLayoutPage implements OnInit {
         this.openNewClientModal();
       }
     }
+  }
+
+  goToCashRegister(): void {
+    this.haptics.lightTap();
+    this.closeRegisterCutModal();
+    this.navigateTo('cash');
   }
 
   closeAllModals(): void {

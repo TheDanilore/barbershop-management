@@ -78,6 +78,21 @@ export class BarberLayoutPage implements OnInit {
     notes: [''],
   });
 
+  // Servicios seleccionados reactivos para Cobro Express POS (Soporte multi-servicio / Combos)
+  readonly selectedCutServiceIds = signal<string[]>([]);
+
+  readonly selectedCutServices = computed(() => {
+    const ids = this.selectedCutServiceIds();
+    const allServices = this.barberService.services();
+    return ids
+      .map((id) => allServices.find((s) => s.id === id))
+      .filter((s): s is NonNullable<typeof s> => !!s);
+  });
+
+  readonly cutCalculatedSubtotal = computed(() => {
+    return this.selectedCutServices().reduce((sum, s) => sum + s.price, 0);
+  });
+
   readonly newClientForm: FormGroup = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
     phone: ['', [Validators.pattern(/^[+0-9\s-]{7,20}$/)]],
@@ -213,7 +228,7 @@ export class BarberLayoutPage implements OnInit {
   }
 
   // ---------------------------------------------------------------------------
-  // MODAL REGISTRO DE CORTE (COBRO RÁPIDO)
+  // MODAL REGISTRO DE CORTE (COBRO RÁPIDO POS - MULTI-SERVICIO)
   // ---------------------------------------------------------------------------
   openRegisterCutModal(preselectedClientId?: string): void {
     this.haptics.lightTap();
@@ -223,6 +238,9 @@ export class BarberLayoutPage implements OnInit {
       this.barberService.clients()[0]?.id ||
       '';
     const firstService = this.barberService.services()[0];
+    const initialServices = firstService ? [firstService.id] : [];
+    this.selectedCutServiceIds.set(initialServices);
+
     this.cutForm.reset({
       clientId,
       serviceId: firstService?.id || '',
@@ -239,9 +257,28 @@ export class BarberLayoutPage implements OnInit {
     this.isRegisterCutModalOpen.set(false);
   }
 
-  selectService(serviceId: string): void {
+  toggleCutService(serviceId: string): void {
     this.haptics.selection();
-    this.cutForm.patchValue({ serviceId });
+    const current = this.selectedCutServiceIds();
+    let updated: string[];
+
+    if (current.includes(serviceId)) {
+      if (current.length > 1) {
+        updated = current.filter((id) => id !== serviceId);
+      } else {
+        this.haptics.warning();
+        return;
+      }
+    } else {
+      updated = [...current, serviceId];
+    }
+
+    this.selectedCutServiceIds.set(updated);
+    this.cutForm.patchValue({ serviceId: updated[0] || '' });
+  }
+
+  selectService(serviceId: string): void {
+    this.toggleCutService(serviceId);
   }
 
   selectPaymentMethod(method: PaymentMethod): void {
@@ -270,7 +307,14 @@ export class BarberLayoutPage implements OnInit {
       return;
     }
 
-    const { clientId, serviceId, customPrice, paymentMethod, isCredit, notes } = this.cutForm.value;
+    const selectedServices = this.selectedCutServices();
+    if (selectedServices.length === 0) {
+      this.haptics.warning();
+      this.showToast('Selecciona al menos un servicio realizado');
+      return;
+    }
+
+    const { clientId, customPrice, paymentMethod, isCredit, notes } = this.cutForm.value;
 
     this.isSubmitting.set(true);
     try {
@@ -281,7 +325,13 @@ export class BarberLayoutPage implements OnInit {
       await this.barberService.registerCut({
         clientId,
         barberId: realBarberId,
-        serviceId,
+        serviceId: selectedServices[0].id,
+        services: selectedServices.map((s) => ({
+          serviceId: s.id,
+          name: s.name,
+          price: s.price,
+          quantity: 1,
+        })),
         customPrice: customPrice ? Number(customPrice) : undefined,
         paymentMethod,
         isCredit: Boolean(isCredit),
@@ -289,7 +339,8 @@ export class BarberLayoutPage implements OnInit {
       });
 
       this.haptics.success();
-      this.showToast(isCredit ? '✅ Servicio registrado al Crédito (Fiado)' : '✅ Cobro registrado con éxito');
+      const servicesLabel = selectedServices.length > 1 ? ` (${selectedServices.length} servicios)` : '';
+      this.showToast(isCredit ? `✅ Orden al Crédito registrada${servicesLabel}` : `✅ Cobro registrado con éxito${servicesLabel}`);
       this.closeRegisterCutModal();
     } catch (err: any) {
       this.haptics.warning();

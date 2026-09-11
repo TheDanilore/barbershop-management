@@ -690,6 +690,12 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.form-input option {
+  background: #18181b;
+  color: #ffffff;
+  padding: 8px;
+}
+
 .form-input:focus {
   outline: none;
   border-color: #e5a93c;
@@ -713,7 +719,24 @@
   white-space: nowrap;
 }
 
-/* Service chips */
+/* Service chips multi-select */
+.services-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.badge-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(229, 169, 60, 0.15);
+  color: #e5a93c;
+  border: 1px solid rgba(229, 169, 60, 0.3);
+}
+
 .services-chips-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -721,20 +744,28 @@
 }
 
 .service-chip {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 12px;
   background: #0f0f13;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 }
 
 .service-chip.selected {
   border-color: #e5a93c;
   background: rgba(229, 169, 60, 0.12);
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.1);
+}
+
+.chip-content {
+  display: flex;
+  flex-direction: column;
 }
 
 .chip-name {
@@ -748,6 +779,73 @@
   color: #e5a93c;
   font-weight: 800;
   margin-top: 4px;
+}
+
+.chip-check-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e5a93c;
+  color: #000000;
+  font-size: 0.65rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+/* Combo summary banner */
+.combo-summary-banner {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(229, 169, 60, 0.08);
+  border: 1px dashed rgba(229, 169, 60, 0.35);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.csb-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.csb-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e5a93c;
+  color: #0b0f19;
+}
+
+.csb-names {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.csb-right {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.csb-subtotal-label {
+  font-size: 0.74rem;
+  color: #a1a1aa;
+}
+
+.csb-subtotal-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #e5a93c;
 }
 
 /* Toggle Credit / Fiado */

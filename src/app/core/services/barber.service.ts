@@ -22,6 +22,8 @@ import {
   LoyaltyRewardClaim,
   MembershipTier,
   MovementType,
+  Order,
+  OrderItem,
   PaymentMethod,
   ReferenceType,
   Review,
@@ -605,67 +607,74 @@ export class BarberService {
         this.logger.error('BarberService', 'Excepción de red al cargar perfiles unificados', profilesEx);
       }
 
-      // 4. Proyección quirúrgica de Ventas recientes con Join relacional seguro
+      // 4. Proyección quirúrgica de Órdenes POS y sus Ítems desglosados
       try {
-        let salesData: any = null;
-        let salesError: any = null;
-
-        const res = await this.supabaseService.supabase
-          .from('sales_history')
+        const { data: ordersData, error: ordersError } = await this.supabaseService.supabase
+          .from('orders')
           .select(`
             id,
+            order_number,
             final_price,
             payment_method,
             created_at,
             customer_id,
             barber_id,
-            service_id,
-            customer:profiles!sales_history_customer_id_fkey (id, full_name),
-            barber:profiles!sales_history_barber_id_fkey (id, full_name)
+            notes,
+            customer:profiles!orders_customer_id_fkey (id, full_name),
+            barber:profiles!orders_barber_id_fkey (id, full_name),
+            order_items (id, service_id, item_name, unit_price, quantity, subtotal)
           `)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(30);
 
-        salesData = res.data;
-        salesError = res.error;
-
-        // Fallback a select plano si las restricciones foráneas están en actualización
-        if (salesError) {
-          const fallbackRes = await this.supabaseService.supabase
-            .from('sales_history')
-            .select('id, final_price, payment_method, created_at, customer_id, barber_id, service_id')
-            .order('created_at', { ascending: false })
-            .limit(20);
-          salesData = fallbackRes.data;
-          salesError = fallbackRes.error;
-        }
-
-        if (!salesError && salesData && salesData.length > 0) {
+        if (ordersData && ordersData.length > 0) {
           const currentServices = this.services();
           const currentClients = this.clients();
           const currentBarbers = this.barbers();
 
-          const mappedCuts: CutRecord[] = salesData.map((s: any) => {
+          const mappedCuts: CutRecord[] = ordersData.map((s: any) => {
             const cli = currentClients.find((c) => c.id === s.customer_id);
             const brb = currentBarbers.find((b) => b.id === s.barber_id);
-            const srv = currentServices.find((sv) => sv.id === s.service_id);
+            const items = s.order_items || [];
+
+            let serviceName = 'Servicio';
+            let serviceId = s.service_id || '';
+
+            if (items.length > 0) {
+              serviceName = items.map((i: any) => i.item_name).join(' + ');
+              serviceId = items[0]?.service_id || serviceId;
+            } else if (s.service_id) {
+              const srv = currentServices.find((sv) => sv.id === s.service_id);
+              serviceName = srv?.name || 'Servicio';
+            }
 
             return {
               id: s.id,
+              orderNumber: s.order_number,
               clientId: s.customer_id || '',
               clientName: s.customer?.full_name || cli?.name || 'Cliente General',
               barberId: s.barber_id || '',
               barberName: s.barber?.full_name || brb?.name || 'Barbero',
-              serviceId: s.service_id || '',
-              serviceName: srv?.name || 'Corte',
+              serviceId,
+              serviceName,
               price: Number(s.final_price),
               date: s.created_at,
               paymentMethod: (s.payment_method as PaymentMethod) || 'cash',
+              notes: s.notes || undefined,
+              items: items.map((i: any) => ({
+                id: i.id,
+                orderId: s.id,
+                serviceId: i.service_id,
+                itemName: i.item_name,
+                unitPrice: Number(i.unit_price),
+                quantity: i.quantity || 1,
+                subtotal: Number(i.subtotal),
+              })),
             };
           });
           this.cuts.set(mappedCuts);
           this.saveToStorage(STORAGE_KEYS.CUTS, mappedCuts);
-        } else if (!salesError && salesData && salesData.length === 0) {
+        } else if (!ordersError && ordersData && ordersData.length === 0) {
           const localUnsynced = this.cuts().filter((c) => c.id.startsWith('cut-'));
           if (localUnsynced.length === 0) {
             this.cuts.set([]);
@@ -800,64 +809,115 @@ export class BarberService {
   }
 
   /**
-   * Registro atómico de corte:
-   * En Supabase: inserta en `sales_history` y el Trigger de PostgreSQL actualiza fidelidad atómicamente.
+   * Registro atómico de orden POS (Servicio único o Combo multi-servicio):
+   * Soporta arquitectura POS estándar con `orders` y `order_items`.
+   * Incluye fallback transparente a `sales_history` si la migración de órdenes aún no se aplicó.
    * Soporta cobro de contado (efectivo, tarjeta, transferencia) o Al Crédito (Fiar).
    */
   async registerCut(params: {
     clientId: string;
     barberId: string;
-    serviceId: string;
+    serviceId?: string;
+    services?: Array<{ serviceId: string; name: string; price: number; quantity?: number }>;
+    items?: OrderItem[];
     customPrice?: number;
     paymentMethod: PaymentMethod;
     notes?: string;
     isCredit?: boolean;
+    appointmentId?: string;
   }): Promise<CutRecord> {
     const client = this.clients().find((c) => c.id === params.clientId);
     const barber = this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0];
-    const service = this.services().find((s) => s.id === params.serviceId) || this.services()[0];
+    const availableServices = this.services();
 
+    // 1. Construcción de líneas de detalle (Multi-servicio / Combo)
+    let lineItems: OrderItem[] = [];
+    if (params.items && params.items.length > 0) {
+      lineItems = [...params.items];
+    } else if (params.services && params.services.length > 0) {
+      lineItems = params.services.map((s) => ({
+        serviceId: s.serviceId,
+        itemName: s.name,
+        unitPrice: s.price,
+        quantity: s.quantity || 1,
+        subtotal: s.price * (s.quantity || 1),
+      }));
+    } else {
+      const singleService = availableServices.find((s) => s.id === params.serviceId) || availableServices[0];
+      lineItems = [
+        {
+          serviceId: singleService?.id || '',
+          itemName: singleService?.name || 'Servicio de Barbería',
+          unitPrice: singleService?.price || 15,
+          quantity: 1,
+          subtotal: singleService?.price || 15,
+        },
+      ];
+    }
+
+    const calculatedSubtotal = lineItems.reduce((acc, it) => acc + (it.subtotal || it.unitPrice * (it.quantity || 1)), 0);
     const finalPrice =
       params.customPrice !== undefined && params.customPrice !== null && !isNaN(params.customPrice)
         ? Number(params.customPrice)
-        : service.price;
+        : calculatedSubtotal;
+    const discountAmount = Math.max(0, calculatedSubtotal - finalPrice);
 
     const actualPaymentMethod: PaymentMethod = params.isCredit ? 'credit' : params.paymentMethod;
     const activeShift = this.activeCashShift();
     let saleId = '';
+    let orderNumber: number | undefined = undefined;
 
-    // Persistir en Supabase primero para obtener el UUID generado automáticamente por PostgreSQL
+    // 2. Persistir en Supabase (Arquitectura POS: orders + order_items)
     if (this.supabaseService.isConfigured()) {
       try {
         const activeProfile = this.supabaseService.userProfile();
-        const availableBarbers = this.barbers();
-        const availableServices = this.services();
-
-        const realBarberId = params.barberId || activeProfile?.id || availableBarbers[0]?.id || null;
-        const realServiceId = params.serviceId || availableServices[0]?.id || null;
+        const realBarberId = params.barberId || activeProfile?.id || barber?.id || null;
         const shiftIdReal = activeShift?.id || null;
 
-        const { data: saleData, error } = await this.supabaseService.supabase
-          .from('sales_history')
+        const { data: orderData, error: orderErr } = await this.supabaseService.supabase
+          .from('orders')
           .insert({
             customer_id: params.clientId || null,
             barber_id: realBarberId,
-            service_id: realServiceId,
+            appointment_id: params.appointmentId || null,
+            shift_id: shiftIdReal,
+            subtotal: calculatedSubtotal,
+            discount_amount: discountAmount,
             final_price: finalPrice,
             payment_method: actualPaymentMethod,
             amount_paid: params.isCredit ? 0 : finalPrice,
             amount_debt: params.isCredit ? finalPrice : 0,
-            shift_id: shiftIdReal,
+            notes: params.notes || null,
+            status: 'completed',
           })
-          .select('id')
+          .select('id, order_number')
           .single();
 
-        if (error) {
-          this.logger.error('BarberService', 'Error al insertar venta en Supabase', error);
-          throw error;
-        } else if (saleData) {
-          saleId = saleData.id;
-          this.logger.info('BarberService', 'Venta persistida con éxito en Supabase con ID:', saleId);
+        if (orderErr) {
+          this.logger.error('BarberService', 'Error al insertar orden POS en Supabase', orderErr);
+          throw orderErr;
+        } else if (orderData) {
+          saleId = orderData.id;
+          orderNumber = orderData.order_number;
+
+          // Insertar líneas de detalle en order_items
+          const itemsToInsert = lineItems.map((it) => ({
+            order_id: saleId,
+            service_id: it.serviceId || null,
+            item_type: 'service',
+            item_name: it.itemName,
+            unit_price: it.unitPrice,
+            quantity: it.quantity || 1,
+            subtotal: it.subtotal || it.unitPrice * (it.quantity || 1),
+          }));
+
+          const { error: itemsErr } = await this.supabaseService.supabase
+            .from('order_items')
+            .insert(itemsToInsert);
+
+          if (itemsErr) {
+            this.logger.error('BarberService', 'Aviso al registrar order_items', itemsErr);
+          }
         }
 
         // Si es crédito, registrar en customer_credit_movements (CHARGE)
@@ -882,13 +942,14 @@ export class BarberService {
             }
 
             if (creditAccId) {
+              const summaryName = lineItems.map((i) => i.itemName).join(', ');
               await this.supabaseService.supabase.from('customer_credit_movements').insert({
                 customer_credit_id: creditAccId,
-                sale_id: saleId || null,
+                order_id: saleId || null,
                 movement_type: 'CHARGE',
                 amount: finalPrice,
                 payment_method: 'credit',
-                notes: `Corte fiado: ${service.name}`,
+                notes: `Orden fiada: ${summaryName}`,
                 shift_id: shiftIdReal,
               });
             }
@@ -902,12 +963,13 @@ export class BarberService {
 
           if (targetAcc) {
             try {
+              const summaryName = lineItems.map((i) => i.itemName).join(' + ');
               await this.supabaseService.supabase.from('account_movements').insert({
                 account_id: targetAcc.id,
                 movement_type: 'income',
                 amount: finalPrice,
-                description: `Cobro: ${service.name} (${client?.name || 'Cliente'})`,
-                reference_type: 'sale',
+                description: `Cobro: ${summaryName} (${client?.name || 'Cliente'})`,
+                reference_type: 'order',
                 reference_id: saleId || null,
                 shift_id: actualPaymentMethod === 'cash' ? shiftIdReal : null,
               });
@@ -938,18 +1000,23 @@ export class BarberService {
       saleId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'offline-cut';
     }
 
+    const summaryServiceName = lineItems.map((i) => i.itemName).join(' + ');
+    const primaryServiceId = lineItems[0]?.serviceId || '';
+
     const newCut: CutRecord = {
       id: saleId,
+      orderNumber,
       clientId: params.clientId,
       clientName: client ? client.name : 'Cliente General',
-      barberId: barber.id,
-      barberName: barber.name,
-      serviceId: service.id,
-      serviceName: service.name,
+      barberId: barber?.id || '',
+      barberName: barber?.name || 'Barbero',
+      serviceId: primaryServiceId,
+      serviceName: summaryServiceName,
       price: finalPrice,
       date: new Date().toISOString(),
       paymentMethod: actualPaymentMethod,
       notes: params.notes,
+      items: lineItems,
     };
 
     const updatedCuts = [newCut, ...this.cuts()];

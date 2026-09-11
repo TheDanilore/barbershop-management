@@ -139,6 +139,110 @@ $$;
 ALTER FUNCTION "public"."fn_on_credit_movement"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."fn_on_order_deleted"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_real_cuts integer := 0;
+    v_new_tier  text;
+BEGIN
+    IF OLD.customer_id IS NOT NULL THEN
+        -- Contar órdenes reales vigentes
+        SELECT COUNT(*) INTO v_real_cuts
+        FROM public.orders
+        WHERE customer_id = OLD.customer_id AND status = 'completed';
+
+        -- Actualizar progreso
+        INSERT INTO public.loyalty_progress (
+            customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
+        )
+        VALUES (OLD.customer_id, v_real_cuts, v_real_cuts, 0, now())
+        ON CONFLICT (customer_id) DO UPDATE SET
+            current_stamps        = EXCLUDED.current_stamps,
+            total_historical_cuts = EXCLUDED.total_historical_cuts,
+            updated_at            = now();
+
+        -- Recalcular nivel de membresía
+        v_new_tier := CASE
+            WHEN v_real_cuts >= 50 THEN 'VIP'
+            WHEN v_real_cuts >= 20 THEN 'Gold'
+            WHEN v_real_cuts >= 5  THEN 'Silver'
+            ELSE 'Bronze'
+        END;
+
+        UPDATE public.profiles
+        SET membership_tier = v_new_tier
+        WHERE id = OLD.customer_id;
+    END IF;
+
+    RETURN OLD;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."fn_on_order_deleted"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."fn_on_order_loyalty_update"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_total_cuts integer;
+    v_new_stamps integer;
+    v_new_tier   text;
+    v_reward     RECORD;
+BEGIN
+    -- Solo procesar si la orden está completada y tiene un cliente asociado
+    -- Si es un UPDATE, solo disparar si antes NO estaba completed (evita acumulación duplicada)
+    IF NEW.customer_id IS NOT NULL 
+       AND NEW.status = 'completed' 
+       AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed') THEN
+
+        -- 1. Upsert de progreso: 1 orden completada = 1 visita/sello
+        INSERT INTO public.loyalty_progress (
+            customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
+        )
+        VALUES (NEW.customer_id, 1, 1, 0, now())
+        ON CONFLICT (customer_id) DO UPDATE SET
+            current_stamps        = public.loyalty_progress.current_stamps + 1,
+            total_historical_cuts = public.loyalty_progress.total_historical_cuts + 1,
+            updated_at            = now()
+        RETURNING current_stamps, total_historical_cuts
+        INTO v_new_stamps, v_total_cuts;
+
+        -- 2. Detección de premios alcanzados
+        FOR v_reward IN
+            SELECT id, stamps_required, name
+            FROM public.loyalty_rewards
+            WHERE is_active = true AND stamps_required = v_new_stamps
+        LOOP
+            INSERT INTO public.loyalty_reward_claims
+                (customer_id, reward_id, sale_id, order_id, stamps_at_claim)
+            VALUES
+                (NEW.customer_id, v_reward.id, NEW.id, NEW.id, v_new_stamps);
+        END LOOP;
+
+        -- 3. Sincronizar nivel de membresía (Alineado con TypeScript: Bronze, Silver, Gold, VIP)
+        v_new_tier := CASE
+            WHEN v_total_cuts >= 50 THEN 'VIP'
+            WHEN v_total_cuts >= 20 THEN 'Gold'
+            WHEN v_total_cuts >= 5  THEN 'Silver'
+            ELSE 'Bronze'
+        END;
+
+        UPDATE public.profiles
+        SET membership_tier = v_new_tier
+        WHERE id = NEW.customer_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."fn_on_order_loyalty_update"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."fn_on_sale_deleted"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -147,34 +251,21 @@ DECLARE
     v_new_tier  text;
 BEGIN
     IF OLD.customer_id IS NOT NULL THEN
-        -- Contar las ventas reales vigentes para este cliente
         SELECT COUNT(*) INTO v_real_cuts
-        FROM public.sales_history
-        WHERE customer_id = OLD.customer_id;
+        FROM public.orders
+        WHERE customer_id = OLD.customer_id AND status = 'completed';
 
-        -- Actualizar loyalty_progress reflejando los cortes reales
         INSERT INTO public.loyalty_progress (
-            customer_id,
-            current_stamps,
-            total_historical_cuts,
-            rewards_claimed,
-            updated_at
+            customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
         )
-        VALUES (
-            OLD.customer_id,
-            v_real_cuts,
-            v_real_cuts,
-            0,
-            now()
-        )
+        VALUES (OLD.customer_id, v_real_cuts, v_real_cuts, 0, now())
         ON CONFLICT (customer_id) DO UPDATE SET
             current_stamps        = EXCLUDED.current_stamps,
             total_historical_cuts = EXCLUDED.total_historical_cuts,
             updated_at            = now();
 
-        -- Recalcular nivel de membresía
         v_new_tier := CASE
-            WHEN v_real_cuts >= 50 THEN 'Diamond'
+            WHEN v_real_cuts >= 50 THEN 'VIP'
             WHEN v_real_cuts >= 20 THEN 'Gold'
             WHEN v_real_cuts >= 5  THEN 'Silver'
             ELSE 'Bronze'
@@ -203,13 +294,8 @@ DECLARE
     v_reward        RECORD;
 BEGIN
     IF NEW.customer_id IS NOT NULL THEN
-        -- Upsert de progreso: incrementar sellos y cortes acumulados
         INSERT INTO public.loyalty_progress (
-            customer_id,
-            current_stamps,
-            total_historical_cuts,
-            rewards_claimed,
-            updated_at
+            customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
         )
         VALUES (NEW.customer_id, 1, 1, 0, now())
         ON CONFLICT (customer_id) DO UPDATE SET
@@ -219,13 +305,10 @@ BEGIN
         RETURNING current_stamps, total_historical_cuts
         INTO v_new_stamps, v_total_cuts;
 
-        -- Detectar si algún premio activo fue alcanzado en este sello exacto
-        -- (Funciona con 0 premios configurados: el FOR simplemente no itera)
         FOR v_reward IN
             SELECT id, stamps_required, name
             FROM public.loyalty_rewards
-            WHERE is_active = true
-              AND stamps_required = v_new_stamps
+            WHERE is_active = true AND stamps_required = v_new_stamps
         LOOP
             INSERT INTO public.loyalty_reward_claims
                 (customer_id, reward_id, sale_id, stamps_at_claim)
@@ -233,13 +316,8 @@ BEGIN
                 (NEW.customer_id, v_reward.id, NEW.id, v_new_stamps);
         END LOOP;
 
-        -- Si el cliente completó el ciclo (llegó al máximo de sellos de cualquier premio),
-        -- y no existe configuración de reset, mantener el sello acumulado.
-        -- El reset ahora es manual o puede hacerse con el canje del premio (decidir en app).
-
-        -- Recalcular membership tier
         v_new_tier := CASE
-            WHEN v_total_cuts >= 50 THEN 'Diamond'
+            WHEN v_total_cuts >= 50 THEN 'VIP'
             WHEN v_total_cuts >= 20 THEN 'Gold'
             WHEN v_total_cuts >= 5  THEN 'Silver'
             ELSE 'Bronze'
@@ -288,24 +366,18 @@ DECLARE
   v_result json;
 BEGIN
   SELECT json_build_object(
-    'cuts_today', count(*) FILTER (WHERE created_at >= CURRENT_DATE),
-    'cuts_this_month', count(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)),
-    'revenue_today', COALESCE(sum(final_price) FILTER (WHERE created_at >= CURRENT_DATE), 0)::numeric(10,2),
-    'revenue_this_week', COALESCE(sum(final_price) FILTER (WHERE created_at >= (CURRENT_DATE - interval '7 days')), 0)::numeric(10,2),
-    'revenue_this_month', COALESCE(sum(final_price) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)), 0)::numeric(10,2),
-    'total_revenue', COALESCE(sum(final_price), 0)::numeric(10,2),
-    'total_cuts', count(*),
-    'active_clients', (
-      SELECT count(*) FROM public.profiles 
-      WHERE role = 'customer' AND is_active = true
-    ),
-    'average_rating', COALESCE(
-      (SELECT round(avg(rating)::numeric, 1) FROM public.reviews), 
-      5.0
-    )
+    'cuts_today', count(*) FILTER (WHERE created_at >= CURRENT_DATE AND status = 'completed'),
+    'cuts_this_month', count(*) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE) AND status = 'completed'),
+    'revenue_today', COALESCE(sum(final_price) FILTER (WHERE created_at >= CURRENT_DATE AND status = 'completed'), 0)::numeric(10,2),
+    'revenue_this_week', COALESCE(sum(final_price) FILTER (WHERE created_at >= (CURRENT_DATE - interval '7 days') AND status = 'completed'), 0)::numeric(10,2),
+    'revenue_this_month', COALESCE(sum(final_price) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE) AND status = 'completed'), 0)::numeric(10,2),
+    'total_revenue', COALESCE(sum(final_price) FILTER (WHERE status = 'completed'), 0)::numeric(10,2),
+    'total_cuts', count(*) FILTER (WHERE status = 'completed'),
+    'active_clients', (SELECT count(*) FROM public.profiles WHERE role = 'customer' AND is_active = true),
+    'average_rating', COALESCE((SELECT round(avg(rating)::numeric, 1) FROM public.reviews), 5.0)
   )
   INTO v_result
-  FROM public.sales_history
+  FROM public.orders
   WHERE (p_barber_id IS NULL OR barber_id = p_barber_id);
 
   RETURN v_result;
@@ -351,13 +423,21 @@ ALTER FUNCTION "public"."is_staff"() OWNER TO "postgres";
 CREATE OR REPLACE FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text" DEFAULT NULL::"text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
+DECLARE
+    v_staff_profile_id uuid;
 BEGIN
+    SELECT id INTO v_staff_profile_id
+    FROM public.profiles
+    WHERE (auth_user_id = auth.uid() OR id = auth.uid())
+      AND role IN ('admin'::public.user_role, 'barber'::public.user_role)
+    LIMIT 1;
+
     UPDATE public.loyalty_reward_claims
     SET redeemed_at = now(),
-        redeemed_by = auth.uid(),
+        redeemed_by = v_staff_profile_id,
         notes       = COALESCE(p_notes, notes)
     WHERE id = p_claim_id
-      AND redeemed_at IS NULL;  -- Idempotente: solo canjea si está pendiente
+      AND redeemed_at IS NULL;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Premio no encontrado o ya canjeado (id: %)', p_claim_id;
@@ -408,10 +488,12 @@ CREATE TABLE IF NOT EXISTS "public"."appointments" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "customer_id" "uuid" NOT NULL,
     "barber_id" "uuid" NOT NULL,
-    "service_id" "uuid" NOT NULL,
+    "service_id" "uuid",
     "scheduled_at" timestamp with time zone NOT NULL,
     "status" "public"."appointment_status" DEFAULT 'confirmed'::"public"."appointment_status" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "services_details" "jsonb" DEFAULT '[]'::"jsonb",
+    "total_duration_minutes" integer DEFAULT 30
 );
 
 
@@ -462,6 +544,7 @@ CREATE TABLE IF NOT EXISTS "public"."customer_credit_movements" (
     "created_at" timestamp with time zone DEFAULT "now"(),
     "created_by" "uuid",
     "shift_id" "uuid",
+    "order_id" "uuid",
     CONSTRAINT "customer_credit_movements_amount_check" CHECK (("amount" > (0)::numeric)),
     CONSTRAINT "customer_credit_movements_movement_type_check" CHECK (("movement_type" = ANY (ARRAY['CHARGE'::"text", 'PAYMENT'::"text"])))
 );
@@ -522,7 +605,8 @@ CREATE TABLE IF NOT EXISTS "public"."loyalty_reward_claims" (
     "redeemed_at" timestamp with time zone,
     "redeemed_by" "uuid",
     "notes" "text",
-    "stamps_at_claim" integer NOT NULL
+    "stamps_at_claim" integer NOT NULL,
+    "order_id" "uuid"
 );
 
 
@@ -547,6 +631,64 @@ CREATE TABLE IF NOT EXISTS "public"."loyalty_rewards" (
 ALTER TABLE "public"."loyalty_rewards" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."order_items" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "order_id" "uuid" NOT NULL,
+    "service_id" "uuid",
+    "item_type" "text" DEFAULT 'service'::"text" NOT NULL,
+    "item_name" "text" NOT NULL,
+    "unit_price" numeric(10,2) NOT NULL,
+    "quantity" integer DEFAULT 1 NOT NULL,
+    "subtotal" numeric(10,2) NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "order_items_quantity_check" CHECK (("quantity" > 0)),
+    CONSTRAINT "order_items_subtotal_check" CHECK (("subtotal" >= (0)::numeric)),
+    CONSTRAINT "order_items_unit_price_check" CHECK (("unit_price" >= (0)::numeric))
+);
+
+
+ALTER TABLE "public"."order_items" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."orders" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "order_number" integer NOT NULL,
+    "customer_id" "uuid",
+    "barber_id" "uuid" NOT NULL,
+    "appointment_id" "uuid",
+    "shift_id" "uuid",
+    "subtotal" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "discount_amount" numeric(10,2) DEFAULT 0.00 NOT NULL,
+    "final_price" numeric(10,2) NOT NULL,
+    "amount_paid" numeric(10,2) DEFAULT NULL::numeric,
+    "amount_debt" numeric(10,2) DEFAULT 0.00,
+    "payment_method" "text" NOT NULL,
+    "status" "text" DEFAULT 'completed'::"text" NOT NULL,
+    "notes" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_by" "uuid"
+);
+
+
+ALTER TABLE "public"."orders" OWNER TO "postgres";
+
+
+CREATE SEQUENCE IF NOT EXISTS "public"."orders_order_number_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE "public"."orders_order_number_seq" OWNER TO "postgres";
+
+
+ALTER SEQUENCE "public"."orders_order_number_seq" OWNED BY "public"."orders"."order_number";
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "auth_user_id" "uuid",
@@ -565,10 +707,11 @@ ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
 CREATE TABLE IF NOT EXISTS "public"."reviews" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "sale_id" "uuid" NOT NULL,
+    "sale_id" "uuid",
     "rating" integer NOT NULL,
     "comment" "text",
     "created_at" timestamp with time zone DEFAULT "now"(),
+    "order_id" "uuid",
     CONSTRAINT "reviews_rating_check" CHECK ((("rating" >= 1) AND ("rating" <= 5)))
 );
 
@@ -606,6 +749,10 @@ CREATE TABLE IF NOT EXISTS "public"."services" (
 
 
 ALTER TABLE "public"."services" OWNER TO "postgres";
+
+
+ALTER TABLE ONLY "public"."orders" ALTER COLUMN "order_number" SET DEFAULT "nextval"('"public"."orders_order_number_seq"'::"regclass");
+
 
 
 ALTER TABLE ONLY "public"."account_movements"
@@ -673,6 +820,16 @@ ALTER TABLE ONLY "public"."loyalty_rewards"
 
 
 
+ALTER TABLE ONLY "public"."order_items"
+    ADD CONSTRAINT "order_items_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."orders"
+    ADD CONSTRAINT "orders_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_auth_user_id_key" UNIQUE ("auth_user_id");
 
@@ -723,6 +880,18 @@ CREATE INDEX "customer_credits_profile_id_idx" ON "public"."customer_credits" US
 
 
 
+CREATE INDEX "idx_appointments_barber" ON "public"."appointments" USING "btree" ("barber_id");
+
+
+
+CREATE INDEX "idx_appointments_customer" ON "public"."appointments" USING "btree" ("customer_id");
+
+
+
+CREATE INDEX "idx_appointments_date" ON "public"."appointments" USING "btree" ("scheduled_at");
+
+
+
 CREATE INDEX "idx_appointments_scheduled_status" ON "public"."appointments" USING "btree" ("scheduled_at", "status");
 
 
@@ -739,11 +908,19 @@ CREATE INDEX "idx_customer_credit_movements_customer_credit_id" ON "public"."cus
 
 
 
+CREATE INDEX "idx_customer_credit_movements_order_id" ON "public"."customer_credit_movements" USING "btree" ("order_id");
+
+
+
 CREATE INDEX "idx_customer_credit_movements_sale_id" ON "public"."customer_credit_movements" USING "btree" ("sale_id");
 
 
 
 CREATE INDEX "idx_loyalty_claims_customer" ON "public"."loyalty_reward_claims" USING "btree" ("customer_id");
+
+
+
+CREATE INDEX "idx_loyalty_claims_order_id" ON "public"."loyalty_reward_claims" USING "btree" ("order_id");
 
 
 
@@ -763,6 +940,34 @@ CREATE INDEX "idx_loyalty_rewards_sort" ON "public"."loyalty_rewards" USING "btr
 
 
 
+CREATE INDEX "idx_order_items_order_id" ON "public"."order_items" USING "btree" ("order_id");
+
+
+
+CREATE INDEX "idx_order_items_service_id" ON "public"."order_items" USING "btree" ("service_id");
+
+
+
+CREATE INDEX "idx_orders_appointment" ON "public"."orders" USING "btree" ("appointment_id");
+
+
+
+CREATE INDEX "idx_orders_created_barber" ON "public"."orders" USING "btree" ("created_at" DESC, "barber_id");
+
+
+
+CREATE INDEX "idx_orders_customer" ON "public"."orders" USING "btree" ("customer_id");
+
+
+
+CREATE INDEX "idx_orders_shift" ON "public"."orders" USING "btree" ("shift_id");
+
+
+
+CREATE INDEX "idx_reviews_order_id" ON "public"."reviews" USING "btree" ("order_id");
+
+
+
 CREATE INDEX "idx_sales_created_barber" ON "public"."sales_history" USING "btree" ("created_at" DESC, "barber_id");
 
 
@@ -775,7 +980,7 @@ CREATE INDEX "idx_sales_history_barber_date" ON "public"."sales_history" USING "
 
 
 
-CREATE INDEX "idx_sales_history_customer" ON "public"."sales_history" USING "btree" ("customer_id");
+CREATE UNIQUE INDEX "reviews_order_id_key" ON "public"."reviews" USING "btree" ("order_id") WHERE ("order_id" IS NOT NULL);
 
 
 
@@ -792,6 +997,14 @@ COMMENT ON TRIGGER "trg_account_movement_sync_shift" ON "public"."account_moveme
 
 
 CREATE OR REPLACE TRIGGER "trg_customer_credit_balance" AFTER INSERT ON "public"."customer_credit_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_credit_movement"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_order_deleted" AFTER DELETE ON "public"."orders" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_order_deleted"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_order_loyalty_update" AFTER INSERT OR UPDATE OF "status" ON "public"."orders" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_order_loyalty_update"();
 
 
 
@@ -858,7 +1071,7 @@ ALTER TABLE ONLY "public"."customer_credit_movements"
 
 
 ALTER TABLE ONLY "public"."customer_credit_movements"
-    ADD CONSTRAINT "customer_credit_movements_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "public"."sales_history"("id") ON DELETE SET NULL;
+    ADD CONSTRAINT "customer_credit_movements_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE SET NULL;
 
 
 
@@ -888,6 +1101,11 @@ ALTER TABLE ONLY "public"."loyalty_reward_claims"
 
 
 ALTER TABLE ONLY "public"."loyalty_reward_claims"
+    ADD CONSTRAINT "loyalty_reward_claims_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."loyalty_reward_claims"
     ADD CONSTRAINT "loyalty_reward_claims_redeemed_by_fkey" FOREIGN KEY ("redeemed_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
@@ -897,8 +1115,38 @@ ALTER TABLE ONLY "public"."loyalty_reward_claims"
 
 
 
-ALTER TABLE ONLY "public"."loyalty_reward_claims"
-    ADD CONSTRAINT "loyalty_reward_claims_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "public"."sales_history"("id") ON DELETE SET NULL;
+ALTER TABLE ONLY "public"."order_items"
+    ADD CONSTRAINT "order_items_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."order_items"
+    ADD CONSTRAINT "order_items_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."services"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."orders"
+    ADD CONSTRAINT "orders_appointment_id_fkey" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."orders"
+    ADD CONSTRAINT "orders_barber_id_fkey" FOREIGN KEY ("barber_id") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."orders"
+    ADD CONSTRAINT "orders_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id");
+
+
+
+ALTER TABLE ONLY "public"."orders"
+    ADD CONSTRAINT "orders_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."orders"
+    ADD CONSTRAINT "orders_shift_id_fkey" FOREIGN KEY ("shift_id") REFERENCES "public"."cash_shifts"("id") ON DELETE SET NULL;
 
 
 
@@ -908,7 +1156,7 @@ ALTER TABLE ONLY "public"."profiles"
 
 
 ALTER TABLE ONLY "public"."reviews"
-    ADD CONSTRAINT "reviews_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "public"."sales_history"("id") ON DELETE CASCADE;
+    ADD CONSTRAINT "reviews_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE CASCADE;
 
 
 
@@ -1016,10 +1264,6 @@ CREATE POLICY "Usuarios actualizan su propio perfil" ON "public"."profiles" FOR 
 ALTER TABLE "public"."account_movements" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "account_movements_staff" ON "public"."account_movements" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
-
-
-
 ALTER TABLE "public"."app_settings" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1040,10 +1284,6 @@ ALTER TABLE "public"."business_settings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."cash_shifts" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "cash_shifts_staff" ON "public"."cash_shifts" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
-
-
-
 ALTER TABLE "public"."customer_credit_movements" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1060,23 +1300,7 @@ CREATE POLICY "customer_credit_movements_staff" ON "public"."customer_credit_mov
 ALTER TABLE "public"."customer_credits" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "customer_credits_owner_select" ON "public"."customer_credits" FOR SELECT TO "authenticated" USING (("profile_id" = "auth"."uid"()));
-
-
-
-CREATE POLICY "customer_credits_staff" ON "public"."customer_credits" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
-
-
-
 ALTER TABLE "public"."financial_accounts" ENABLE ROW LEVEL SECURITY;
-
-
-CREATE POLICY "financial_accounts_modify" ON "public"."financial_accounts" TO "authenticated" USING ("public"."is_admin"()) WITH CHECK ("public"."is_admin"());
-
-
-
-CREATE POLICY "financial_accounts_select" ON "public"."financial_accounts" FOR SELECT TO "authenticated" USING ("public"."is_staff"());
-
 
 
 CREATE POLICY "loyalty_claims_select" ON "public"."loyalty_reward_claims" FOR SELECT USING ((("customer_id" IN ( SELECT "profiles"."id"
@@ -1106,10 +1330,58 @@ CREATE POLICY "loyalty_rewards_staff_modify" ON "public"."loyalty_rewards" TO "a
 
 
 
+ALTER TABLE "public"."order_items" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "order_items_customer_select" ON "public"."order_items" FOR SELECT TO "authenticated" USING (("order_id" IN ( SELECT "orders"."id"
+   FROM "public"."orders"
+  WHERE ("orders"."customer_id" IN ( SELECT "profiles"."id"
+           FROM "public"."profiles"
+          WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))))));
+
+
+
+CREATE POLICY "order_items_staff_all" ON "public"."order_items" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
+
+
+ALTER TABLE "public"."orders" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "orders_customer_select" ON "public"."orders" FOR SELECT TO "authenticated" USING (("customer_id" IN ( SELECT "profiles"."id"
+   FROM "public"."profiles"
+  WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "orders_staff_all" ON "public"."orders" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
+
+
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "profiles_public_barbers_select" ON "public"."profiles" FOR SELECT TO "authenticated", "anon" USING ((("role" = 'barber'::"public"."user_role") AND ("is_active" = true)));
+
+
+
 ALTER TABLE "public"."reviews" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "reviews_customer_insert" ON "public"."reviews" FOR INSERT TO "authenticated" WITH CHECK ((("order_id" IN ( SELECT "orders"."id"
+   FROM "public"."orders"
+  WHERE ("orders"."customer_id" IN ( SELECT "profiles"."id"
+           FROM "public"."profiles"
+          WHERE (("profiles"."auth_user_id" = "auth"."uid"()) OR ("profiles"."id" = "auth"."uid"())))))) OR ("public"."is_staff"() = true)));
+
+
+
+CREATE POLICY "reviews_select_all" ON "public"."reviews" FOR SELECT TO "authenticated", "anon" USING (true);
+
+
+
+CREATE POLICY "reviews_staff_manage" ON "public"."reviews" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
+
 
 
 ALTER TABLE "public"."sales_history" ENABLE ROW LEVEL SECURITY;
@@ -1118,17 +1390,33 @@ ALTER TABLE "public"."sales_history" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."services" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "services_select_all" ON "public"."services" FOR SELECT USING (true);
-
-
-
-CREATE POLICY "services_staff_modify" ON "public"."services" TO "authenticated" USING ("public"."is_staff"()) WITH CHECK ("public"."is_staff"());
-
-
-
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."appointments";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."cash_shifts";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."loyalty_progress";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."loyalty_reward_claims";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."order_items";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."orders";
+
 
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
@@ -1303,6 +1591,18 @@ GRANT ALL ON FUNCTION "public"."fn_on_credit_movement"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."fn_on_order_deleted"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_on_order_deleted"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_on_order_deleted"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."fn_on_order_loyalty_update"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_on_order_loyalty_update"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_on_order_loyalty_update"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."fn_on_sale_deleted"() TO "anon";
 GRANT ALL ON FUNCTION "public"."fn_on_sale_deleted"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."fn_on_sale_deleted"() TO "service_role";
@@ -1423,6 +1723,24 @@ GRANT ALL ON TABLE "public"."loyalty_reward_claims" TO "service_role";
 GRANT ALL ON TABLE "public"."loyalty_rewards" TO "anon";
 GRANT ALL ON TABLE "public"."loyalty_rewards" TO "authenticated";
 GRANT ALL ON TABLE "public"."loyalty_rewards" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."order_items" TO "anon";
+GRANT ALL ON TABLE "public"."order_items" TO "authenticated";
+GRANT ALL ON TABLE "public"."order_items" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."orders" TO "anon";
+GRANT ALL ON TABLE "public"."orders" TO "authenticated";
+GRANT ALL ON TABLE "public"."orders" TO "service_role";
+
+
+
+GRANT ALL ON SEQUENCE "public"."orders_order_number_seq" TO "anon";
+GRANT ALL ON SEQUENCE "public"."orders_order_number_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."orders_order_number_seq" TO "service_role";
 
 
 

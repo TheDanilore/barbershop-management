@@ -83,6 +83,40 @@ export interface AppointmentRow {
   service?: { id: string; name: string; base_price: number; duration_minutes: number };
 }
 
+export interface OrderItemRow {
+  id: string; // uuid
+  order_id: string;
+  service_id: string | null;
+  item_type: string;
+  item_name: string;
+  unit_price: number;
+  quantity: number;
+  subtotal: number;
+  created_at: string;
+}
+
+export interface OrderRow {
+  id: string; // uuid
+  order_number?: number;
+  customer_id: string | null;
+  barber_id: string;
+  appointment_id: string | null;
+  shift_id: string | null;
+  subtotal: number;
+  discount_amount?: number;
+  final_price: number;
+  amount_paid?: number | null;
+  amount_debt?: number;
+  payment_method: string;
+  status: string;
+  notes?: string | null;
+  created_at: string;
+  // Joins
+  customer?: { id: string; full_name: string; phone: string | null };
+  barber?: { id: string; full_name: string };
+  order_items?: OrderItemRow[];
+}
+
 export interface SaleHistoryRow {
   id: string; // uuid
   customer_id: string | null;
@@ -141,8 +175,42 @@ export interface ServiceItem {
   isActive?: boolean;
 }
 
+export interface OrderItem {
+  id?: string;
+  orderId?: string;
+  serviceId?: string;
+  itemType?: 'service' | 'product';
+  itemName: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: string;
+  orderNumber?: number;
+  customerId: string | null;
+  customerName?: string;
+  customerPhone?: string;
+  barberId: string;
+  barberName: string;
+  appointmentId?: string | null;
+  shiftId?: string | null;
+  subtotal: number;
+  discountAmount?: number;
+  finalPrice: number;
+  amountPaid?: number | null;
+  amountDebt?: number;
+  paymentMethod: PaymentMethod;
+  status: 'open' | 'completed' | 'cancelled';
+  notes?: string;
+  createdAt: string;
+  items: OrderItem[];
+}
+
 export interface CutRecord {
   id: string;
+  orderNumber?: number;
   clientId: string;
   clientName: string;
   barberId: string;
@@ -153,6 +221,7 @@ export interface CutRecord {
   date: string; // ISO string
   paymentMethod: PaymentMethod;
   notes?: string;
+  items?: OrderItem[];
 }
 
 export interface AppointmentServiceItem {
@@ -245,7 +314,7 @@ export interface CashShift {
 }
 
 export type MovementType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
-export type ReferenceType = 'sale' | 'credit_payment' | 'manual' | 'expense' | 'transfer' | 'shift_adjustment';
+export type ReferenceType = 'order' | 'sale' | 'credit_payment' | 'manual' | 'expense' | 'transfer' | 'shift_adjustment';
 
 export interface AccountMovement {
   id: string;
@@ -275,6 +344,7 @@ export type CreditMovementType = 'CHARGE' | 'PAYMENT';
 export interface CustomerCreditMovement {
   id: string;
   customerCreditId: string;
+  orderId?: string | null;
   saleId?: string | null;
   movementType: CreditMovementType;
   amount: number;

@@ -1,0 +1,67 @@
+@if (isOpen) {
+<div class="nc-backdrop" (click)="close()" role="presentation">
+  <div class="nc-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="ncModalTitle">
+    <!-- Drag handle for mobile bottom sheet -->
+    <div class="sheet-drag-handle" aria-hidden="true"></div>
+
+    <header class="sheet-header">
+      <div class="sheet-title-group">
+        <div class="sheet-badge-row">
+          <span class="sheet-badge gold">Directorio</span>
+          <span class="sheet-shortcut-badge" title="Atajo de teclado">Alt + C</span>
+        </div>
+        <h2 id="ncModalTitle" class="sheet-title">Nuevo Cliente</h2>
+        <p class="sheet-desc">Registra un nuevo cliente con número para WhatsApp y sellos</p>
+      </div>
+      <button type="button" class="sheet-close-btn" (click)="close()" aria-label="Cerrar modal" title="Cerrar (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    @if (errorMessage()) {
+      <div class="nc-error-banner" role="alert">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="clientForm" (ngSubmit)="submit()" class="sheet-form">
+      <div class="form-group">
+        <label class="form-label" for="clientFullName">Nombre Completo *</label>
+        <input id="clientFullName" type="text" class="form-input" formControlName="fullName"
+          placeholder="Ej: Carlos Mendoza" autocomplete="name" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="clientPhone">Teléfono / WhatsApp</label>
+        <input id="clientPhone" type="tel" class="form-input" formControlName="phone"
+          placeholder="+51 987 654 321" autocomplete="tel" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="clientNotes">Notas adicionales (Opcional)</label>
+        <input id="clientNotes" type="text" class="form-input" formControlName="notes"
+          placeholder="Ej: Preferencia de corte, referido por..." />
+      </div>
+
+      <div class="sheet-footer">
+        <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
+        <button type="submit" class="btn-primary-action" [disabled]="clientForm.invalid || isSubmitting()">
+          @if (isSubmitting()) {
+            <span>Registrando...</span>
+          } @else {
+            <span>Registrar Cliente</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

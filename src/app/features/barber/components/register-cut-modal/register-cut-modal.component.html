@@ -1,8 +1,10 @@
 @if (isOpen) {
 <div class="pos-backdrop" (click)="close()" role="presentation">
-  <div class="pos-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="posModalTitle">
-    <!-- iOS / PWA Drag Handle for Mobile -->
-    <div class="sheet-drag-handle" aria-hidden="true"></div>
+  <div class="pos-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="posModalTitle" appBottomSheet (dismiss)="close()">
+    <!-- iOS / PWA Drag Handle for Mobile & Tablet -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
 
     <!-- Header -->
     <header class="sheet-header">

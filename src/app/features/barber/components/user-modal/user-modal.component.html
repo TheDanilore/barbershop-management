@@ -1,0 +1,78 @@
+@if (isOpen) {
+<div class="modal-backdrop" (click)="close()" role="presentation">
+  <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="userModalTitle" appBottomSheet (dismiss)="close()">
+    <!-- iOS Drag Handle for Bottom Sheet -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
+
+    <div class="sheet-header">
+      <div class="sheet-title-group">
+        <h2 id="userModalTitle" class="sheet-title">
+          {{ userToEdit ? 'Editar Colaborador' : 'Nuevo Colaborador del Sistema' }}
+        </h2>
+        <p class="sheet-subtitle">Define las credenciales de rol y perfil de atención</p>
+      </div>
+      <button type="button" class="btn-close-sheet" (click)="close()" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="modal-error-banner" role="alert">
+        <span class="meb-icon">⚠️</span>
+        <span class="meb-text">{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="userForm" (ngSubmit)="submit()" class="sheet-body">
+      <div class="form-group">
+        <label class="form-label" for="userFullName">Nombre Completo *</label>
+        <input
+          id="userFullName"
+          type="text"
+          class="form-input"
+          formControlName="fullName"
+          placeholder="Ej: Mateo Silva"
+          autofocus
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="userPhone">Teléfono / WhatsApp</label>
+        <input
+          id="userPhone"
+          type="tel"
+          class="form-input"
+          formControlName="phone"
+          placeholder="Ej: +51 987 654 321"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="userRole">Rol en el Negocio *</label>
+        <select id="userRole" class="form-input form-select" formControlName="role">
+          <option value="barber">✂️ Barbero (Atención, Citas y Cobro de Cortes)</option>
+          <option value="admin">🛡️ Administrador (Acceso Total, Caja y Configuración)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="isActive" />
+          <span>Colaborador Activo (Disponible para turnos y atención al cliente)</span>
+        </label>
+      </div>
+
+      <div class="sheet-footer">
+        <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
+        <button
+          type="submit"
+          class="btn-primary-action"
+          [disabled]="userForm.invalid || isSubmitting()"
+        >
+          {{ isSubmitting() ? 'Guardando...' : userToEdit ? 'Guardar Cambios' : 'Crear Colaborador' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

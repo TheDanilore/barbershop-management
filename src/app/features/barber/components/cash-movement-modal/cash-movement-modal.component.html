@@ -1,0 +1,78 @@
+@if (isOpen) {
+<div class="modal-backdrop" (click)="close()" role="presentation">
+  <div class="modal-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="movModalTitle" appBottomSheet (dismiss)="close()">
+    <!-- iOS Drag Handle for Bottom Sheet -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
+
+    <div class="sheet-header">
+      <div class="sh-title-group">
+        <span class="sh-badge-pill">Transacciones</span>
+        <h3 id="movModalTitle" class="sheet-title">Registrar Movimiento de Fondos</h3>
+      </div>
+      <button type="button" class="sheet-close-btn" (click)="close()" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="modal-error-banner" role="alert">
+        <span class="meb-icon">⚠️</span>
+        <span class="meb-text">{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="movementForm" (ngSubmit)="submit()" class="sheet-form">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label" for="movAccount">Cuenta Afectada *</label>
+          <select id="movAccount" class="form-input" formControlName="accountId">
+            @for (acc of barberService.financialAccounts(); track acc.id) {
+            <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="movType">Naturaleza *</label>
+          <select id="movType" class="form-input" formControlName="movementType">
+            <option value="expense">🔴 Egreso / Gasto</option>
+            <option value="income">🟢 Ingreso Adicional</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="movAmount">Monto ({{ barberService.currencySymbol() }}) *</label>
+        <div class="input-prefix-wrapper">
+          <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
+          <input
+            id="movAmount"
+            type="number"
+            step="0.50"
+            min="0.50"
+            class="form-input with-prefix"
+            formControlName="amount"
+            placeholder="0.00"
+            autofocus />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="movDesc">Motivo o Concepto *</label>
+        <input
+          id="movDesc"
+          type="text"
+          class="form-input"
+          formControlName="description"
+          placeholder="Ej: Insumos de barbería, Pago de internet, Propina caja" />
+      </div>
+
+      <div class="sheet-footer">
+        <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
+        <button type="submit" class="btn-primary-action" [disabled]="movementForm.invalid || isSubmitting()">
+          {{ isSubmitting() ? 'Registrando...' : 'Confirmar Movimiento' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

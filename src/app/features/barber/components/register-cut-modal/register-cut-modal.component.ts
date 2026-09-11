@@ -24,11 +24,12 @@ import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoggerService } from '../../../../core/services/logger.service';
 import { SupabaseService } from '../../../../core/services/supabase.service';
+import { BottomSheetDirective } from '../../../../shared/directives/bottom-sheet.directive';
 
 @Component({
   selector: 'app-register-cut-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BottomSheetDirective],
   templateUrl: './register-cut-modal.component.html',
   styleUrl: './register-cut-modal.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

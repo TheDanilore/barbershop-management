@@ -929,12 +929,30 @@
   to { transform: translateY(0); }
 }
 
-.mas-drag-handle {
-  width: 40px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  margin: 0 auto;
+.mobile-action-sheet .sheet-drag-handle-zone {
+  width: 100%;
+  padding: 6px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.mobile-action-sheet .sheet-drag-handle {
+  width: 48px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: background 0.2s ease, width 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-action-sheet .sheet-drag-handle-zone:hover .sheet-drag-handle,
+.mobile-action-sheet .sheet-drag-handle-zone:active .sheet-drag-handle {
+  background: var(--gold-primary);
+  width: 60px;
 }
 
 .mas-header {
@@ -982,13 +1000,37 @@
   box-sizing: border-box;
 }
 
-.mas-row:hover, .mas-row:active {
+.mas-row:hover {
   background: #191924;
   border-color: rgba(255, 255, 255, 0.14);
 }
 
 .mas-row:active {
   transform: scale(0.985);
+  background: #191924;
+}
+
+.mas-row.active {
+  background: rgba(229, 169, 60, 0.1);
+  border-color: rgba(229, 169, 60, 0.45);
+  box-shadow: 0 0 16px rgba(229, 169, 60, 0.08);
+}
+
+.mas-row.active .mas-row-title {
+  color: var(--gold-primary);
+}
+
+.mas-active-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--gold-primary), #ca8a04);
+  color: #0d0d12;
+  box-shadow: 0 2px 6px rgba(229, 169, 60, 0.35);
+  flex-shrink: 0;
 }
 
 .mas-icon-wrap {

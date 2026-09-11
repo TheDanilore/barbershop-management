@@ -5,10 +5,12 @@ import { ServiceItem } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 
+import { ServiceModalComponent } from '../../components/service-modal/service-modal.component';
+
 @Component({
   selector: 'app-barber-services',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ServiceModalComponent],
   templateUrl: './barber-services.page.html',
   styleUrl: './barber-services.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -16,20 +18,12 @@ import { HapticsService } from '../../../../core/services/haptics.service';
 export class BarberServicesPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
-  private readonly fb = inject(FormBuilder);
 
   readonly isServiceModalOpen = signal(false);
-  readonly editingServiceId = signal<string | null>(null);
-  readonly isSubmitting = signal(false);
+  readonly editingService = signal<ServiceItem | null>(null);
 
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  readonly serviceForm: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    price: [15, [Validators.required, Validators.min(0.5)]],
-    durationMinutes: [30, [Validators.required, Validators.min(5)]],
-  });
 
   showToast(msg: string): void {
     this.toastMessage.set(msg);
@@ -39,68 +33,20 @@ export class BarberServicesPage {
 
   openCreateServiceModal(): void {
     this.haptics.lightTap();
-    this.editingServiceId.set(null);
-    this.serviceForm.reset({ name: '', price: 15, durationMinutes: 30 });
+    this.editingService.set(null);
     this.isServiceModalOpen.set(true);
   }
 
   openEditServiceModal(service: ServiceItem): void {
     this.haptics.lightTap();
-    this.editingServiceId.set(service.id);
-    this.serviceForm.patchValue({
-      name: service.name,
-      price: service.price,
-      durationMinutes: service.durationMinutes,
-    });
+    this.editingService.set(service);
     this.isServiceModalOpen.set(true);
   }
 
   closeServiceModal(): void {
     this.haptics.lightTap();
     this.isServiceModalOpen.set(false);
-    this.editingServiceId.set(null);
-  }
-
-  async submitService(): Promise<void> {
-    if (this.serviceForm.invalid || this.isSubmitting()) {
-      this.serviceForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Completa los campos requeridos');
-      return;
-    }
-
-    const { name, price, durationMinutes } = this.serviceForm.value;
-    const editingId = this.editingServiceId();
-
-    this.isSubmitting.set(true);
-    try {
-      if (editingId) {
-        const current = this.barberService.services().find((s) => s.id === editingId);
-        await this.barberService.updateService(
-          editingId,
-          name!,
-          Number(price),
-          Number(durationMinutes),
-          current?.isActive ?? true
-        );
-        this.haptics.success();
-        this.showToast('Servicio actualizado');
-      } else {
-        await this.barberService.createService(
-          name!,
-          Number(price),
-          Number(durationMinutes)
-        );
-        this.haptics.success();
-        this.showToast('Servicio agregado al catálogo');
-      }
-      this.closeServiceModal();
-    } catch {
-      this.haptics.warning();
-      this.showToast('Error al guardar el servicio');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.editingService.set(null);
   }
 
   async toggleServiceActive(service: ServiceItem): Promise<void> {

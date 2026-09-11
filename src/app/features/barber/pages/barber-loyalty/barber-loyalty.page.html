@@ -298,95 +298,12 @@
   </section>
 
   <!-- ======================================================================= -->
-  <!-- MODAL: CREAR / EDITAR RECOMPENSA DE FIDELIZACIÓN                        -->
+  <!-- MODAL: CREAR / EDITAR RECOMPENSA DE FIDELIZACIÓN (STANDALONE)           -->
   <!-- ======================================================================= -->
-  @if (isLoyaltyRewardModalOpen()) {
-  <div class="modal-backdrop" (click)="closeLoyaltyRewardModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
-
-      <div class="sheet-header">
-        <div class="sheet-title-group">
-          <span class="sheet-badge gold">Fidelización</span>
-          <h3 class="sheet-title">{{ editingRewardId() ? 'Editar Recompensa' : 'Nueva Recompensa' }}</h3>
-          <p class="sheet-desc">Configura los cortes necesarios y el premio para tus clientes</p>
-        </div>
-        <button class="sheet-close-btn" (click)="closeLoyaltyRewardModal()" aria-label="Cerrar modal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <form [formGroup]="loyaltyRewardForm" (ngSubmit)="submitLoyaltyReward()" class="sheet-form">
-        <div class="form-group">
-          <label class="form-label" for="rewardName">Nombre del Premio / Recompensa *</label>
-          <input id="rewardName" type="text" class="form-input" formControlName="name"
-            placeholder="Ej: Corte Clásico Gratis, 20% Descuento, Cera Mate" />
-          @if (loyaltyRewardForm.get('name')?.invalid && loyaltyRewardForm.get('name')?.touched) {
-          <span class="form-error">El nombre es obligatorio (mínimo 2 caracteres)</span>
-          }
-        </div>
-
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label" for="rewardType">Tipo de Recompensa *</label>
-            <select id="rewardType" class="form-input" formControlName="rewardType">
-              <option value="free_cut">✂️ Corte Gratis</option>
-              <option value="discount_pct">🏷️ Descuento en Porcentaje (%)</option>
-              <option value="discount_fixed">💵 Descuento en Monto Fijo ({{ barberService.currencySymbol() }})</option>
-              <option value="gift">🎁 Regalo / Producto de Barbería</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="stampsRequired">Cortes / Sellos Necesarios *</label>
-            <input id="stampsRequired" type="number" min="1" max="100" class="form-input"
-              formControlName="stampsRequired" placeholder="Ej: 5, 10, 15" />
-            @if (loyaltyRewardForm.get('stampsRequired')?.invalid && loyaltyRewardForm.get('stampsRequired')?.touched) {
-            <span class="form-error">Debe ser al menos 1 corte</span>
-            }
-          </div>
-        </div>
-
-        @if (loyaltyRewardForm.get('rewardType')?.value === 'discount_pct') {
-        <div class="form-group">
-          <label class="form-label" for="rewardValuePct">Porcentaje de Descuento (%) *</label>
-          <input id="rewardValuePct" type="number" min="1" max="100" class="form-input"
-            formControlName="rewardValue" placeholder="Ej: 20 para 20%" />
-        </div>
-        }
-
-        @if (loyaltyRewardForm.get('rewardType')?.value === 'discount_fixed') {
-        <div class="form-group">
-          <label class="form-label" for="rewardValueFixed">Monto de Descuento ({{ barberService.currencySymbol() }}) *</label>
-          <input id="rewardValueFixed" type="number" step="0.50" min="0.5" class="form-input"
-            formControlName="rewardValue" [placeholder]="'Ej: 5.00 para ' + barberService.currencySymbol() + '5 de descuento'" />
-        </div>
-        }
-
-        <div class="form-group">
-          <label class="form-label" for="rewardDescription">Descripción o Condiciones (Opcional)</label>
-          <input id="rewardDescription" type="text" class="form-input" formControlName="description"
-            placeholder="Ej: Válido de lunes a jueves en cortes clásicos" />
-        </div>
-
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" formControlName="isActive" />
-            <span>Recompensa Activa (Clientes podrán acumular sellos para este hito)</span>
-          </label>
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeLoyaltyRewardModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="loyaltyRewardForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Guardando...' : editingRewardId() ? 'Actualizar Recompensa' : 'Guardar Recompensa' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
+  <app-loyalty-reward-modal
+    [isOpen]="isLoyaltyRewardModalOpen()"
+    [rewardToEdit]="editingReward()"
+    (closed)="closeLoyaltyRewardModal()"
+    (saved)="showToast($event)">
+  </app-loyalty-reward-modal>
 </div>

@@ -1,0 +1,80 @@
+@if (isOpen) {
+<div class="modal-backdrop" (click)="close()" role="presentation">
+  <div class="modal-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="accModalTitle" appBottomSheet (dismiss)="close()">
+    <!-- iOS Drag Handle for Bottom Sheet -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
+
+    <div class="sheet-header">
+      <div class="sh-title-group">
+        <span class="sh-badge-pill">Configuración</span>
+        <h3 id="accModalTitle" class="sheet-title">{{ accountToEdit ? 'Editar Cuenta Financiera' : 'Nueva Cuenta Financiera' }}</h3>
+      </div>
+      <button type="button" class="sheet-close-btn" (click)="close()" title="Cerrar (Esc)" aria-label="Cerrar">✕</button>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="modal-error-banner" role="alert">
+        <span class="meb-icon">⚠️</span>
+        <span class="meb-text">{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <form [formGroup]="accountForm" (ngSubmit)="submit()" class="sheet-form">
+      <div class="form-group">
+        <label class="form-label" for="accName">Nombre de la Cuenta *</label>
+        <input
+          id="accName"
+          type="text"
+          class="form-input"
+          formControlName="name"
+          placeholder="Ej: BCP Soles, Caja Chica, Yape Principal"
+          autofocus />
+      </div>
+
+      @if (!accountToEdit) {
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label" for="accType">Tipo de Cuenta *</label>
+          <select id="accType" class="form-input" formControlName="type">
+            <option value="cash">💵 Efectivo / Caja</option>
+            <option value="bank">🏦 Banco / Tarjetas</option>
+            <option value="digital_wallet">📱 Billetera Digital</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="initialBalance">Saldo Inicial ({{ barberService.currencySymbol() }}) *</label>
+          <div class="input-prefix-wrapper">
+            <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
+            <input
+              id="initialBalance"
+              type="number"
+              step="0.50"
+              min="0"
+              class="form-input with-prefix"
+              formControlName="initialBalance"
+              placeholder="0.00" />
+          </div>
+        </div>
+      </div>
+      }
+
+      <div class="form-group">
+        <label class="checkbox-container">
+          <input type="checkbox" formControlName="isActive" />
+          <span class="checkmark"></span>
+          <span class="checkbox-text">Cuenta activa para cobros y movimientos</span>
+        </label>
+      </div>
+
+      <div class="sheet-footer">
+        <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
+        <button type="submit" class="btn-primary-action" [disabled]="accountForm.invalid || isSubmitting()">
+          {{ isSubmitting() ? 'Guardando...' : accountToEdit ? 'Guardar Cambios' : 'Crear Cuenta' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

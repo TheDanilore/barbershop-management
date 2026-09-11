@@ -21,11 +21,12 @@ import {
 import { Client } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { BottomSheetDirective } from '../../../../shared/directives/bottom-sheet.directive';
 
 @Component({
   selector: 'app-new-client-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BottomSheetDirective],
   templateUrl: './new-client-modal.component.html',
   styleUrl: './new-client-modal.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

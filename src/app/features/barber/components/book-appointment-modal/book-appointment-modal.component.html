@@ -1,8 +1,10 @@
 @if (isOpen) {
 <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" (click)="closeModal()">
-  <div class="modal-sheet" (click)="$event.stopPropagation()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()" appBottomSheet (dismiss)="closeModal()">
     <!-- Tirador táctil iOS para vista móvil -->
-    <div class="sheet-drag-handle"></div>
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
 
     <!-- Cabecera del Modal -->
     <header class="sheet-header">

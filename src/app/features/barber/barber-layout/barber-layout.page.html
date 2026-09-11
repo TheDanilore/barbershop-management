@@ -391,8 +391,18 @@
   <!-- ======================================================================= -->
   @if (isMobileMoreMenuOpen()) {
   <div class="mobile-sheet-backdrop" (click)="closeMobileMoreMenu()" role="presentation">
-    <div class="mobile-action-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Más opciones de administración">
-      <div class="mas-drag-handle" aria-hidden="true"></div>
+    <div
+      class="mobile-action-sheet"
+      appBottomSheet
+      (dismiss)="closeMobileMoreMenu()"
+      (click)="$event.stopPropagation()"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Más opciones de administración"
+    >
+      <div class="sheet-drag-handle-zone">
+        <div class="sheet-drag-handle" aria-hidden="true"></div>
+      </div>
 
       <div class="mas-header">
         <span class="mas-title">Herramientas BarberTrack</span>
@@ -400,7 +410,7 @@
       </div>
 
       <div class="mas-list">
-        <button type="button" class="mas-row" (click)="navigateTo('cash')">
+        <button type="button" class="mas-row" [class.active]="currentTab() === 'cash'" (click)="navigateTo('cash')">
           <div class="mas-icon-wrap gold">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="4" width="20" height="16" rx="2"></rect>
@@ -411,7 +421,9 @@
             <span class="mas-row-title">Caja & Finanzas</span>
             <span class="mas-row-desc">{{ barberService.currencySymbol() }}{{ barberService.cashDrawerBalance().toFixed(2) }} en efectivo</span>
           </div>
-          @if (barberService.activeCashShift()) {
+          @if (currentTab() === 'cash') {
+            <span class="mas-active-pill">Actual</span>
+          } @else if (barberService.activeCashShift()) {
             <span class="mas-row-badge green">Turno Abierto</span>
           } @else {
             <span class="mas-row-badge">Cerrada</span>
@@ -419,7 +431,7 @@
           <span class="mas-chevron">›</span>
         </button>
 
-        <button type="button" class="mas-row" (click)="navigateTo('loyalty')">
+        <button type="button" class="mas-row" [class.active]="currentTab() === 'loyalty'" (click)="navigateTo('loyalty')">
           <div class="mas-icon-wrap purple">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="20 12 20 22 4 22 4 12"></polyline>
@@ -433,13 +445,15 @@
             <span class="mas-row-title">Fidelización & Sellos</span>
             <span class="mas-row-desc">Tarjetas de cliente y canje de premios</span>
           </div>
-          @if (barberService.pendingRewardClaims().length > 0) {
+          @if (currentTab() === 'loyalty') {
+            <span class="mas-active-pill">Actual</span>
+          } @else if (barberService.pendingRewardClaims().length > 0) {
             <span class="mas-row-badge purple">{{ barberService.pendingRewardClaims().length }} por canjear</span>
           }
           <span class="mas-chevron">›</span>
         </button>
 
-        <button type="button" class="mas-row" (click)="navigateTo('stats')">
+        <button type="button" class="mas-row" [class.active]="currentTab() === 'stats'" (click)="navigateTo('stats')">
           <div class="mas-icon-wrap blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -451,10 +465,13 @@
             <span class="mas-row-title">Finanzas & Estadísticas</span>
             <span class="mas-row-desc">Métricas y reportes de cortes</span>
           </div>
+          @if (currentTab() === 'stats') {
+            <span class="mas-active-pill">Actual</span>
+          }
           <span class="mas-chevron">›</span>
         </button>
 
-        <button type="button" class="mas-row" (click)="navigateTo('services')">
+        <button type="button" class="mas-row" [class.active]="currentTab() === 'services'" (click)="navigateTo('services')">
           <div class="mas-icon-wrap emerald">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
@@ -464,10 +481,13 @@
             <span class="mas-row-title">Servicios & Tarifas</span>
             <span class="mas-row-desc">{{ barberService.services().length }} servicios configurados</span>
           </div>
+          @if (currentTab() === 'services') {
+            <span class="mas-active-pill">Actual</span>
+          }
           <span class="mas-chevron">›</span>
         </button>
 
-        <button type="button" class="mas-row" (click)="navigateTo('users')">
+        <button type="button" class="mas-row" [class.active]="currentTab() === 'users'" (click)="navigateTo('users')">
           <div class="mas-icon-wrap gray">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -480,10 +500,13 @@
             <span class="mas-row-title">Usuarios & Equipo</span>
             <span class="mas-row-desc">Roles y accesos del sistema</span>
           </div>
+          @if (currentTab() === 'users') {
+            <span class="mas-active-pill">Actual</span>
+          }
           <span class="mas-chevron">›</span>
         </button>
 
-        <button type="button" class="mas-row" (click)="navigateTo('profile')">
+        <button type="button" class="mas-row" [class.active]="currentTab() === 'profile'" (click)="navigateTo('profile')">
           <div class="mas-icon-wrap amber">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -494,6 +517,9 @@
             <span class="mas-row-title">Mi Perfil</span>
             <span class="mas-row-desc">Configuración de cuenta y barbero</span>
           </div>
+          @if (currentTab() === 'profile') {
+            <span class="mas-active-pill">Actual</span>
+          }
           <span class="mas-chevron">›</span>
         </button>
       </div>

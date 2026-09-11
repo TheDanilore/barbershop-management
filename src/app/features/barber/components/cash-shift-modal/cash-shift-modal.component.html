@@ -1,7 +1,9 @@
 @if (isOpen) {
 <div class="modal-backdrop" (click)="closeModal()">
-  <div class="modal-sheet" (click)="$event.stopPropagation()">
-    <div class="sheet-drag-handle"></div>
+  <div class="modal-sheet" (click)="$event.stopPropagation()" appBottomSheet (dismiss)="closeModal()">
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
 
     <div class="sheet-header">
       <div class="sh-title-group">

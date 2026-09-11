@@ -33,11 +33,12 @@ import {
   isDateInPast,
   isPastDateTime,
 } from '../../../../core/utils/date.utils';
+import { BottomSheetDirective } from '../../../../shared/directives/bottom-sheet.directive';
 
 @Component({
   selector: 'app-book-appointment-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BottomSheetDirective],
   templateUrl: './book-appointment-modal.component.html',
   styleUrl: './book-appointment-modal.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

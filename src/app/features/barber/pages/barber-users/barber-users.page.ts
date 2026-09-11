@@ -10,11 +10,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SystemUser } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { UserModalComponent } from '../../components/user-modal/user-modal.component';
 
 @Component({
   selector: 'app-barber-users',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, UserModalComponent],
   templateUrl: './barber-users.page.html',
   styleUrl: './barber-users.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,23 +23,14 @@ import { HapticsService } from '../../../../core/services/haptics.service';
 export class BarberUsersPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
-  private readonly fb = inject(FormBuilder);
 
   // Filters & State
   readonly searchTerm = signal('');
   readonly roleFilter = signal<'all' | 'admin' | 'barber'>('all');
   readonly isUserModalOpen = signal(false);
-  readonly editingUserId = signal<string | null>(null);
-  readonly isSubmitting = signal(false);
+  readonly editingUser = signal<SystemUser | null>(null);
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: any = null;
-
-  readonly userForm = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(2)]],
-    phone: [''],
-    role: ['barber', Validators.required],
-    isActive: [true],
-  });
 
   readonly filteredUsers = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
@@ -55,71 +47,19 @@ export class BarberUsersPage {
 
   openCreateUserModal(): void {
     this.haptics.lightTap();
-    this.editingUserId.set(null);
-    this.userForm.reset({
-      fullName: '',
-      phone: '',
-      role: 'barber',
-      isActive: true,
-    });
+    this.editingUser.set(null);
     this.isUserModalOpen.set(true);
   }
 
   openEditUserModal(user: SystemUser): void {
     this.haptics.lightTap();
-    this.editingUserId.set(user.id);
-    this.userForm.reset({
-      fullName: user.fullName,
-      phone: user.phone || '',
-      role: user.role,
-      isActive: user.isActive,
-    });
+    this.editingUser.set(user);
     this.isUserModalOpen.set(true);
   }
 
   closeUserModal(): void {
     this.isUserModalOpen.set(false);
-    this.editingUserId.set(null);
-  }
-
-  async submitUser(): Promise<void> {
-    if (this.userForm.invalid || this.isSubmitting()) {
-      this.userForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Completa los campos obligatorios del usuario');
-      return;
-    }
-
-    const { fullName, phone, role, isActive } = this.userForm.value;
-    const editId = this.editingUserId();
-
-    this.isSubmitting.set(true);
-    try {
-      if (editId) {
-        await this.barberService.updateSystemUser(editId, {
-          fullName: fullName!.trim(),
-          phone: phone?.trim() || undefined,
-          role: role as any,
-          isActive: Boolean(isActive),
-        });
-        this.showToast(`Usuario ${fullName} actualizado correctamente`);
-      } else {
-        await this.barberService.createSystemUser({
-          fullName: fullName!.trim(),
-          phone: phone?.trim() || undefined,
-          role: role as any,
-          isActive: Boolean(isActive),
-        });
-        this.showToast(`Nuevo colaborador ${fullName} creado`);
-      }
-      this.haptics.success();
-      this.closeUserModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al procesar usuario');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.editingUser.set(null);
   }
 
   async toggleUserStatus(user: SystemUser): Promise<void> {

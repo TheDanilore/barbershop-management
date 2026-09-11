@@ -22,6 +22,7 @@ import { CommandPaletteComponent } from '../components/command-palette/command-p
 import { DebtPaymentModalComponent } from '../components/debt-payment-modal/debt-payment-modal.component';
 import { NewClientModalComponent } from '../components/new-client-modal/new-client-modal.component';
 import { RegisterCutModalComponent } from '../components/register-cut-modal/register-cut-modal.component';
+import { BottomSheetDirective } from '../../../shared/directives/bottom-sheet.directive';
 
 export type BarberTab =
   | 'overview'
@@ -40,6 +41,7 @@ export type BarberTab =
   imports: [
     CommonModule,
     RouterModule,
+    BottomSheetDirective,
     RegisterCutModalComponent,
     NewClientModalComponent,
     BookAppointmentModalComponent,

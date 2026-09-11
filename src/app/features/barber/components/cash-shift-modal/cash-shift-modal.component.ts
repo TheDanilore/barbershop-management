@@ -15,6 +15,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { BottomSheetDirective } from '../../../../shared/directives/bottom-sheet.directive';
 
 export interface ShiftDiscrepancy {
   difference: number;
@@ -30,7 +31,7 @@ export interface ShiftDiscrepancy {
 @Component({
   selector: 'app-cash-shift-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BottomSheetDirective],
   templateUrl: './cash-shift-modal.component.html',
   styleUrl: './cash-shift-modal.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -18,11 +18,12 @@ import { Client, FinancialAccount } from '../../../../core/models/barber.models'
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoggerService } from '../../../../core/services/logger.service';
+import { BottomSheetDirective } from '../../../../shared/directives/bottom-sheet.directive';
 
 @Component({
   selector: 'app-debt-payment-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, BottomSheetDirective],
   templateUrl: './debt-payment-modal.component.html',
   styleUrl: './debt-payment-modal.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

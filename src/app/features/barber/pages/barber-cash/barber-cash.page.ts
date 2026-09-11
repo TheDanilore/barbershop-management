@@ -15,11 +15,21 @@ import { HapticsService } from '../../../../core/services/haptics.service';
 export type MovementFilterType = 'all' | 'income' | 'expense' | 'transfer';
 
 import { CashShiftModalComponent } from '../../components/cash-shift-modal/cash-shift-modal.component';
+import { FinancialAccountModalComponent } from '../../components/financial-account-modal/financial-account-modal.component';
+import { CashMovementModalComponent } from '../../components/cash-movement-modal/cash-movement-modal.component';
+import { CashTransferModalComponent } from '../../components/cash-transfer-modal/cash-transfer-modal.component';
 
 @Component({
   selector: 'app-barber-cash',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CashShiftModalComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    CashShiftModalComponent,
+    FinancialAccountModalComponent,
+    CashMovementModalComponent,
+    CashTransferModalComponent,
+  ],
   templateUrl: './barber-cash.page.html',
   styleUrl: './barber-cash.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,10 +43,11 @@ export class BarberCashPage {
   readonly isShiftModalOpen = signal(false);
   readonly shiftMode = signal<'open' | 'close'>('open');
   readonly isAccountModalOpen = signal(false);
-  readonly editingAccountId = signal<string | null>(null);
+  readonly editingAccount = signal<FinancialAccount | null>(null);
   readonly isMovementModalOpen = signal(false);
+  readonly presetMovementAccountId = signal<string | undefined>(undefined);
   readonly isTransferModalOpen = signal(false);
-  readonly isSubmitting = signal(false);
+  readonly presetTransferFromAccountId = signal<string | undefined>(undefined);
 
   // Filtros de Movimientos
   readonly searchQuery = signal<string>('');
@@ -150,27 +161,6 @@ export class BarberCashPage {
     }
   }
 
-  // Formularios Reactivos
-  readonly accountForm = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2)]],
-    type: ['cash', Validators.required],
-    initialBalance: [0],
-    isActive: [true],
-  });
-
-  readonly movementForm = this.fb.group({
-    accountId: ['', Validators.required],
-    movementType: ['expense', Validators.required],
-    amount: [null as number | null, [Validators.required, Validators.min(0.5)]],
-    description: ['', [Validators.required, Validators.minLength(3)]],
-  });
-
-  readonly transferForm = this.fb.group({
-    fromAccountId: ['', Validators.required],
-    toAccountId: ['', Validators.required],
-    amount: [null as number | null, [Validators.required, Validators.min(0.5)]],
-    description: ['Transferencia interna'],
-  });
 
   // Atajos de teclado contextuales sin colisión con BarberLayout (Alt+N: Corte, Alt+A: Cita, Alt+C: Cliente)
   @HostListener('window:keydown', ['$event'])
@@ -224,166 +214,45 @@ export class BarberCashPage {
   // --- GESTIÓN DE CUENTAS FINANCIERAS ---
   openCreateAccountModal(): void {
     this.haptics.lightTap();
-    this.editingAccountId.set(null);
-    this.accountForm.reset({
-      name: '',
-      type: 'cash',
-      initialBalance: 0,
-      isActive: true,
-    });
+    this.editingAccount.set(null);
     this.isAccountModalOpen.set(true);
   }
 
   openEditAccountModal(account: FinancialAccount): void {
     this.haptics.lightTap();
-    this.editingAccountId.set(account.id);
-    this.accountForm.reset({
-      name: account.name,
-      type: account.type,
-      initialBalance: account.currentBalance,
-      isActive: account.isActive,
-    });
+    this.editingAccount.set(account);
     this.isAccountModalOpen.set(true);
   }
 
   closeAccountModal(): void {
     this.haptics.lightTap();
     this.isAccountModalOpen.set(false);
-    this.editingAccountId.set(null);
-  }
-
-  async submitAccount(): Promise<void> {
-    if (this.accountForm.invalid || this.isSubmitting()) {
-      this.accountForm.markAllAsTouched();
-      return;
-    }
-
-    const { name, type, initialBalance, isActive } = this.accountForm.value;
-    const editingId = this.editingAccountId();
-
-    this.isSubmitting.set(true);
-    try {
-      if (editingId) {
-        await this.barberService.updateFinancialAccount(editingId, {
-          name: name!.trim(),
-          isActive: Boolean(isActive),
-        });
-        this.haptics.success();
-        this.showToast('Cuenta actualizada con éxito');
-      } else {
-        await this.barberService.createFinancialAccount({
-          name: name!.trim(),
-          type: type as AccountType,
-          initialBalance: Number(initialBalance || 0),
-        });
-        this.haptics.success();
-        this.showToast('Nueva cuenta financiera creada');
-      }
-      this.closeAccountModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al guardar la cuenta');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.editingAccount.set(null);
   }
 
   // --- MOVIMIENTOS & TRANSFERENCIAS ---
   openMovementModal(presetAccountId?: string): void {
     this.haptics.lightTap();
-    const accounts = this.barberService.financialAccounts().filter((a) => a.isActive);
-    const targetAccountId = presetAccountId || accounts[0]?.id || '';
-
-    this.movementForm.reset({
-      accountId: targetAccountId,
-      movementType: 'expense',
-      amount: null,
-      description: '',
-    });
+    this.presetMovementAccountId.set(presetAccountId);
     this.isMovementModalOpen.set(true);
   }
 
   closeMovementModal(): void {
     this.haptics.lightTap();
     this.isMovementModalOpen.set(false);
-  }
-
-  async submitMovement(): Promise<void> {
-    if (this.movementForm.invalid || this.isSubmitting()) {
-      this.movementForm.markAllAsTouched();
-      return;
-    }
-
-    const { accountId, movementType, amount, description } = this.movementForm.value;
-    this.isSubmitting.set(true);
-    try {
-      await this.barberService.createAccountMovement({
-        accountId: accountId!,
-        movementType: movementType as MovementType,
-        amount: Number(amount),
-        description: description!.trim(),
-      });
-      this.haptics.success();
-      this.showToast('Movimiento registrado en caja');
-      this.closeMovementModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al registrar movimiento');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.presetMovementAccountId.set(undefined);
   }
 
   openTransferModal(presetFromAccountId?: string): void {
     this.haptics.lightTap();
-    const accounts = this.barberService.financialAccounts().filter((a) => a.isActive);
-    const fromId = presetFromAccountId || accounts[0]?.id || '';
-    const toId = accounts.find((a) => a.id !== fromId)?.id || accounts[1]?.id || '';
-
-    this.transferForm.reset({
-      fromAccountId: fromId,
-      toAccountId: toId,
-      amount: null,
-      description: 'Transferencia interna de fondos',
-    });
+    this.presetTransferFromAccountId.set(presetFromAccountId);
     this.isTransferModalOpen.set(true);
   }
 
   closeTransferModal(): void {
     this.haptics.lightTap();
     this.isTransferModalOpen.set(false);
-  }
-
-  async submitTransfer(): Promise<void> {
-    if (this.transferForm.invalid || this.isSubmitting()) {
-      this.transferForm.markAllAsTouched();
-      return;
-    }
-
-    const { fromAccountId, toAccountId, amount, description } = this.transferForm.value;
-    if (fromAccountId === toAccountId) {
-      this.haptics.warning();
-      this.showToast('Las cuentas de origen y destino deben ser diferentes');
-      return;
-    }
-
-    this.isSubmitting.set(true);
-    try {
-      await this.barberService.transferBetweenAccounts(
-        fromAccountId!,
-        toAccountId!,
-        Number(amount),
-        description?.trim() || 'Transferencia interna'
-      );
-      this.haptics.success();
-      this.showToast('Transferencia completada con éxito');
-      this.closeTransferModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error en la transferencia');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.presetTransferFromAccountId.set(undefined);
   }
 
   // --- FILTROS DE MOVIMIENTOS ---

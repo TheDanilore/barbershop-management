@@ -139,72 +139,11 @@
     }
   </section>
 
-  <!-- MODAL: CREAR / EDITAR USUARIO -->
-  @if (isUserModalOpen()) {
-    <div class="modal-backdrop" (click)="closeUserModal()">
-      <div class="modal-sheet modal-sheet-compact" (click)="$event.stopPropagation()">
-        <div class="sheet-drag-handle"></div>
-
-        <div class="sheet-header">
-          <div class="sheet-title-group">
-            <h2 class="sheet-title">
-              {{ editingUserId() ? 'Editar Colaborador' : 'Nuevo Colaborador del Sistema' }}
-            </h2>
-            <p class="sheet-subtitle">Define las credenciales de rol y perfil de atención</p>
-          </div>
-          <button class="btn-close-sheet" (click)="closeUserModal()" title="Cerrar">✕</button>
-        </div>
-
-        <form [formGroup]="userForm" (ngSubmit)="submitUser()" class="sheet-body">
-          <div class="form-group">
-            <label class="form-label" for="userFullName">Nombre Completo *</label>
-            <input
-              id="userFullName"
-              type="text"
-              class="form-input"
-              formControlName="fullName"
-              placeholder="Ej: Mateo Silva"
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="userPhone">Teléfono / WhatsApp</label>
-            <input
-              id="userPhone"
-              type="tel"
-              class="form-input"
-              formControlName="phone"
-              placeholder="Ej: +51 987 654 321"
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="userRole">Rol en el Negocio *</label>
-            <select id="userRole" class="form-input form-select" formControlName="role">
-              <option value="barber">✂️ Barbero (Atención, Citas y Cobro de Cortes)</option>
-              <option value="admin">🛡️ Administrador (Acceso Total, Caja y Configuración)</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" formControlName="isActive" />
-              <span>Colaborador Activo (Disponible para turnos y atención al cliente)</span>
-            </label>
-          </div>
-
-          <div class="sheet-footer">
-            <button type="button" class="btn-secondary" (click)="closeUserModal()">Cancelar</button>
-            <button
-              type="submit"
-              class="btn-primary-action"
-              [disabled]="userForm.invalid || isSubmitting()"
-            >
-              {{ isSubmitting() ? 'Guardando...' : editingUserId() ? 'Guardar Cambios' : 'Crear Colaborador' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  }
+  <!-- MODAL: CREAR / EDITAR USUARIO (STANDALONE) -->
+  <app-user-modal
+    [isOpen]="isUserModalOpen()"
+    [userToEdit]="editingUser()"
+    (closed)="closeUserModal()"
+    (saved)="showToast($event)">
+  </app-user-modal>
 </div>

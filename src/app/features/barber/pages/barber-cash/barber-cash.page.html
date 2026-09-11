@@ -403,216 +403,27 @@
     (shiftSuccess)="showToast($event)">
   </app-cash-shift-modal>
 
-  <!-- 2. MODAL DE NUEVA O EDICIÓN DE CUENTA -->
-  @if (isAccountModalOpen()) {
-  <div class="modal-backdrop" (click)="closeAccountModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
+  <!-- 2. MODAL DE NUEVA O EDICIÓN DE CUENTA (STANDALONE) -->
+  <app-financial-account-modal
+    [isOpen]="isAccountModalOpen()"
+    [accountToEdit]="editingAccount()"
+    (closed)="closeAccountModal()"
+    (saved)="showToast($event)">
+  </app-financial-account-modal>
 
-      <div class="sheet-header">
-        <div class="sh-title-group">
-          <span class="sh-badge-pill">Configuración</span>
-          <h3 class="sheet-title">{{ editingAccountId() ? 'Editar Cuenta Financiera' : 'Nueva Cuenta Financiera' }}</h3>
-        </div>
-        <button class="sheet-close-btn" (click)="closeAccountModal()" title="Cerrar (Esc)">✕</button>
-      </div>
+  <!-- 3. MODAL DE REGISTRAR MOVIMIENTO (STANDALONE) -->
+  <app-cash-movement-modal
+    [isOpen]="isMovementModalOpen()"
+    [presetAccountId]="presetMovementAccountId()"
+    (closed)="closeMovementModal()"
+    (saved)="showToast($event)">
+  </app-cash-movement-modal>
 
-      <form [formGroup]="accountForm" (ngSubmit)="submitAccount()" class="sheet-form">
-        <div class="form-group">
-          <label class="form-label" for="accName">Nombre de la Cuenta *</label>
-          <input
-            id="accName"
-            type="text"
-            class="form-input"
-            formControlName="name"
-            placeholder="Ej: BCP Soles, Caja Chica, Yape Principal"
-            autofocus />
-        </div>
-
-        @if (!editingAccountId()) {
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label" for="accType">Tipo de Cuenta *</label>
-            <select id="accType" class="form-input" formControlName="type">
-              <option value="cash">💵 Efectivo / Caja</option>
-              <option value="bank">🏦 Banco / Tarjetas</option>
-              <option value="digital_wallet">📱 Billetera Digital</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="initialBalance">Saldo Inicial ({{ barberService.currencySymbol() }}) *</label>
-            <div class="input-prefix-wrapper">
-              <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
-              <input
-                id="initialBalance"
-                type="number"
-                step="0.50"
-                min="0"
-                class="form-input with-prefix"
-                formControlName="initialBalance"
-                placeholder="0.00" />
-            </div>
-          </div>
-        </div>
-        }
-
-        <div class="form-group">
-          <label class="checkbox-container">
-            <input type="checkbox" formControlName="isActive" />
-            <span class="checkmark"></span>
-            <span class="checkbox-text">Cuenta activa para cobros y movimientos</span>
-          </label>
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeAccountModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="accountForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Guardando...' : editingAccountId() ? 'Guardar Cambios' : 'Crear Cuenta' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
-
-  <!-- 3. MODAL DE REGISTRAR MOVIMIENTO (INGRESO / EGRESO) -->
-  @if (isMovementModalOpen()) {
-  <div class="modal-backdrop" (click)="closeMovementModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
-
-      <div class="sheet-header">
-        <div class="sh-title-group">
-          <span class="sh-badge-pill">Transacciones</span>
-          <h3 class="sheet-title">Registrar Movimiento de Fondos</h3>
-        </div>
-        <button class="sheet-close-btn" (click)="closeMovementModal()" title="Cerrar (Esc)">✕</button>
-      </div>
-
-      <form [formGroup]="movementForm" (ngSubmit)="submitMovement()" class="sheet-form">
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label" for="movAccount">Cuenta Afectada *</label>
-            <select id="movAccount" class="form-input" formControlName="accountId">
-              @for (acc of barberService.financialAccounts(); track acc.id) {
-              <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
-              }
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="movType">Naturaleza *</label>
-            <select id="movType" class="form-input" formControlName="movementType">
-              <option value="expense">🔴 Egreso / Gasto</option>
-              <option value="income">🟢 Ingreso Adicional</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="movAmount">Monto ({{ barberService.currencySymbol() }}) *</label>
-          <div class="input-prefix-wrapper">
-            <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
-            <input
-              id="movAmount"
-              type="number"
-              step="0.50"
-              min="0.50"
-              class="form-input with-prefix"
-              formControlName="amount"
-              placeholder="0.00"
-              autofocus />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="movDesc">Motivo o Concepto *</label>
-          <input
-            id="movDesc"
-            type="text"
-            class="form-input"
-            formControlName="description"
-            placeholder="Ej: Insumos de barbería, Pago de internet, Propina caja" />
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeMovementModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="movementForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Registrando...' : 'Confirmar Movimiento (Alt+M)' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
-
-  <!-- 4. MODAL DE TRANSFERENCIA ENTRE CUENTAS -->
-  @if (isTransferModalOpen()) {
-  <div class="modal-backdrop" (click)="closeTransferModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
-
-      <div class="sheet-header">
-        <div class="sh-title-group">
-          <span class="sh-badge-pill">Traspaso Interno</span>
-          <h3 class="sheet-title">Transferencia Entre Cuentas</h3>
-        </div>
-        <button class="sheet-close-btn" (click)="closeTransferModal()" title="Cerrar (Esc)">✕</button>
-      </div>
-
-      <form [formGroup]="transferForm" (ngSubmit)="submitTransfer()" class="sheet-form">
-        <div class="form-row-2">
-          <div class="form-group">
-            <label class="form-label" for="fromAccount">Cuenta Origen *</label>
-            <select id="fromAccount" class="form-input" formControlName="fromAccountId">
-              @for (acc of barberService.financialAccounts(); track acc.id) {
-              <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
-              }
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="toAccount">Cuenta Destino *</label>
-            <select id="toAccount" class="form-input" formControlName="toAccountId">
-              @for (acc of barberService.financialAccounts(); track acc.id) {
-              <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="transAmount">Monto a Transferir ({{ barberService.currencySymbol() }}) *</label>
-          <div class="input-prefix-wrapper">
-            <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
-            <input
-              id="transAmount"
-              type="number"
-              step="0.50"
-              min="0.50"
-              class="form-input with-prefix"
-              formControlName="amount"
-              placeholder="0.00"
-              autofocus />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="transDesc">Nota / Justificación</label>
-          <input
-            id="transDesc"
-            type="text"
-            class="form-input"
-            formControlName="description"
-            placeholder="Ej: Depósito bancario de recaudación del día" />
-        </div>
-
-        <div class="sheet-footer">
-          <button type="button" class="btn-secondary" (click)="closeTransferModal()">Cancelar</button>
-          <button type="submit" class="btn-primary-action" [disabled]="transferForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Transfiriendo...' : 'Confirmar Transferencia (Alt+T)' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-  }
+  <!-- 4. MODAL DE TRANSFERENCIA ENTRE CUENTAS (STANDALONE) -->
+  <app-cash-transfer-modal
+    [isOpen]="isTransferModalOpen()"
+    [presetFromAccountId]="presetTransferFromAccountId()"
+    (closed)="closeTransferModal()"
+    (saved)="showToast($event)">
+  </app-cash-transfer-modal>
 </div>

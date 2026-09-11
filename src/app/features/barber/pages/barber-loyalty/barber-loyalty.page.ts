@@ -16,11 +16,12 @@ import {
 import { LoyaltyReward, RewardType } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { LoyaltyRewardModalComponent } from '../../components/loyalty-reward-modal/loyalty-reward-modal.component';
 
 @Component({
   selector: 'app-barber-loyalty',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, LoyaltyRewardModalComponent],
   templateUrl: './barber-loyalty.page.html',
   styleUrl: './barber-loyalty.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,25 +29,14 @@ import { HapticsService } from '../../../../core/services/haptics.service';
 export class BarberLoyaltyPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
-  private readonly fb = inject(FormBuilder);
 
   readonly isLoyaltyRewardModalOpen = signal(false);
-  readonly editingRewardId = signal<string | null>(null);
+  readonly editingReward = signal<LoyaltyReward | null>(null);
   readonly isSubmitting = signal(false);
 
   // Notificación local de feedback
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  readonly loyaltyRewardForm: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
-    description: [''],
-    rewardType: ['free_cut', [Validators.required]],
-    stampsRequired: [10, [Validators.required, Validators.min(1), Validators.max(100)]],
-    rewardValue: [null, [Validators.min(0)]],
-    isActive: [true],
-    sortOrder: [0, [Validators.min(0)]],
-  });
 
   // Clientes con más sellos acumulados
   readonly topLoyaltyClients = computed(() => {
@@ -70,29 +60,9 @@ export class BarberLoyaltyPage {
     this.haptics.lightTap();
     if (rewardId) {
       const reward = this.barberService.loyaltyRewards().find((r) => r.id === rewardId);
-      if (reward) {
-        this.editingRewardId.set(rewardId);
-        this.loyaltyRewardForm.patchValue({
-          name: reward.name,
-          description: reward.description || '',
-          rewardType: reward.rewardType,
-          stampsRequired: reward.stampsRequired,
-          rewardValue: reward.rewardValue ?? null,
-          isActive: reward.isActive,
-          sortOrder: reward.sortOrder ?? 0,
-        });
-      }
+      this.editingReward.set(reward || null);
     } else {
-      this.editingRewardId.set(null);
-      this.loyaltyRewardForm.reset({
-        name: '',
-        description: '',
-        rewardType: 'free_cut',
-        stampsRequired: 10,
-        rewardValue: null,
-        isActive: true,
-        sortOrder: this.barberService.loyaltyRewards().length,
-      });
+      this.editingReward.set(null);
     }
     this.isLoyaltyRewardModalOpen.set(true);
   }
@@ -100,42 +70,7 @@ export class BarberLoyaltyPage {
   closeLoyaltyRewardModal(): void {
     this.haptics.lightTap();
     this.isLoyaltyRewardModalOpen.set(false);
-    this.editingRewardId.set(null);
-  }
-
-  async submitLoyaltyReward(): Promise<void> {
-    if (this.loyaltyRewardForm.invalid || this.isSubmitting()) {
-      this.loyaltyRewardForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Completa los campos requeridos para la recompensa');
-      return;
-    }
-
-    const { name, description, rewardType, stampsRequired, rewardValue, isActive, sortOrder } =
-      this.loyaltyRewardForm.value;
-
-    this.isSubmitting.set(true);
-    try {
-      await this.barberService.saveLoyaltyReward({
-        id: this.editingRewardId() || undefined,
-        name: name.trim(),
-        description: description?.trim() || undefined,
-        rewardType,
-        stampsRequired: Number(stampsRequired),
-        rewardValue: rewardValue !== null && rewardValue !== '' ? Number(rewardValue) : undefined,
-        isActive: Boolean(isActive),
-        sortOrder: Number(sortOrder || 0),
-      });
-
-      this.haptics.success();
-      this.showToast(this.editingRewardId() ? 'Recompensa actualizada' : 'Recompensa creada con éxito');
-      this.closeLoyaltyRewardModal();
-    } catch (err: any) {
-      this.haptics.warning();
-      this.showToast(err?.message || 'Error al guardar la recompensa');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.editingReward.set(null);
   }
 
   async confirmToggleReward(id: string, currentActive: boolean): Promise<void> {

@@ -1157,6 +1157,62 @@
 }
 
 /* ==============================================================================
+   7. SKELETON LOADER & INTERACTION FEEDBACK
+   ============================================================================== */
+.appointments-skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.skeleton-slot-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.skeleton-time-pill {
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.skeleton-card {
+  height: 76px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  animation: shimmer 1.5s infinite linear;
+}
+
+.skeleton-card-half {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Feedback para botones bloqueados por isSubmitting */
+button:disabled,
+.action-btn:disabled,
+.tbl-action-btn:disabled,
+.btn-primary-create:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  filter: grayscale(0.5);
+  transform: none !important;
+}
+
+/* ==============================================================================
    8. MEDIA QUERIES ADAPTATIVAS (MÓVIL / TABLET / DESKTOP)
    ============================================================================== */
 

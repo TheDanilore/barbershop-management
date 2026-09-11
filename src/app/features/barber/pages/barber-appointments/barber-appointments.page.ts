@@ -280,17 +280,59 @@ export class BarberAppointmentsPage {
   }
 
   // --- GESTIÓN RÁPIDA DE CITAS ---
-  updateStatus(apt: Appointment, newStatus: AppointmentStatus): void {
-    this.haptics.success();
-    this.barberService.updateAppointmentStatus(apt.id, newStatus);
-    const label = this.getStatusLabel(newStatus);
-    this.showToast(`Cita de ${apt.clientName} actualizada a: ${label}`);
+  async updateStatus(apt: Appointment, newStatus: AppointmentStatus): Promise<void> {
+    if (this.isSubmitting()) return;
+
+    // Si la acción es completar, derivar al checkout POS formal para validar cobro, método de pago y gaveta de caja
+    if (newStatus === 'completed') {
+      this.completeAppointmentWithCheckout(apt);
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    try {
+      this.haptics.selection();
+      await this.barberService.updateAppointmentStatus(apt.id, newStatus);
+      this.haptics.success();
+      const label = this.getStatusLabel(newStatus);
+      this.showToast(`Cita de ${apt.clientName} actualizada a: ${label}`);
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(`Error al actualizar estado: ${err.message || 'Error en servidor'}`);
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 
-  cancelAppointment(apt: Appointment): void {
-    this.haptics.warning();
-    this.barberService.updateAppointmentStatus(apt.id, 'cancelled');
-    this.showToast(`Cita de las ${apt.time} cancelada`);
+  completeAppointmentWithCheckout(apt: Appointment): void {
+    this.haptics.selection();
+    const serviceIds = apt.services && apt.services.length > 0
+      ? apt.services.map((s) => s.serviceId)
+      : (apt.serviceId ? [apt.serviceId] : []);
+
+    this.barberService.openRegisterCutModal({
+      clientId: apt.clientId,
+      barberId: apt.barberId,
+      serviceIds,
+      customPrice: apt.price,
+      notes: `Cita completada (${apt.time} - ${apt.clientName})`,
+      appointmentId: apt.id,
+    });
+  }
+
+  async cancelAppointment(apt: Appointment): Promise<void> {
+    if (this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+    try {
+      this.haptics.warning();
+      await this.barberService.updateAppointmentStatus(apt.id, 'cancelled');
+      this.showToast(`Cita de las ${apt.time} cancelada`);
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(`Error al cancelar cita: ${err.message || 'Error en servidor'}`);
+    } finally {
+      this.isSubmitting.set(false);
+    }
   }
 
   // --- MODAL AGENDAR / EDITAR CITA ---

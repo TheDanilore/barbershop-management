@@ -29,12 +29,22 @@ export class BarberSchedule {
   @Output() actionFeedback = new EventEmitter<string>();
 
   /**
-   * Marcar cita como completada
+   * Marcar cita como completada mediante checkout POS validado
    */
   markCompleted(appointment: Appointment): void {
-    this.haptics.success();
-    this.barberService.updateAppointmentStatus(appointment.id, 'completed');
-    this.actionFeedback.emit(`Cita de ${appointment.clientName} completada`);
+    this.haptics.selection();
+    const serviceIds = appointment.services && appointment.services.length > 0
+      ? appointment.services.map((s) => s.serviceId)
+      : (appointment.serviceId ? [appointment.serviceId] : []);
+
+    this.barberService.openRegisterCutModal({
+      clientId: appointment.clientId,
+      barberId: appointment.barberId,
+      serviceIds,
+      customPrice: appointment.price,
+      notes: `Cita completada (${appointment.time} - ${appointment.clientName})`,
+      appointmentId: appointment.id,
+    });
   }
 
   /**

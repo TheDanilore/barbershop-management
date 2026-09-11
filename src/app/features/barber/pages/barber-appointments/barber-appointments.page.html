@@ -232,6 +232,28 @@
   <!-- 4. CONTENIDO PRINCIPAL: CRONOGRAMA INTERACTIVO / LISTA DETALLADA -->
   <!-- ============================================================================== -->
   <main class="agenda-main-canvas">
+    <!-- ESTADO DE CARGA REACTIVO (SKELETON LOADER - EVITA EMPTY FLICKERS) -->
+    @if (barberService.isAppointmentsLoading()) {
+    <div class="appointments-skeleton-container" aria-busy="true" aria-label="Sincronizando agenda...">
+      <div class="skeleton-slot-row">
+        <div class="skeleton-time-pill"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="skeleton-slot-row">
+        <div class="skeleton-time-pill"></div>
+        <div class="skeleton-card skeleton-card-half"></div>
+      </div>
+      <div class="skeleton-slot-row">
+        <div class="skeleton-time-pill"></div>
+        <div class="skeleton-card"></div>
+      </div>
+      <div class="skeleton-slot-row">
+        <div class="skeleton-time-pill"></div>
+        <div class="skeleton-card skeleton-card-half"></div>
+      </div>
+    </div>
+    } @else {
+
     <!-- ESTADO VACÍO TOTAL DEL DÍA (Si no hay ninguna cita registrada) -->
     @if (filteredAppointments().length === 0 && viewMode() === 'list') {
     <div class="empty-state-canvas">
@@ -332,6 +354,7 @@
                   <button
                     type="button"
                     class="btn-apt-act in-progress"
+                    [disabled]="isSubmitting()"
                     (click)="updateStatus(apt, 'in-progress')"
                     title="Pasar al sillón">
                     ▶ Atender
@@ -339,6 +362,7 @@
                   <button
                     type="button"
                     class="btn-apt-act edit"
+                    [disabled]="isSubmitting()"
                     (click)="openEditAppointmentModal(apt)"
                     title="Modificar servicios, horario o notas">
                     ✏️ Modificar
@@ -346,13 +370,15 @@
                   <button
                     type="button"
                     class="btn-apt-act complete"
+                    [disabled]="isSubmitting()"
                     (click)="updateStatus(apt, 'completed')"
-                    title="Marcar como finalizado">
+                    title="Completar y cobrar en POS">
                     ✓ Completar
                   </button>
                   <button
                     type="button"
                     class="btn-apt-act cancel"
+                    [disabled]="isSubmitting()"
                     (click)="cancelAppointment(apt)"
                     title="Cancelar cita">
                     ✕
@@ -361,13 +387,15 @@
                   <button
                     type="button"
                     class="btn-apt-act complete-primary"
+                    [disabled]="isSubmitting()"
                     (click)="updateStatus(apt, 'completed')"
-                    title="Finalizar servicio y registrar">
+                    title="Finalizar servicio y cobrar en POS">
                     ✓ Finalizar Servicio
                   </button>
                   <button
                     type="button"
                     class="btn-apt-act edit"
+                    [disabled]="isSubmitting()"
                     (click)="openEditAppointmentModal(apt)"
                     title="Añadir servicios realizados en sillón">
                     ✏️ Ajustar Servicios
@@ -375,6 +403,7 @@
                   <button
                     type="button"
                     class="btn-apt-act cancel"
+                    [disabled]="isSubmitting()"
                     (click)="cancelAppointment(apt)"
                     title="Cancelar">
                     ✕
@@ -453,6 +482,7 @@
                 <button
                   type="button"
                   class="btn-tbl-action"
+                  [disabled]="isSubmitting()"
                   (click)="updateStatus(apt, 'in-progress')"
                   title="Atender">
                   ▶
@@ -460,6 +490,7 @@
                 <button
                   type="button"
                   class="btn-tbl-action"
+                  [disabled]="isSubmitting()"
                   (click)="openEditAppointmentModal(apt)"
                   title="Editar Servicios / Cita">
                   ✏️
@@ -467,13 +498,15 @@
                 <button
                   type="button"
                   class="btn-tbl-action success"
+                  [disabled]="isSubmitting()"
                   (click)="updateStatus(apt, 'completed')"
-                  title="Completar">
+                  title="Completar y cobrar">
                   ✓
                 </button>
                 <button
                   type="button"
                   class="btn-tbl-action danger"
+                  [disabled]="isSubmitting()"
                   (click)="cancelAppointment(apt)"
                   title="Cancelar">
                   ✕
@@ -482,6 +515,7 @@
                 <button
                   type="button"
                   class="btn-tbl-action"
+                  [disabled]="isSubmitting()"
                   (click)="openEditAppointmentModal(apt)"
                   title="Añadir servicios en sillón">
                   ✏️
@@ -489,8 +523,9 @@
                 <button
                   type="button"
                   class="btn-tbl-action success"
+                  [disabled]="isSubmitting()"
                   (click)="updateStatus(apt, 'completed')"
-                  title="Finalizar servicio">
+                  title="Finalizar servicio y cobrar">
                   ✓ Finalizar
                 </button>
                 } @else {
@@ -503,6 +538,8 @@
         </tbody>
       </table>
     </div>
+    }
+
     }
   </main>
 

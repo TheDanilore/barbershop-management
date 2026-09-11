@@ -6,6 +6,7 @@ import {
   HostListener,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -22,6 +23,7 @@ import { filter } from 'rxjs/operators';
 import { PaymentMethod } from '../../../core/models/barber.models';
 import { BarberService } from '../../../core/services/barber.service';
 import { HapticsService } from '../../../core/services/haptics.service';
+import { LoggerService } from '../../../core/services/logger.service';
 import { getLocalDateString } from '../../../core/utils/date.utils';
 import { SupabaseService } from '../../../core/services/supabase.service';
 import { BookAppointmentModalComponent } from '../components/book-appointment-modal/book-appointment-modal.component';
@@ -49,6 +51,7 @@ export class BarberLayoutPage implements OnInit {
   readonly barberService = inject(BarberService);
   readonly supabaseService = inject(SupabaseService);
   readonly haptics = inject(HapticsService);
+  private readonly logger = inject(LoggerService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
@@ -56,8 +59,8 @@ export class BarberLayoutPage implements OnInit {
   // Pestaña activa determinada por la URL actual
   readonly currentTab = signal<BarberTab>('overview');
 
-  // Modales de Acción Rápida Globales
-  readonly isRegisterCutModalOpen = signal(false);
+  // Modales de Acción Rápida Globales (Gobernados centralizadamente por BarberService)
+  readonly isRegisterCutModalOpen = this.barberService.isRegisterCutModalOpen;
   readonly isBookAppointmentModalOpen = signal(false);
   readonly isNewClientModalOpen = signal(false);
   readonly isSubmitting = signal(false);
@@ -118,6 +121,15 @@ export class BarberLayoutPage implements OnInit {
   constructor() {
     this.destroyRef.onDestroy(() => {
       if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    });
+
+    // Escuchar apertura del modal de Cobro Express POS para pre-poblar datos
+    effect(() => {
+      const isOpen = this.barberService.isRegisterCutModalOpen();
+      const initData = this.barberService.registerCutModalInitialData();
+      if (isOpen) {
+        this.populateCutFormFromInitialData(initData);
+      }
     });
   }
 
@@ -228,8 +240,8 @@ export class BarberLayoutPage implements OnInit {
   }
 
   closeAllModals(): void {
-    this.isRegisterCutModalOpen.set(false);
-    this.isBookAppointmentModalOpen.set(false);
+    this.barberService.closeRegisterCutModal();
+    this.barberService.closeBookingModal();
     this.isNewClientModalOpen.set(false);
   }
 
@@ -268,29 +280,42 @@ export class BarberLayoutPage implements OnInit {
   // ---------------------------------------------------------------------------
   openRegisterCutModal(preselectedClientId?: string): void {
     this.haptics.lightTap();
-    const clientId =
-      preselectedClientId ||
-      this.cutForm.get('clientId')?.value ||
-      this.barberService.clients()[0]?.id ||
-      '';
-    const firstService = this.barberService.services()[0];
-    const initialServices = firstService ? [firstService.id] : [];
-    this.selectedCutServiceIds.set(initialServices);
-
-    this.cutForm.reset({
-      clientId,
-      serviceId: firstService?.id || '',
-      customPrice: null,
-      paymentMethod: 'cash',
-      isCredit: false,
-      notes: '',
-    });
-    this.isRegisterCutModalOpen.set(true);
+    this.barberService.openRegisterCutModal({ clientId: preselectedClientId });
   }
 
   closeRegisterCutModal(): void {
     this.haptics.lightTap();
-    this.isRegisterCutModalOpen.set(false);
+    this.barberService.closeRegisterCutModal();
+  }
+
+  private populateCutFormFromInitialData(data: {
+    clientId?: string;
+    barberId?: string;
+    serviceIds?: string[];
+    customPrice?: number | null;
+    notes?: string;
+    appointmentId?: string;
+  } | null): void {
+    const clientId =
+      data?.clientId ||
+      this.cutForm.get('clientId')?.value ||
+      this.barberService.clients()[0]?.id ||
+      '';
+    const firstService = this.barberService.services()[0];
+    const initialServices = data?.serviceIds && data.serviceIds.length > 0
+      ? data.serviceIds
+      : (firstService ? [firstService.id] : []);
+
+    this.selectedCutServiceIds.set(initialServices);
+
+    this.cutForm.reset({
+      clientId,
+      serviceId: initialServices[0] || firstService?.id || '',
+      customPrice: data?.customPrice ?? null,
+      paymentMethod: 'cash',
+      isCredit: false,
+      notes: data?.notes || '',
+    });
   }
 
   toggleCutService(serviceId: string): void {
@@ -373,6 +398,16 @@ export class BarberLayoutPage implements OnInit {
         isCredit: Boolean(isCredit),
         notes,
       });
+
+      // Si el cobro proviene de una cita agendada, marcar la cita como completada en Supabase y localmente
+      const currentInitData = this.barberService.registerCutModalInitialData();
+      if (currentInitData?.appointmentId) {
+        try {
+          await this.barberService.updateAppointmentStatus(currentInitData.appointmentId, 'completed');
+        } catch (e) {
+          this.logger.error('BarberLayoutPage', 'Error completando cita asociada tras cobro', e);
+        }
+      }
 
       this.haptics.success();
       const servicesLabel = selectedServices.length > 1 ? ` (${selectedServices.length} servicios)` : '';

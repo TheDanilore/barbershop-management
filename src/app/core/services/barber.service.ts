@@ -48,6 +48,18 @@ const STORAGE_KEYS = {
   APP_SETTINGS: 'barbertrack_app_settings',
 };
 
+/** Mapeo bidireccional estricto entre Enums de TypeScript y PostgreSQL (public.appointment_status) */
+export function toDbAppointmentStatus(status: AppointmentStatus): 'confirmed' | 'in_progress' | 'completed' | 'cancelled' {
+  if (status === 'in-progress') return 'in_progress';
+  if (status === 'pending') return 'confirmed';
+  return status;
+}
+
+export function fromDbAppointmentStatus(status: string): AppointmentStatus {
+  if (status === 'in_progress') return 'in-progress';
+  return (status as AppointmentStatus) || 'confirmed';
+}
+
 const INITIAL_ACCOUNTS: FinancialAccount[] = [
   { id: 'acc-cash', name: 'Caja Principal (Efectivo)', type: 'cash', currentBalance: 0.0, isActive: true },
   { id: 'acc-bank', name: 'Cuenta Banco / POS Tarjetas', type: 'bank', currentBalance: 0.0, isActive: true },
@@ -116,6 +128,37 @@ export class BarberService {
   closeBookingModal(): void {
     this.isBookingModalOpen.set(false);
     this.bookingModalAppointmentToEdit.set(null);
+  }
+
+  // Estado reactivo de carga específico de citas/agenda (Evita flickers de estado vacío)
+  readonly isAppointmentsLoading = signal<boolean>(false);
+
+  // Modal global centralizado de Cobro Express POS (Venta y checkout seguro de citas)
+  readonly isRegisterCutModalOpen = signal<boolean>(false);
+  readonly registerCutModalInitialData = signal<{
+    clientId?: string;
+    barberId?: string;
+    serviceIds?: string[];
+    customPrice?: number | null;
+    notes?: string;
+    appointmentId?: string;
+  } | null>(null);
+
+  openRegisterCutModal(initialData?: {
+    clientId?: string;
+    barberId?: string;
+    serviceIds?: string[];
+    customPrice?: number | null;
+    notes?: string;
+    appointmentId?: string;
+  }): void {
+    this.registerCutModalInitialData.set(initialData || null);
+    this.isRegisterCutModalOpen.set(true);
+  }
+
+  closeRegisterCutModal(): void {
+    this.isRegisterCutModalOpen.set(false);
+    this.registerCutModalInitialData.set(null);
   }
 
   // Loyalty Rewards System (0..N premios configurables)
@@ -688,8 +731,14 @@ export class BarberService {
         this.logger.warn('BarberService', 'Aviso sincronizando ventas', err);
       }
 
-      // 5. Proyección de Citas / Agenda desde Supabase
+      // 5. Proyección de Citas / Agenda desde Supabase con Optimización de Data Egress (Ventana Deslizante)
       try {
+        this.isAppointmentsLoading.set(true);
+        // Ventana móvil de -30 días hasta +60 días para evitar descargas masivas de todo el historial
+        const now = new Date();
+        const minIso = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const maxIso = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
+
         const { data: aptsData, error: aptsError } = await this.supabaseService.supabase
           .from('appointments')
           .select(`
@@ -699,10 +748,14 @@ export class BarberService {
             service_id,
             scheduled_at,
             status,
+            services_details,
+            total_duration_minutes,
             customer:profiles!appointments_customer_id_fkey (id, full_name, phone),
             barber:profiles!appointments_barber_id_fkey (id, full_name),
             service:services!appointments_service_id_fkey (id, name, base_price)
           `)
+          .gte('scheduled_at', minIso)
+          .lte('scheduled_at', maxIso)
           .order('scheduled_at', { ascending: true });
 
         if (!aptsError && aptsData && aptsData.length > 0) {
@@ -710,6 +763,24 @@ export class BarberService {
             const dt = new Date(a.scheduled_at);
             const dateStr = getLocalDateString(dt);
             const timeStr = getLocalTimeString(dt);
+
+            const parsedServices: AppointmentServiceItem[] = Array.isArray(a.services_details) && a.services_details.length > 0
+              ? a.services_details
+              : (a.service ? [{
+                  serviceId: a.service_id,
+                  name: a.service.name,
+                  price: Number(a.service.base_price || 15),
+                  durationMinutes: a.total_duration_minutes || 30,
+                }] : []);
+
+            const totalPrice = parsedServices.length > 0
+              ? parsedServices.reduce((sum, s) => sum + (Number(s.price) || 0), 0)
+              : Number(a.service?.base_price || 15);
+
+            const serviceName = parsedServices.length > 1
+              ? parsedServices.map((s) => s.name).join(' + ')
+              : (parsedServices[0]?.name || a.service?.name || 'Corte');
+
             return {
               id: a.id,
               clientId: a.customer_id,
@@ -718,11 +789,13 @@ export class BarberService {
               barberId: a.barber_id,
               barberName: a.barber?.full_name || 'Barbero',
               serviceId: a.service_id,
-              serviceName: a.service?.name || 'Corte',
+              serviceName,
+              services: parsedServices,
+              totalDurationMinutes: a.total_duration_minutes || parsedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0),
               date: dateStr,
               time: timeStr,
-              price: Number(a.service?.base_price || 15),
-              status: a.status as any,
+              price: totalPrice,
+              status: fromDbAppointmentStatus(a.status),
             };
           });
           this.appointments.set(mappedApts);
@@ -733,6 +806,8 @@ export class BarberService {
         }
       } catch (err) {
         this.logger.warn('BarberService', 'Aviso sincronizando citas', err);
+      } finally {
+        this.isAppointmentsLoading.set(false);
       }
 
       // 10. Cargar Premios de Fidelización configurables (0..N)
@@ -1713,6 +1788,8 @@ export class BarberService {
             service_id: primaryServiceId || this.services()[0]?.id,
             scheduled_at: scheduledAt,
             status: 'confirmed',
+            services_details: servicesList,
+            total_duration_minutes: totalDuration,
           })
           .select('id')
           .single();
@@ -1831,6 +1908,7 @@ export class BarberService {
     if (this.supabaseService.isConfigured()) {
       try {
         const scheduledAt = new Date(`${updatedApt.date}T${updatedApt.time}:00`).toISOString();
+        const dbStatus = toDbAppointmentStatus(updatedApt.status);
         const { error } = await this.supabaseService.supabase
           .from('appointments')
           .update({
@@ -1838,7 +1916,9 @@ export class BarberService {
             barber_id: updatedApt.barberId,
             service_id: updatedApt.serviceId,
             scheduled_at: scheduledAt,
-            status: updatedApt.status,
+            status: dbStatus,
+            services_details: updatedApt.services || [],
+            total_duration_minutes: updatedApt.totalDurationMinutes || 30,
           })
           .eq('id', id);
 
@@ -1853,33 +1933,34 @@ export class BarberService {
     return updatedApt;
   }
 
-  updateAppointmentStatus(id: string, status: Appointment['status']): void {
+  async updateAppointmentStatus(id: string, status: Appointment['status']): Promise<void> {
     const target = this.appointments().find((a) => a.id === id);
     if (!target) return;
 
-    const updated = this.appointments().map((a) => (a.id === id ? { ...a, status } : a));
+    const previousAppointments = this.appointments();
+    const updated = previousAppointments.map((a) => (a.id === id ? { ...a, status } : a));
     this.appointments.set(updated);
     this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, updated);
 
-    if (status === 'completed') {
-      this.registerCut({
-        clientId: target.clientId,
-        barberId: target.barberId,
-        serviceId: target.serviceId,
-        customPrice: target.price,
-        paymentMethod: 'cash',
-        notes: target.notes ? `${target.notes} • (${target.serviceName})` : `Cita completada (${target.time} - ${target.serviceName})`,
-      });
-    }
-
     if (this.supabaseService.isConfigured()) {
-      this.supabaseService.supabase
-        .from('appointments')
-        .update({ status })
-        .eq('id', id)
-        .then(({ error }) => {
-          if (error) this.logger.error('BarberService', 'Error al actualizar estado de cita', error);
-        });
+      try {
+        const dbStatus = toDbAppointmentStatus(status);
+        const { error } = await this.supabaseService.supabase
+          .from('appointments')
+          .update({ status: dbStatus })
+          .eq('id', id);
+
+        if (error) {
+          this.logger.error('BarberService', 'Error al actualizar estado de cita en Supabase. Revirtiendo...', error);
+          this.appointments.set(previousAppointments);
+          this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, previousAppointments);
+          throw error;
+        }
+      } catch (err) {
+        this.appointments.set(previousAppointments);
+        this.saveToStorage(STORAGE_KEYS.APPOINTMENTS, previousAppointments);
+        throw err;
+      }
     }
   }
 

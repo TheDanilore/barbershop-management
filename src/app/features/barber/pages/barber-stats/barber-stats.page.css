@@ -59,9 +59,45 @@
 }
 
 .page-subtitle {
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   color: #a1a1aa;
   margin: 0;
+}
+
+/* Barra de Filtro de Período */
+.period-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #14141a;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #272733;
+  flex-wrap: wrap;
+}
+
+.period-pill {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.period-pill:hover {
+  color: #ffffff;
+  background: #1f1f2a;
+}
+
+.period-pill.active {
+  background: var(--gold-primary, #e5a93c);
+  color: #121215;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(229, 169, 60, 0.3);
 }
 
 /* KPI Grid */

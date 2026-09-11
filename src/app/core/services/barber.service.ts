@@ -380,30 +380,95 @@ export class BarberService {
     return cashAcc ? Number(cashAcc.currentBalance) || 0 : 0;
   });
 
-  // Servicios más solicitados computados reactivamente desde el historial de cortes
-  readonly topRequestedServices = computed(() => {
-    const cutsList = this.cuts();
+  // Función auxiliar para agregar estadísticas de servicios a partir de un listado de cortes
+  calculateTopServicesFromCuts(cutsList: CutRecord[]): Array<{
+    id: string;
+    name: string;
+    price: number;
+    count: number;
+    revenue: number;
+    percentage: number;
+  }> {
     const allServices = this.services();
-
     const countsMap = new Map<string, { id: string; name: string; price: number; count: number; revenue: number }>();
 
+    // Inicializar con todos los servicios del catálogo para que aparezcan aunque tengan 0 cortes
     for (const s of allServices) {
       countsMap.set(s.id, { id: s.id, name: s.name, price: s.price, count: 0, revenue: 0 });
     }
 
     for (const cut of cutsList) {
-      const existing = countsMap.get(cut.serviceId);
-      if (existing) {
-        existing.count += 1;
-        existing.revenue += cut.price;
+      // 1. Si la orden contiene líneas de detalle (Multi-servicio / Combo)
+      if (cut.items && cut.items.length > 0) {
+        const subtotalSum = cut.items.reduce(
+          (acc, it) => acc + (it.subtotal || it.unitPrice * (it.quantity || 1)),
+          0
+        );
+        // Si hubo un precio personalizado / descuento global, prorratear el revenue
+        const ratio = subtotalSum > 0 ? cut.price / subtotalSum : 1;
+
+        for (const item of cut.items) {
+          const qty = item.quantity || 1;
+          const itemRevenue = (item.subtotal || item.unitPrice * qty) * ratio;
+
+          // Buscar coincidencia por serviceId
+          let target = item.serviceId ? countsMap.get(item.serviceId) : undefined;
+          if (!target) {
+            // Buscar por nombre de servicio (tolerancia a mayúsculas/minúsculas y sincronización)
+            const matchedSrv = allServices.find(
+              (s) => s.name.trim().toLowerCase() === (item.itemName || '').trim().toLowerCase()
+            );
+            if (matchedSrv) {
+              target = countsMap.get(matchedSrv.id);
+            }
+          }
+
+          if (target) {
+            target.count += qty;
+            target.revenue += itemRevenue;
+          } else {
+            // Si es un servicio histórico
+            const key = item.serviceId || item.itemName || 'srv-extra';
+            const existing = countsMap.get(key);
+            if (existing) {
+              existing.count += qty;
+              existing.revenue += itemRevenue;
+            } else {
+              countsMap.set(key, {
+                id: key,
+                name: item.itemName || 'Servicio',
+                price: item.unitPrice || 0,
+                count: qty,
+                revenue: itemRevenue,
+              });
+            }
+          }
+        }
       } else {
-        countsMap.set(cut.serviceId, {
-          id: cut.serviceId,
-          name: cut.serviceName,
-          price: cut.price,
-          count: 1,
-          revenue: cut.price,
-        });
+        // 2. Fallback para órdenes unitarias o históricas sin items[]
+        let target = cut.serviceId ? countsMap.get(cut.serviceId) : undefined;
+        if (!target) {
+          const matchedSrv = allServices.find(
+            (s) => s.name.trim().toLowerCase() === (cut.serviceName || '').trim().toLowerCase()
+          );
+          if (matchedSrv) {
+            target = countsMap.get(matchedSrv.id);
+          }
+        }
+
+        if (target) {
+          target.count += 1;
+          target.revenue += cut.price;
+        } else {
+          const fallbackKey = cut.serviceId || cut.serviceName || 'srv-fallback';
+          countsMap.set(fallbackKey, {
+            id: fallbackKey,
+            name: cut.serviceName || 'Servicio',
+            price: cut.price,
+            count: 1,
+            revenue: cut.price,
+          });
+        }
       }
     }
 
@@ -414,11 +479,55 @@ export class BarberService {
 
     const maxCount = Math.max(...list.map((l) => l.count), 1);
 
-    return list.slice(0, 5).map((item) => ({
+    return list.map((item) => ({
       ...item,
       percentage: item.count > 0 ? Math.round((item.count / maxCount) * 100) : 0,
     }));
+  }
+
+  // Servicios más solicitados computados reactivamente desde el historial completo
+  readonly topRequestedServices = computed(() => {
+    return this.calculateTopServicesFromCuts(this.cuts());
   });
+
+  // Ranking de servicios más solicitados según período de tiempo
+  getTopServicesByPeriod(period: 'today' | 'week' | 'month' | '6months' | 'year' | 'all'): Array<{
+    id: string;
+    name: string;
+    price: number;
+    count: number;
+    revenue: number;
+    percentage: number;
+  }> {
+    const allCuts = this.cuts();
+    const now = new Date();
+    const todayStr = getLocalDateString(now);
+
+    let filteredCuts: CutRecord[] = [];
+    switch (period) {
+      case 'today':
+        filteredCuts = allCuts.filter((c) => isSameLocalDate(c.date, todayStr));
+        break;
+      case 'week':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 7, now));
+        break;
+      case 'month':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 30, now));
+        break;
+      case '6months':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 180, now));
+        break;
+      case 'year':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 365, now));
+        break;
+      case 'all':
+      default:
+        filteredCuts = allCuts;
+        break;
+    }
+
+    return this.calculateTopServicesFromCuts(filteredCuts);
+  }
 
   readonly activeClientsCount = computed(() => {
     if (this.serverKpis()) return this.serverKpis()!.activeClients;

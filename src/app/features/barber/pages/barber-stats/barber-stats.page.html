@@ -1,5 +1,5 @@
 <div class="stats-page">
-  <!-- Encabezado de Página -->
+  <!-- Encabezado de Página con Selector de Rango Temporal -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
@@ -11,10 +11,24 @@
         Visualiza el rendimiento financiero, servicios estrella y la satisfacción consolidada de tus clientes.
       </p>
     </div>
+
+    <!-- Barra de Filtro de Período -->
+    <div class="period-pills-bar">
+      @for (p of periods; track p.id) {
+        <button
+          type="button"
+          class="period-pill"
+          [class.active]="selectedPeriod() === p.id"
+          (click)="setPeriod(p.id)">
+          {{ p.label }}
+        </button>
+      }
+    </div>
   </header>
 
-  <!-- Tarjetas KPI Principales -->
+  <!-- Tarjetas KPI Principales Adaptadas al Período -->
   <section class="kpi-grid">
+    <!-- 1. Ventas / Facturación -->
     <div class="kpi-card">
       <div class="kpi-icon-wrap gold">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
@@ -24,12 +38,13 @@
         </svg>
       </div>
       <div class="kpi-body">
-        <span class="kpi-label">Ingresos de Hoy</span>
-        <div class="kpi-value gold">{{ barberService.currencySymbol() }}{{ barberService.revenueToday().toFixed(2) }}</div>
-        <span class="kpi-hint">{{ barberService.cutsToday() }} servicios completados</span>
+        <span class="kpi-label">Ventas • {{ currentMetrics().periodLabel }}</span>
+        <div class="kpi-value gold">{{ barberService.currencySymbol() }}{{ currentMetrics().production.toFixed(2) }}</div>
+        <span class="kpi-hint">{{ currentMetrics().cutsCount }} servicios realizados</span>
       </div>
     </div>
 
+    <!-- 2. Recaudación Efectiva Cobrada -->
     <div class="kpi-card">
       <div class="kpi-icon-wrap blue">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
@@ -37,12 +52,15 @@
         </svg>
       </div>
       <div class="kpi-body">
-        <span class="kpi-label">Últimos 7 Días</span>
-        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ barberService.revenueThisWeek().toFixed(2) }}</div>
-        <span class="kpi-hint">Facturación semanal</span>
+        <span class="kpi-label">Recaudación Cobrada</span>
+        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ currentMetrics().cashCollected.toFixed(2) }}</div>
+        <span class="kpi-hint">
+          {{ currentMetrics().creditSales > 0 ? ('Fiado: ' + barberService.currencySymbol() + currentMetrics().creditSales.toFixed(2)) : '100% cobrado' }}
+        </span>
       </div>
     </div>
 
+    <!-- 3. Saldo Total en Cuentas -->
     <div class="kpi-card highlight-card">
       <div class="kpi-icon-wrap emerald">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
@@ -57,6 +75,7 @@
       </div>
     </div>
 
+    <!-- 4. Ticket Promedio -->
     <div class="kpi-card">
       <div class="kpi-icon-wrap purple">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
@@ -65,8 +84,8 @@
       </div>
       <div class="kpi-body">
         <span class="kpi-label">Ticket Promedio</span>
-        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ averageTicket().toFixed(2) }}</div>
-        <span class="kpi-hint">Por servicio atendido</span>
+        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ currentMetrics().averageTicket.toFixed(2) }}</div>
+        <span class="kpi-hint">{{ currentMetrics().uniqueClientsCount }} clientes atendidos</span>
       </div>
     </div>
   </section>
@@ -78,7 +97,7 @@
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h2 class="panel-title">Servicios Más Solicitados</h2>
-          <p class="panel-sub">Ranking por volumen de cortes y recaudación generada</p>
+          <p class="panel-sub">Ranking granular por volumen y recaudación ({{ currentMetrics().periodLabel }})</p>
         </div>
         @if (highPerformanceService(); as topSrv) {
           <span class="badge-top-service">★ Top #1: {{ topSrv.name }}</span>
@@ -86,7 +105,7 @@
       </div>
 
       <div class="services-stats-list">
-        @for (srv of barberService.topRequestedServices(); track srv.id; let idx = $index) {
+        @for (srv of currentTopServices(); track srv.id; let idx = $index) {
           <div class="service-stat-row">
             <div class="ssr-rank">#{{ idx + 1 }}</div>
             <div class="ssr-main">
@@ -108,7 +127,7 @@
         } @empty {
           <div class="empty-state-card">
             <div class="empty-icon">📊</div>
-            <p class="empty-title">Sin servicios registrados aún</p>
+            <p class="empty-title">Sin servicios registrados en este período</p>
             <p class="empty-desc">Los datos de servicios más solicitados se actualizarán automáticamente con cada cobro.</p>
           </div>
         }

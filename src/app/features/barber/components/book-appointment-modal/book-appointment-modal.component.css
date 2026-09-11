@@ -1,0 +1,508 @@
+/* ==============================================================================
+   BOOK APPOINTMENT MODAL - WORLD-CLASS CAMALEÓNICO DESIGN SYSTEM
+   Mobile-First (Apple HIG Bottom Sheet) -> Desktop Power User Centered Glass Dialog
+   ============================================================================== */
+
+:host {
+  display: contents;
+}
+
+/* 1. Backdrop Glassmorphism Absoluto al Viewport */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* 2. Sheet / Contenedor Modal */
+.modal-sheet {
+  background: #14141b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  box-shadow:
+    0 25px 60px -10px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(229, 169, 60, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.sheet-drag-handle {
+  display: none;
+}
+
+/* 3. Cabecera del Modal */
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+  flex-shrink: 0;
+}
+
+.sheet-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sheet-badge-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(229, 169, 60, 0.14);
+  color: var(--gold-primary, #e5a93c);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+  width: fit-content;
+}
+
+.sheet-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.sheet-close-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9a9ab0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: all 0.18s ease;
+}
+
+.sheet-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+/* 4. Cuerpo Scrolleable del Formulario */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.form-body {
+  padding: 16px 22px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overscroll-behavior: contain;
+}
+
+.form-body::-webkit-scrollbar {
+  width: 5px;
+}
+.form-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+/* 5. Grupos de Campos e Inputs */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a4a4ba;
+  letter-spacing: 0.01em;
+}
+
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 0.95rem;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: all 0.18s ease;
+}
+
+.input-icon-wrap .form-input {
+  padding: 8px 12px 8px 36px;
+}
+
+.form-input:not(.input-icon-wrap *) {
+  padding: 8px 12px;
+}
+
+.form-textarea {
+  padding: 8px 12px;
+  resize: vertical;
+  min-height: 42px;
+  height: 42px;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--gold-primary, #e5a93c);
+  background: rgba(229, 169, 60, 0.03);
+  box-shadow: 0 0 0 2px rgba(229, 169, 60, 0.22);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* 6. Selector Visual de Horarios (Time Chips Matrix) */
+.time-chips-section {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.time-chips-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.time-selected-badge {
+  font-size: 0.78rem;
+  color: #a4a4ba;
+}
+
+.time-selected-badge strong {
+  color: var(--gold-primary, #e5a93c);
+}
+
+.time-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 7px;
+}
+
+.time-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #c4c4d6;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.time-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.time-chip.selected {
+  background: linear-gradient(135deg, #e5a93c 0%, #c88a1e 100%);
+  color: #0b0b0f;
+  font-weight: 800;
+  border-color: #f7ca6d;
+  box-shadow: 0 4px 12px rgba(229, 169, 60, 0.35);
+  transform: translateY(-1px);
+}
+
+.time-chip.occupied:not(.selected) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+.tc-occupied-tag {
+  font-size: 0.5rem;
+  color: #ef4444;
+  line-height: 1;
+}
+
+/* 7. Live Summary Card */
+.live-summary-card {
+  background: rgba(229, 169, 60, 0.04);
+  border: 1px solid rgba(229, 169, 60, 0.18);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lsc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(229, 169, 60, 0.12);
+}
+
+.lsc-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold-primary, #e5a93c);
+}
+
+.lsc-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.lsc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lsc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+.lsc-label {
+  color: #9292a8;
+}
+
+.lsc-val {
+  color: #e0e0ec;
+  font-weight: 600;
+}
+
+.lsc-row.total {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.lsc-row.total .lsc-label {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.lsc-val-price {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gold-primary, #e5a93c);
+}
+
+/* 8. Footer con Botones de Acción */
+.sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.btn-secondary-action {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c4c4d6;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.btn-secondary-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.btn-primary-confirm {
+  background: linear-gradient(135deg, #e5a93c 0%, #d4952b 100%);
+  border: none;
+  color: #0c0c10;
+  font-size: 0.92rem;
+  font-weight: 800;
+  padding: 11px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(229, 169, 60, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+.btn-primary-confirm:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(229, 169, 60, 0.45);
+}
+
+.btn-primary-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.spinner-inline {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==============================================================================
+   9. MEDIA QUERIES ADAPTATIVAS (CAMALEÓNICO: MOBILE iOS BOTTOM SHEET)
+   ============================================================================== */
+
+@media (max-width: 768px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-sheet {
+    max-width: 100%;
+    border-radius: 24px 24px 0 0;
+    max-height: 88vh;
+    animation: slideUpSheet 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));
+    border-bottom: none;
+  }
+
+  @keyframes slideUpSheet {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .sheet-drag-handle {
+    display: block;
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.25);
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+  }
+
+  .sheet-header {
+    padding: 14px 20px 14px;
+  }
+
+  .form-body {
+    padding: 16px 20px;
+    gap: 14px;
+  }
+
+  .form-row-2 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .time-chips-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .time-chip {
+    padding: 10px 4px;
+    min-height: 44px;
+    font-size: 0.88rem;
+  }
+
+  .sheet-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+    padding: 14px 20px;
+  }
+
+  .btn-secondary-action,
+  .btn-primary-confirm {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+}

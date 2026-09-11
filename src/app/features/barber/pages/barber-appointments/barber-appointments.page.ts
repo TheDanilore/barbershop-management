@@ -54,8 +54,7 @@ export class BarberAppointmentsPage {
   readonly selectedStatusFilter = signal<string>('all');
   readonly viewMode = signal<'timeline' | 'list'>('timeline');
 
-  // Estados de Modal y Acción
-  readonly isBookAppointmentModalOpen = signal(false);
+  // Estados de Acción
   readonly isSubmitting = signal(false);
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -66,16 +65,6 @@ export class BarberAppointmentsPage {
     '14:00', '14:45', '15:30', '16:15', '17:00', '17:45',
     '18:30', '19:15', '20:00'
   ];
-
-  // Formulario Reactivo para Cita
-  readonly bookingForm: FormGroup = this.fb.group({
-    clientId: ['', [Validators.required]],
-    serviceId: ['', [Validators.required]],
-    barberId: ['', [Validators.required]],
-    date: [getLocalDateString(), [Validators.required]],
-    time: ['10:00', [Validators.required]],
-    notes: [''],
-  });
 
   // --- COMPUTADAS REACTIVAS ---
 
@@ -192,17 +181,7 @@ export class BarberAppointmentsPage {
     });
   });
 
-  // Servicio seleccionado en el modal para calcular resumen en vivo
-  readonly modalSelectedService = computed(() => {
-    const srvId = this.bookingForm.get('serviceId')?.value;
-    return this.barberService.services().find((s) => s.id === srvId) || null;
-  });
 
-  // Barbero seleccionado en el modal
-  readonly modalSelectedBarber = computed(() => {
-    const bId = this.bookingForm.get('barberId')?.value;
-    return this.barberService.barbers().find((b) => b.id === bId) || null;
-  });
 
   // --- ATAJOS DE TECLADO POWER USER ---
   @HostListener('window:keydown', ['$event'])
@@ -211,7 +190,7 @@ export class BarberAppointmentsPage {
     const isEditing = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
 
     if (event.key === 'Escape') {
-      if (this.isBookAppointmentModalOpen()) {
+      if (this.barberService.isBookingModalOpen()) {
         this.closeBookAppointmentModal();
       }
       return;
@@ -317,69 +296,12 @@ export class BarberAppointmentsPage {
   // --- MODAL AGENDAR CITA ---
   openBookAppointmentModal(defaultTime?: string): void {
     this.haptics.lightTap();
-    const firstClient = this.barberService.clients()[0];
-    const firstService = this.barberService.services()[0];
-    const firstBarber = this.barberService.barbers()[0];
-
-    const time = defaultTime || '10:00';
-
-    this.bookingForm.reset({
-      clientId: firstClient?.id || '',
-      serviceId: firstService?.id || '',
-      barberId: firstBarber?.id || '',
-      date: this.selectedDate(),
-      time,
-      notes: '',
-    });
-
-    this.isBookAppointmentModalOpen.set(true);
+    this.barberService.openBookingModal(this.selectedDate(), defaultTime || '10:00');
   }
 
   closeBookAppointmentModal(): void {
     this.haptics.lightTap();
-    this.isBookAppointmentModalOpen.set(false);
-  }
-
-  selectTimeChip(time: string): void {
-    this.haptics.selection();
-    this.bookingForm.patchValue({ time });
-  }
-
-  async submitBookAppointment(): Promise<void> {
-    if (this.bookingForm.invalid || this.isSubmitting()) {
-      this.bookingForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Por favor completa los campos obligatorios');
-      return;
-    }
-
-    const { clientId, serviceId, barberId, date, time, notes } = this.bookingForm.value;
-    this.isSubmitting.set(true);
-
-    try {
-      await this.barberService.bookAppointment({
-        clientId: clientId || this.barberService.clients()[0]?.id || '',
-        serviceId,
-        barberId,
-        date,
-        time,
-        notes: notes?.trim() || undefined,
-      });
-
-      this.haptics.success();
-      this.showToast('✓ Cita agendada con éxito');
-      this.closeBookAppointmentModal();
-
-      // Si la fecha agendada es distinta a la actual, ofrecer navegar o fijarla
-      if (date !== this.selectedDate()) {
-        this.selectedDate.set(date);
-      }
-    } catch {
-      this.haptics.warning();
-      this.showToast('Error al agendar la cita. Inténtalo de nuevo.');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+    this.barberService.closeBookingModal();
   }
 
   // Helper visual para etiquetas de estado

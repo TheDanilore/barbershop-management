@@ -1,0 +1,170 @@
+@if (isOpen) {
+<div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle" (click)="closeModal()">
+  <div class="modal-sheet" (click)="$event.stopPropagation()">
+    <!-- Tirador táctil iOS para vista móvil -->
+    <div class="sheet-drag-handle"></div>
+
+    <!-- Cabecera del Modal -->
+    <header class="sheet-header">
+      <div class="sheet-title-group">
+        <span class="sheet-badge-pill">Reserva &amp; Planificación</span>
+        <h3 id="modalTitle" class="sheet-title">Nueva Cita</h3>
+      </div>
+      <button
+        type="button"
+        class="sheet-close-btn"
+        (click)="closeModal()"
+        title="Cerrar (Esc)"
+        aria-label="Cerrar modal">
+        ✕
+      </button>
+    </header>
+
+    <!-- Formulario Reactivo de Reserva -->
+    <form [formGroup]="bookingForm" (ngSubmit)="submitBookAppointment()" class="sheet-form">
+      <div class="form-body">
+        <!-- 1. Selección de Cliente -->
+        <div class="form-group">
+          <label class="form-label" for="bookingClient">Cliente *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon">👤</span>
+            <select id="bookingClient" class="form-input" formControlName="clientId">
+              @for (cli of barberService.clients(); track cli.id) {
+              <option [value]="cli.id">
+                {{ cli.name }} {{ cli.phone ? ' • ' + cli.phone : '' }}
+              </option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- 2. Selección de Servicio y Barbero (2 Columnas) -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="bookingService">Servicio *</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">✂️</span>
+              <select id="bookingService" class="form-input" formControlName="serviceId">
+                @for (srv of barberService.services(); track srv.id) {
+                <option [value]="srv.id">
+                  {{ srv.name }} — ${{ srv.price.toFixed(2) }} ({{ srv.durationMinutes }} min)
+                </option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="bookingBarber">Barbero Asignado *</label>
+            <div class="input-icon-wrap">
+              <span class="input-icon">💈</span>
+              <select id="bookingBarber" class="form-input" formControlName="barberId">
+                @for (barber of barberService.barbers(); track barber.id) {
+                <option [value]="barber.id">
+                  {{ barber.name }}
+                </option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Fecha de la Cita -->
+        <div class="form-group">
+          <label class="form-label" for="bookingDate">Fecha de la Cita *</label>
+          <div class="input-icon-wrap">
+            <span class="input-icon">📅</span>
+            <input
+              id="bookingDate"
+              type="date"
+              class="form-input"
+              formControlName="date" />
+          </div>
+        </div>
+
+        <!-- 4. Selector Visual de Horarios (Time Chips Matrix) -->
+        <div class="form-group time-chips-section">
+          <div class="time-chips-header">
+            <label class="form-label">Horario Disponible *</label>
+            <span class="time-selected-badge">
+              Seleccionado: <strong>{{ currentTime() }}</strong>
+            </span>
+          </div>
+
+          <div class="time-chips-grid">
+            @for (slot of availableTimeSlots; track slot) {
+            <button
+              type="button"
+              class="time-chip"
+              [class.selected]="currentTime() === slot"
+              [class.occupied]="occupiedSlotsOnSelectedDate().has(slot)"
+              (click)="selectTimeChip(slot)">
+              <span class="tc-time">{{ slot }}</span>
+              @if (occupiedSlotsOnSelectedDate().has(slot)) {
+              <span class="tc-occupied-tag" [title]="'Ocupado por ' + occupiedSlotsOnSelectedDate().get(slot)">
+                ●
+              </span>
+              }
+            </button>
+            }
+          </div>
+        </div>
+
+        <!-- 5. Notas Adicionales -->
+        <div class="form-group">
+          <label class="form-label" for="bookingNotes">Notas / Requerimientos Especiales</label>
+          <textarea
+            id="bookingNotes"
+            class="form-textarea"
+            rows="2"
+            placeholder="Ej: Degradado medio, diseño especial, barba perfilada..."
+            formControlName="notes"></textarea>
+        </div>
+
+        <!-- 6. Tarjeta Resumen Financiero & Operativo en Vivo -->
+        <div class="live-summary-card">
+          <div class="lsc-header">
+            <span class="lsc-title">Resumen de la Cita</span>
+            <span class="lsc-badge">Confirmación Inmediata</span>
+          </div>
+          <div class="lsc-body">
+            <div class="lsc-row">
+              <span class="lsc-label">Servicio:</span>
+              <span class="lsc-val">{{ selectedService()?.name || 'Servicio' }}</span>
+            </div>
+            <div class="lsc-row">
+              <span class="lsc-label">Profesional:</span>
+              <span class="lsc-val">{{ selectedBarber()?.name || 'Barbero' }}</span>
+            </div>
+            <div class="lsc-row total">
+              <span class="lsc-label">Total a Cobrar:</span>
+              <span class="lsc-val-price">${{ (selectedService()?.price || 0).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer con Botones de Acción -->
+      <footer class="sheet-footer">
+        <button
+          type="button"
+          class="btn-secondary-action"
+          (click)="closeModal()">
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn-primary-confirm"
+          [disabled]="bookingForm.invalid || isSubmitting()">
+          @if (isSubmitting()) {
+          <span class="spinner-inline"></span>
+          <span>Agendando...</span>
+          } @else {
+          <span>✓ Confirmar y Agendar Cita</span>
+          }
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
+}

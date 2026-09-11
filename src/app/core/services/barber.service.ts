@@ -90,6 +90,21 @@ export class BarberService {
   readonly serverKpis = signal<DashboardKpis | null>(null);
   readonly systemUsers = signal<SystemUser[]>([]);
 
+  // Modal global centralizado de Agendar Cita
+  readonly isBookingModalOpen = signal<boolean>(false);
+  readonly bookingModalDate = signal<string>(getLocalDateString());
+  readonly bookingModalTime = signal<string>('10:00');
+
+  openBookingModal(date?: string, time?: string): void {
+    if (date) this.bookingModalDate.set(date);
+    if (time) this.bookingModalTime.set(time);
+    this.isBookingModalOpen.set(true);
+  }
+
+  closeBookingModal(): void {
+    this.isBookingModalOpen.set(false);
+  }
+
   // Loyalty Rewards System (0..N premios configurables)
   readonly loyaltyRewards = signal<LoyaltyReward[]>([]);
   readonly pendingRewardClaims = signal<LoyaltyRewardClaim[]>([]);

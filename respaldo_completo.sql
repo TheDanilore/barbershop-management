@@ -87,6 +87,35 @@ $$;
 ALTER FUNCTION "public"."fn_on_account_movement"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."fn_on_account_movement_sync_shift"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+    -- Si el movimiento de cuenta está vinculado a un turno de caja activo
+    IF NEW.shift_id IS NOT NULL THEN
+        IF NEW.movement_type = 'expense' THEN
+            UPDATE public.cash_shifts
+            SET cash_expenses = cash_expenses + NEW.amount,
+                expected_cash = expected_cash - NEW.amount,
+                updated_at = now()
+            WHERE id = NEW.shift_id;
+        ELSIF NEW.movement_type = 'income' AND NEW.reference_type = 'credit_payment' THEN
+            -- Abono de deuda en efectivo cobrado durante el turno
+            UPDATE public.cash_shifts
+            SET cash_sales = cash_sales + NEW.amount,
+                expected_cash = expected_cash + NEW.amount,
+                updated_at = now()
+            WHERE id = NEW.shift_id;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."fn_on_account_movement_sync_shift"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."fn_on_credit_movement"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -114,27 +143,16 @@ CREATE OR REPLACE FUNCTION "public"."fn_on_sale_deleted"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
-    v_stamps_threshold integer := 10;
-    v_real_cuts        integer := 0;
-    v_new_tier         text;
+    v_real_cuts integer := 0;
+    v_new_tier  text;
 BEGIN
     IF OLD.customer_id IS NOT NULL THEN
-        -- Contar las ventas reales que quedan en sales_history para este cliente
+        -- Contar las ventas reales vigentes para este cliente
         SELECT COUNT(*) INTO v_real_cuts
         FROM public.sales_history
         WHERE customer_id = OLD.customer_id;
 
-        -- Leer el threshold de sellos dinámico desde app_settings
-        SELECT COALESCE(value::integer, 10) INTO v_stamps_threshold
-        FROM public.app_settings
-        WHERE key = 'stamps_required'
-        LIMIT 1;
-
-        IF v_stamps_threshold IS NULL OR v_stamps_threshold < 2 THEN
-            v_stamps_threshold := 10;
-        END IF;
-
-        -- Recalcular loyalty_progress basado en el conteo real de ventas
+        -- Actualizar loyalty_progress reflejando los cortes reales
         INSERT INTO public.loyalty_progress (
             customer_id,
             current_stamps,
@@ -144,18 +162,17 @@ BEGIN
         )
         VALUES (
             OLD.customer_id,
-            (v_real_cuts % v_stamps_threshold),
             v_real_cuts,
-            (v_real_cuts / v_stamps_threshold),
+            v_real_cuts,
+            0,
             now()
         )
         ON CONFLICT (customer_id) DO UPDATE SET
-            current_stamps       = EXCLUDED.current_stamps,
+            current_stamps        = EXCLUDED.current_stamps,
             total_historical_cuts = EXCLUDED.total_historical_cuts,
-            rewards_claimed      = EXCLUDED.rewards_claimed,
-            updated_at           = now();
+            updated_at            = now();
 
-        -- Recalcular membership tier del perfil
+        -- Recalcular nivel de membresía
         v_new_tier := CASE
             WHEN v_real_cuts >= 50 THEN 'Diamond'
             WHEN v_real_cuts >= 20 THEN 'Gold'
@@ -563,7 +580,7 @@ CREATE TABLE IF NOT EXISTS "public"."sales_history" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "customer_id" "uuid",
     "barber_id" "uuid" NOT NULL,
-    "service_id" "uuid" NOT NULL,
+    "service_id" "uuid",
     "appointment_id" "uuid",
     "final_price" numeric(10,2) NOT NULL,
     "payment_method" "text" NOT NULL,
@@ -763,6 +780,14 @@ CREATE INDEX "idx_sales_history_customer" ON "public"."sales_history" USING "btr
 
 
 CREATE OR REPLACE TRIGGER "trg_account_movement_balance" AFTER INSERT ON "public"."account_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_account_movement"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_account_movement_sync_shift" AFTER INSERT ON "public"."account_movements" FOR EACH ROW EXECUTE FUNCTION "public"."fn_on_account_movement_sync_shift"();
+
+
+
+COMMENT ON TRIGGER "trg_account_movement_sync_shift" ON "public"."account_movements" IS 'Sincroniza automáticamente los totales de cash_shifts (egresos y abonos) ante cualquier movimiento de cuenta.';
 
 
 
@@ -1263,6 +1288,12 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "anon";
 GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."fn_on_account_movement_sync_shift"() TO "anon";
+GRANT ALL ON FUNCTION "public"."fn_on_account_movement_sync_shift"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."fn_on_account_movement_sync_shift"() TO "service_role";
 
 
 

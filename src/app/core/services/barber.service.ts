@@ -17,6 +17,7 @@ import {
   FinancialAccount,
   LoyaltyReward,
   LoyaltyRewardClaim,
+  MembershipTier,
   MovementType,
   PaymentMethod,
   ReferenceType,
@@ -501,55 +502,61 @@ export class BarberService {
         // Fallback a servicios locales
       }
 
-      // 7. Proyección de Equipo de Barberos y Staff desde profiles
+      // 7. Proyección Atómica Unificada de Usuarios, Barberos y Clientes desde profiles
+      // OPTIMIZACIÓN DATA EGRESS: 1 sola consulta HTTP atómica en lugar de 3 consultas secuenciales
       try {
-        const { data: barbersData } = await this.supabaseService.supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url, role')
-          .in('role', ['barber', 'admin'])
-          .eq('is_active', true);
-
-        if (barbersData && barbersData.length > 0) {
-          const mappedBarbers: Barber[] = barbersData.map((b: any) => ({
-            id: b.id,
-            name: b.full_name || 'Barbero',
-            specialty: b.role === 'admin' ? 'Master Barber & Administrador' : 'Barbero Profesional',
-            avatarUrl: b.avatar_url || undefined,
-            rating: 5.0,
-            totalCuts: 0,
-          }));
-          this.barbers.set(mappedBarbers);
-        }
-      } catch {
-        // Fallback a barberos locales
-      }
-
-      // 8. Proyección quirúrgica de Clientes con fidelidad y saldo de crédito/deuda
-      // CRITICAL FIX: Cuando Supabase responde sin error, SIEMPRE sobreescribimos el signal
-      // y el localStorage — incluso si loyalty_progress está vacía (cutsCount=0).
-      // Esto evita que datos de sesiones anteriores con cutsCount>0 persistan en caché
-      // cuando las tablas de Supabase han sido limpiadas/reseteadas.
-      try {
-        const { data: profilesData, error: profError } = await this.supabaseService.supabase
+        const { data: allProfilesData, error: profilesErr } = await this.supabaseService.supabase
           .from('profiles')
           .select(`
             id,
             full_name,
             phone,
+            role,
+            is_active,
             membership_tier,
             avatar_url,
+            created_at,
             loyalty_progress (current_stamps, total_historical_cuts),
             customer_credits!customer_credits_profile_id_fkey (current_debt, credit_limit)
           `)
-          .eq('role', 'customer')
-          .eq('is_active', true);
+          .order('created_at', { ascending: false });
 
-        if (profError) {
-          // Error real de Supabase: loguear para diagnóstico, preservar caché local como fallback
-          this.logger.error('BarberService', 'Error al cargar clientes desde Supabase (RLS u otro)', profError);
-        } else if (profilesData) {
-          // Respuesta exitosa (incluye lista vacía): el servidor gobierna sobre el caché local
-          const mappedClients: Client[] = profilesData.map((p) => {
+        if (profilesErr) {
+          this.logger.error('BarberService', 'Error al cargar perfiles unificados desde Supabase', profilesErr);
+        } else if (allProfilesData) {
+          // A. Proyección de Todos los Usuarios del Sistema
+          const mappedUsers: SystemUser[] = allProfilesData.map((u: any) => ({
+            id: u.id,
+            fullName: u.full_name || 'Usuario',
+            phone: u.phone || '',
+            role: (u.role as UserRole) || 'barber',
+            isActive: u.is_active ?? true,
+            avatarUrl: u.avatar_url || undefined,
+            createdAt: u.created_at,
+          }));
+          this.systemUsers.set(mappedUsers);
+
+          // B. Proyección de Equipo de Barberos y Staff activo
+          const activeStaff = allProfilesData.filter(
+            (p: any) => (p.role === 'barber' || p.role === 'admin') && (p.is_active ?? true)
+          );
+          if (activeStaff.length > 0) {
+            const mappedBarbers: Barber[] = activeStaff.map((b: any) => ({
+              id: b.id,
+              name: b.full_name || 'Barbero',
+              specialty: b.role === 'admin' ? 'Master Barber & Administrador' : 'Barbero Profesional',
+              avatarUrl: b.avatar_url || undefined,
+              rating: 5.0,
+              totalCuts: 0,
+            }));
+            this.barbers.set(mappedBarbers);
+          }
+
+          // C. Proyección Soberana de Clientes con Fidelidad y Deuda
+          const customerProfiles = allProfilesData.filter(
+            (p: any) => p.role === 'customer' && (p.is_active ?? true)
+          );
+          const mappedClients: Client[] = customerProfiles.map((p: any) => {
             const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
             const cc = Array.isArray(p.customer_credits) ? p.customer_credits[0] : (p.customer_credits as any);
             return {
@@ -564,36 +571,11 @@ export class BarberService {
               creditLimit: Number(cc?.credit_limit ?? 0),
             };
           });
-          // Sobreescritura soberana: elimina cualquier dato residual de localStorage
           this.clients.set(mappedClients);
           this.saveToStorage(STORAGE_KEYS.CLIENTS, mappedClients);
         }
-      } catch (clientErr) {
-        // Excepción de red: loguear para diagnóstico, preservar caché local como fallback offline
-        this.logger.error('BarberService', 'Excepción al cargar clientes', clientErr);
-      }
-
-      // 9. Proyección de Todos los Usuarios del Sistema (Admin, Barberos, Clientes)
-      try {
-        const { data: allUsersData, error: usersError } = await this.supabaseService.supabase
-          .from('profiles')
-          .select('id, full_name, phone, role, is_active, avatar_url, created_at')
-          .order('created_at', { ascending: false });
-
-        if (!usersError && allUsersData) {
-          const mappedUsers: SystemUser[] = allUsersData.map((u: any) => ({
-            id: u.id,
-            fullName: u.full_name || 'Usuario',
-            phone: u.phone || '',
-            role: (u.role as UserRole) || 'barber',
-            isActive: u.is_active ?? true,
-            avatarUrl: u.avatar_url || undefined,
-            createdAt: u.created_at,
-          }));
-          this.systemUsers.set(mappedUsers);
-        }
-      } catch {
-        // Fallback
+      } catch (profilesEx) {
+        this.logger.error('BarberService', 'Excepción de red al cargar perfiles unificados', profilesEx);
       }
 
       // 4. Proyección quirúrgica de Ventas recientes con Join relacional seguro
@@ -834,17 +816,15 @@ export class BarberService {
     this.cuts.set(updatedCuts);
     this.saveToStorage(STORAGE_KEYS.CUTS, updatedCuts);
 
-    const threshold = this.stampsRequired();
-
     if (client) {
       const newCutsCount = client.cutsCount + 1;
-      let newStamps = client.loyaltyStamps + 1;
-      let newLevel = client.membershipLevel;
+      const newStamps = client.loyaltyStamps + 1;
+      let newLevel: MembershipTier = client.membershipLevel;
 
-      if (newStamps >= threshold) newStamps = 0;
       if (newCutsCount >= 15) newLevel = 'VIP';
       else if (newCutsCount >= 8) newLevel = 'Gold';
       else if (newCutsCount >= 3) newLevel = 'Silver';
+      else newLevel = 'Bronze';
 
       const newDebt = params.isCredit ? (client.currentDebt || 0) + finalPrice : (client.currentDebt || 0);
 
@@ -1118,6 +1098,17 @@ export class BarberService {
             reference_type: 'credit_payment',
             shift_id: acc.type === 'cash' ? shiftIdReal : null,
           });
+
+          // Sincronizar cash_shifts en Supabase ante abono en efectivo
+          if (acc.type === 'cash' && activeShift && !activeShift.id.startsWith('shift-')) {
+            await this.supabaseService.supabase
+              .from('cash_shifts')
+              .update({
+                cash_sales: activeShift.cashSales,
+                expected_cash: activeShift.expectedCash,
+              })
+              .eq('id', activeShift.id);
+          }
         }
       } catch (err) {
         this.logger.error('BarberService', 'Error al registrar abono de crédito', err);
@@ -1262,6 +1253,17 @@ export class BarberService {
           reference_type: params.referenceType || 'manual',
           shift_id: acc.type === 'cash' ? shiftIdReal : null,
         });
+
+        // Sincronizar cash_shifts en Supabase ante egreso en efectivo
+        if (acc.type === 'cash' && params.movementType === 'expense' && activeShift && !activeShift.id.startsWith('shift-')) {
+          await this.supabaseService.supabase
+            .from('cash_shifts')
+            .update({
+              cash_expenses: activeShift.cashExpenses,
+              expected_cash: activeShift.expectedCash,
+            })
+            .eq('id', activeShift.id);
+        }
       } catch (err) {
         this.logger.error('BarberService', 'Error al crear movimiento en Supabase', err);
       }
@@ -1741,18 +1743,29 @@ export class BarberService {
   }
 
   /**
-   * Permanently delete a loyalty reward (only if no claims reference it).
+   * Delete or soft-delete a loyalty reward.
+   * If historic claims reference it, soft-deletes (is_active = false) to preserve referential integrity.
    */
   async deleteLoyaltyReward(id: string): Promise<void> {
     try {
-      const { error } = await this.supabaseService.supabase
-        .from('loyalty_rewards')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      if (this.supabaseService.isConfigured() && !id.startsWith('rwd-')) {
+        const { error } = await this.supabaseService.supabase
+          .from('loyalty_rewards')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          this.logger.warn('BarberService', 'Premio con canjes asociados; aplicando soft-delete (is_active = false)', error);
+          const { error: softErr } = await this.supabaseService.supabase
+            .from('loyalty_rewards')
+            .update({ is_active: false })
+            .eq('id', id);
+          if (softErr) throw softErr;
+        }
+      }
       this.loyaltyRewards.update((list) => list.filter((r) => r.id !== id));
     } catch (err) {
-      this.logger.error('BarberService', 'Error al eliminar loyalty_reward', err);
+      this.logger.error('BarberService', 'Error al eliminar/desactivar loyalty_reward', err);
       throw err;
     }
   }

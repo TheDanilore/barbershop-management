@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { LoggerService } from './logger.service';
 import { SupabaseService } from './supabase.service';
+import { getLocalDateString, getLocalTimeString } from '../utils/date.utils';
 import {
   AccountMovement,
   AccountType,
@@ -170,19 +171,19 @@ export class BarberService {
     // Dar prioridad al RPC del servidor para evitar que datos locales desactualizados
     // muestren cortes que ya no existen en Supabase
     if (this.serverKpis()) return this.serverKpis()!.cutsToday;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalDateString();
     return this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
   });
 
   readonly cutsThisMonth = computed(() => {
     if (this.serverKpis()) return this.serverKpis()!.cutsThisMonth;
-    const currentYearMonth = new Date().toISOString().slice(0, 7);
+    const currentYearMonth = getLocalDateString().slice(0, 7);
     return this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
   });
 
   readonly revenueToday = computed(() => {
     if (this.serverKpis()) return this.serverKpis()!.revenueToday;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalDateString();
     return this.cuts().filter((c) => c.date.startsWith(todayStr)).reduce((sum, c) => sum + c.price, 0);
   });
 
@@ -276,7 +277,7 @@ export class BarberService {
   });
 
   readonly todayAppointments = computed(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalDateString();
     return this.appointments()
       .filter((a) => a.date === todayStr)
       .sort((a, b) => a.time.localeCompare(b.time));
@@ -669,8 +670,8 @@ export class BarberService {
         if (!aptsError && aptsData && aptsData.length > 0) {
           const mappedApts: Appointment[] = aptsData.map((a: any) => {
             const dt = new Date(a.scheduled_at);
-            const dateStr = dt.toISOString().slice(0, 10);
-            const timeStr = dt.toTimeString().slice(0, 5);
+            const dateStr = getLocalDateString(dt);
+            const timeStr = getLocalTimeString(dt);
             return {
               id: a.id,
               clientId: a.customer_id,
@@ -836,7 +837,7 @@ export class BarberService {
             loyaltyStamps: newStamps,
             membershipLevel: newLevel,
             currentDebt: newDebt,
-            lastVisitDate: new Date().toISOString().slice(0, 10),
+            lastVisitDate: getLocalDateString(),
           }
           : c
       );
@@ -990,7 +991,7 @@ export class BarberService {
       cutsCount: 0,
       loyaltyStamps: 0,
       membershipLevel: 'Bronze',
-      lastVisitDate: new Date().toISOString().slice(0, 10),
+      lastVisitDate: getLocalDateString(),
       notes,
       currentDebt: 0,
       creditLimit: 0,

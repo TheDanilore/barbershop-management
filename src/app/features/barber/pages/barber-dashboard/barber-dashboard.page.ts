@@ -34,9 +34,24 @@ export class BarberDashboardPage {
   readonly isRegisterCutModalOpen = signal(false);
   readonly isShiftModalOpen = signal(false);
   readonly shiftMode = signal<'open' | 'close'>('open');
+  readonly actualCashInput = signal<number>(0);
+  readonly activeShift = computed(() => this.barberService.activeCashShift());
   readonly isDebtPaymentModalOpen = signal(false);
   readonly debtPaymentClient = signal<Client | null>(null);
   readonly isSubmitting = signal(false);
+
+  // Cálculo interactivo de Descuadre de Turno (Arqueo)
+  readonly shiftDiscrepancy = computed(() => {
+    const shift = this.activeShift();
+    if (!shift) return { difference: 0, status: 'none' as const, expected: 0, actual: 0 };
+    const expected = Number(shift.expectedCash || 0);
+    const actual = Number(this.actualCashInput() || 0);
+    const difference = actual - expected;
+    let status: 'perfect' | 'shortage' | 'surplus' = 'perfect';
+    if (difference < -0.01) status = 'shortage';
+    else if (difference > 0.01) status = 'surplus';
+    return { difference, status, expected, actual };
+  });
 
   // Toast Notificaciones
   readonly toastMessage = signal<string | null>(null);
@@ -171,13 +186,20 @@ export class BarberDashboardPage {
     if (mode === 'open') {
       this.openShiftForm.reset({ initialCash: 50, notes: '' });
     } else {
-      const activeShift = this.barberService.activeCashShift();
+      const shift = this.activeShift();
+      const expected = shift?.expectedCash ?? 0;
+      this.actualCashInput.set(expected);
       this.closeShiftForm.reset({
-        actualCash: activeShift?.expectedCash ?? 0,
+        actualCash: expected,
         notes: '',
       });
     }
     this.isShiftModalOpen.set(true);
+  }
+
+  onActualCashChange(event: Event): void {
+    const val = Number((event.target as HTMLInputElement).value);
+    this.actualCashInput.set(val || 0);
   }
 
   closeShiftModal(): void {

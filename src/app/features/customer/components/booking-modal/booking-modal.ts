@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { getLocalDateString } from '../../../../core/utils/date.utils';
 
 @Component({
   selector: 'app-booking-modal',
@@ -32,7 +33,7 @@ export class BookingModal {
   readonly bookingForm: FormGroup = this.fb.group({
     serviceId: ['srv-1', [Validators.required]],
     barberId: ['barber-1', [Validators.required]],
-    date: [new Date().toISOString().slice(0, 10), [Validators.required]],
+    date: [getLocalDateString(), [Validators.required]],
     time: ['10:00', [Validators.required]],
     notes: [''],
   });

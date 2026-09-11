@@ -17,6 +17,13 @@ import {
 import { Appointment, AppointmentStatus } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import {
+  getLocalDateString,
+  addDaysToDateStr,
+  getDayName,
+  getMonthShortName,
+  formatDateReadable,
+} from '../../../../core/utils/date.utils';
 
 export interface WeekDayItem {
   dateStr: string;
@@ -26,30 +33,6 @@ export interface WeekDayItem {
   isToday: boolean;
   isSelected: boolean;
   appointmentCount: number;
-}
-
-function addDaysToDateStr(dateStr: string, days: number): string {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function getDayName(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const names = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  return names[date.getDay()];
-}
-
-function getMonthShortName(dateStr: string): string {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  return months[date.getMonth()];
 }
 
 @Component({
@@ -66,7 +49,7 @@ export class BarberAppointmentsPage {
   private readonly fb = inject(FormBuilder);
 
   // Estados de navegación y filtros
-  readonly selectedDate = signal<string>(new Date().toISOString().slice(0, 10));
+  readonly selectedDate = signal<string>(getLocalDateString());
   readonly selectedBarberFilter = signal<string>('all');
   readonly selectedStatusFilter = signal<string>('all');
   readonly viewMode = signal<'timeline' | 'list'>('timeline');
@@ -89,30 +72,21 @@ export class BarberAppointmentsPage {
     clientId: ['', [Validators.required]],
     serviceId: ['', [Validators.required]],
     barberId: ['', [Validators.required]],
-    date: [new Date().toISOString().slice(0, 10), [Validators.required]],
+    date: [getLocalDateString(), [Validators.required]],
     time: ['10:00', [Validators.required]],
     notes: [''],
   });
 
   // --- COMPUTADAS REACTIVAS ---
 
-  // Fecha actual en string ISO
-  readonly todayDateStr = computed(() => new Date().toISOString().slice(0, 10));
+  // Fecha actual en string YYYY-MM-DD según la zona horaria local (Perú)
+  readonly todayDateStr = computed(() => getLocalDateString());
 
   // Es el día de hoy?
   readonly isViewingToday = computed(() => this.selectedDate() === this.todayDateStr());
 
-  // Formato legible de la fecha seleccionada (ej. "Jueves, 11 de Septiembre 2026")
-  readonly formattedSelectedDate = computed(() => {
-    const [y, m, d] = this.selectedDate().split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  });
+  // Formato legible de la fecha seleccionada (ej. "Jueves, 10 de Septiembre 2026")
+  readonly formattedSelectedDate = computed(() => formatDateReadable(this.selectedDate()));
 
   // Franja semanal de 7 días centrada alrededor de la fecha seleccionada
   readonly weekStrip = computed<WeekDayItem[]>(() => {

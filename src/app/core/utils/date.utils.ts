@@ -91,3 +91,48 @@ export function isPastDateTime(dateStr: string, timeStr: string, now: Date = new
   return timeStr <= getLocalTimeString(now);
 }
 
+/**
+ * Convierte cualquier string de fecha (ISO, UTC, etc.) a fecha local 'YYYY-MM-DD'.
+ */
+export function getLocalDateFromIso(isoDateStr: string): string {
+  if (!isoDateStr) return '';
+  try {
+    const d = new Date(isoDateStr);
+    if (isNaN(d.getTime())) return isoDateStr.slice(0, 10);
+    return getLocalDateString(d);
+  } catch {
+    return isoDateStr.slice(0, 10);
+  }
+}
+
+/**
+ * Determina si una fecha ISO o string corresponde exactamente a la fecha local indicada (por defecto hoy).
+ */
+export function isSameLocalDate(isoDateStr: string, targetDateStr: string = getLocalDateString()): boolean {
+  if (!isoDateStr) return false;
+  return getLocalDateFromIso(isoDateStr) === targetDateStr;
+}
+
+/**
+ * Determina si una fecha ISO o string corresponde al mismo mes y año local (YYYY-MM).
+ */
+export function isSameLocalYearMonth(isoDateStr: string, targetYearMonth: string = getLocalDateString().slice(0, 7)): boolean {
+  if (!isoDateStr) return false;
+  return getLocalDateFromIso(isoDateStr).startsWith(targetYearMonth);
+}
+
+/**
+ * Determina si una fecha ISO se encuentra dentro de los últimos N días desde hoy.
+ */
+export function isDateWithinPastDays(isoDateStr: string, days: number, now: Date = new Date()): boolean {
+  if (!isoDateStr) return false;
+  try {
+    const targetDate = new Date(isoDateStr);
+    const diffMs = now.getTime() - targetDate.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= days;
+  } catch {
+    return false;
+  }
+}
+

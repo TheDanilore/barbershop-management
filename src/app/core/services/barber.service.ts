@@ -1,7 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { LoggerService } from './logger.service';
 import { SupabaseService } from './supabase.service';
-import { getLocalDateString, getLocalTimeString, isPastDateTime, isDateInPast } from '../utils/date.utils';
+import {
+  getLocalDateString,
+  getLocalTimeString,
+  isPastDateTime,
+  isDateInPast,
+  getLocalDateFromIso,
+  isSameLocalDate,
+  isSameLocalYearMonth,
+  isDateWithinPastDays,
+} from '../utils/date.utils';
 import {
   AccountMovement,
   AccountType,
@@ -272,10 +281,10 @@ export class BarberService {
     );
   });
 
-  // Métricas reactivas consolidadas — El servidor (RPC) actúa como base histórica y el estado local añade reactividad instantánea
+  // Métricas reactivas consolidadas — Fechas locales deterministas sin desfases UTC
   readonly cutsToday = computed(() => {
     const todayStr = getLocalDateString();
-    const localCutsToday = this.cuts().filter((c) => c.date.startsWith(todayStr)).length;
+    const localCutsToday = this.cuts().filter((c) => isSameLocalDate(c.date, todayStr)).length;
     if (this.serverKpis()) {
       return Math.max(this.serverKpis()!.cutsToday, localCutsToday);
     }
@@ -284,45 +293,78 @@ export class BarberService {
 
   readonly cutsThisMonth = computed(() => {
     const currentYearMonth = getLocalDateString().slice(0, 7);
-    const localCutsMonth = this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).length;
+    const localCutsMonth = this.cuts().filter((c) => isSameLocalYearMonth(c.date, currentYearMonth)).length;
     if (this.serverKpis()) {
       return Math.max(this.serverKpis()!.cutsThisMonth, localCutsMonth);
     }
     return localCutsMonth;
   });
 
-  readonly revenueToday = computed(() => {
+  // Ventas Brutas / Producción del Día (Contado + Crédito/Fiado)
+  readonly productionToday = computed(() => {
     const todayStr = getLocalDateString();
-    const localRevenueToday = this.cuts()
-      .filter((c) => c.date.startsWith(todayStr) && c.paymentMethod !== 'credit')
-      .reduce((sum, c) => sum + c.price, 0);
+    return this.cuts()
+      .filter((c) => isSameLocalDate(c.date, todayStr))
+      .reduce((sum, c) => sum + (Number(c.price) || 0), 0);
+  });
+
+  // Recaudación Efectiva Cobrada Hoy (Cortes al Contado + Abonos de Deuda recibidos hoy)
+  readonly collectedToday = computed(() => {
+    const todayStr = getLocalDateString();
+    const cashFromCuts = this.cuts()
+      .filter((c) => isSameLocalDate(c.date, todayStr) && c.paymentMethod !== 'credit')
+      .reduce((sum, c) => sum + (Number(c.price) || 0), 0);
+
+    const debtPayments = this.accountMovements()
+      .filter((m) => isSameLocalDate(m.createdAt, todayStr) && m.movementType === 'income' && m.referenceType === 'credit_payment')
+      .reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+
+    return cashFromCuts + debtPayments;
+  });
+
+  // Recaudación en Caja de Hoy (Compatible con llamadas existentes)
+  readonly revenueToday = computed(() => {
+    const localCollected = this.collectedToday();
     if (this.serverKpis()) {
-      return Math.max(this.serverKpis()!.revenueToday, localRevenueToday);
+      return Math.max(this.serverKpis()!.revenueToday, localCollected);
     }
-    return localRevenueToday;
+    return localCollected;
   });
 
   readonly revenueThisWeek = computed(() => {
-    const localWeek = this.cuts().slice(0, 15).reduce((sum, c) => sum + c.price, 0);
+    const localWeek = this.cuts()
+      .filter((c) => isDateWithinPastDays(c.date, 7))
+      .reduce((sum, c) => sum + (Number(c.price) || 0), 0);
     if (localWeek > 0) return localWeek;
     if (this.serverKpis()) return this.serverKpis()!.revenueThisWeek;
     return 0;
   });
 
   readonly revenueThisMonth = computed(() => {
-    const currentYearMonth = new Date().toISOString().slice(0, 7);
-    const localMonthRevenue = this.cuts().filter((c) => c.date.startsWith(currentYearMonth)).reduce((sum, c) => sum + c.price, 0);
+    const currentYearMonth = getLocalDateString().slice(0, 7);
+    const localMonthRevenue = this.cuts()
+      .filter((c) => isSameLocalYearMonth(c.date, currentYearMonth))
+      .reduce((sum, c) => sum + (Number(c.price) || 0), 0);
     if (localMonthRevenue > 0) return localMonthRevenue;
     if (this.serverKpis()) return this.serverKpis()!.revenueThisMonth;
     return 0;
   });
 
-  readonly totalRevenue = computed(() => {
-    const localTotal = this.cuts().reduce((sum, c) => sum + c.price, 0);
+  // Facturación Total / Producción Acumulada
+  readonly totalProduction = computed(() => {
+    const localTotal = this.cuts().reduce((sum, c) => sum + (Number(c.price) || 0), 0);
     if (this.serverKpis()) {
       return Math.max(this.serverKpis()!.totalRevenue, localTotal);
     }
     return localTotal;
+  });
+
+  // Alias compatible para totalRevenue
+  readonly totalRevenue = computed(() => this.totalProduction());
+
+  // Cartera Total por Cobrar (Deuda acumulada de clientes)
+  readonly totalReceivableDebt = computed(() => {
+    return this.clients().reduce((sum, c) => sum + (Number(c.currentDebt) || 0), 0);
   });
 
   // Saldo total consolidado en todas las cuentas financieras activas (Tesorería / Liquidez)
@@ -418,6 +460,100 @@ export class BarberService {
     const cliId = this.currentClient().id;
     return this.cuts().filter((c) => c.clientId === cliId);
   });
+
+  /**
+   * Genera métricas contables y operativas dinámicas para cualquier período de tiempo seleccionado.
+   */
+  getPeriodMetrics(period: 'today' | 'week' | 'month' | '6months' | 'year' | 'all', barberId?: string): {
+    period: string;
+    periodLabel: string;
+    cutsCount: number;
+    production: number;
+    cashCollected: number;
+    creditSales: number;
+    averageTicket: number;
+    uniqueClientsCount: number;
+  } {
+    const allCuts = this.cuts().filter((c) => !barberId || c.barberId === barberId);
+    const now = new Date();
+    const todayStr = getLocalDateString(now);
+
+    let filteredCuts: CutRecord[] = [];
+    let periodLabel = 'Hoy';
+
+    switch (period) {
+      case 'today':
+        filteredCuts = allCuts.filter((c) => isSameLocalDate(c.date, todayStr));
+        periodLabel = 'Hoy';
+        break;
+      case 'week':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 7, now));
+        periodLabel = 'Esta Semana (7 días)';
+        break;
+      case 'month':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 30, now));
+        periodLabel = 'Este Mes (30 días)';
+        break;
+      case '6months':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 180, now));
+        periodLabel = 'Últimos 6 Meses';
+        break;
+      case 'year':
+        filteredCuts = allCuts.filter((c) => isDateWithinPastDays(c.date, 365, now));
+        periodLabel = 'Último Año';
+        break;
+      case 'all':
+      default:
+        filteredCuts = allCuts;
+        periodLabel = 'Histórico Total';
+        break;
+    }
+
+    const cutsCount = filteredCuts.length;
+    const production = filteredCuts.reduce((sum, c) => sum + (Number(c.price) || 0), 0);
+    const creditSales = filteredCuts.filter((c) => c.paymentMethod === 'credit').reduce((sum, c) => sum + (Number(c.price) || 0), 0);
+    const cashFromCuts = production - creditSales;
+
+    // Abonos de crédito recibidos en el período seleccionado
+    const allMovs = this.accountMovements();
+    let filteredMovs: AccountMovement[] = [];
+    switch (period) {
+      case 'today':
+        filteredMovs = allMovs.filter((m) => isSameLocalDate(m.createdAt, todayStr) && m.movementType === 'income' && m.referenceType === 'credit_payment');
+        break;
+      case 'week':
+        filteredMovs = allMovs.filter((m) => isDateWithinPastDays(m.createdAt, 7, now) && m.movementType === 'income' && m.referenceType === 'credit_payment');
+        break;
+      case 'month':
+        filteredMovs = allMovs.filter((m) => isDateWithinPastDays(m.createdAt, 30, now) && m.movementType === 'income' && m.referenceType === 'credit_payment');
+        break;
+      case '6months':
+        filteredMovs = allMovs.filter((m) => isDateWithinPastDays(m.createdAt, 180, now) && m.movementType === 'income' && m.referenceType === 'credit_payment');
+        break;
+      case 'year':
+        filteredMovs = allMovs.filter((m) => isDateWithinPastDays(m.createdAt, 365, now) && m.movementType === 'income' && m.referenceType === 'credit_payment');
+        break;
+      case 'all':
+      default:
+        filteredMovs = allMovs.filter((m) => m.movementType === 'income' && m.referenceType === 'credit_payment');
+        break;
+    }
+    const debtAbonos = filteredMovs.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+    const cashCollected = cashFromCuts + debtAbonos;
+    const averageTicket = cutsCount > 0 ? production / cutsCount : 0;
+    const uniqueClientsCount = new Set(filteredCuts.map((c) => c.clientId)).size;
+
+    return {
+      period,
+      periodLabel,
+      cutsCount,
+      production,
+      cashCollected,
+      creditSales,
+      averageTicket,
+      uniqueClientsCount,
+    };
+  }
 
   constructor() {
     this.logger.info('BarberService', 'Initializing BarberService');

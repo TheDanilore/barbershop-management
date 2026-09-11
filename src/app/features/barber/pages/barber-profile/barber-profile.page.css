@@ -522,3 +522,215 @@
   background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
 }
+
+/* Botón de Sincronización Rápida */
+.btn-sync-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1c1c22;
+  border: 1px solid #32323e;
+  color: var(--text-main, #ffffff);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-sync-action:hover:not(:disabled) {
+  background: #272732;
+  border-color: var(--gold-primary, #e5a93c);
+  color: var(--gold-light, #fcd34d);
+}
+
+.btn-sync-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-icon.spin {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Selector de Ámbito para Admin */
+.scope-toggle-container {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.scope-toggle-pills {
+  display: inline-flex;
+  background: #14141a;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #282833;
+  gap: 4px;
+}
+
+.scope-btn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scope-btn:hover {
+  color: #ffffff;
+}
+
+.scope-btn.active {
+  background: #272733;
+  color: var(--gold-primary, #e5a93c);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Desglose de Recaudación en Card */
+.sc-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.sc-sub-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.sc-sub-pill.green {
+  color: #10b981;
+}
+
+.sc-sub-pill.orange {
+  color: #f59e0b;
+}
+
+/* Actividad Reciente de Servicios */
+.recent-cuts-card {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rcc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rcc-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.rcc-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  background: #27272a;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.rcc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #1f1f23;
+  border: 1px solid #2c2c31;
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.rcc-item:hover {
+  border-color: #3f3f46;
+}
+
+.rcc-time-wrap {
+  min-width: 90px;
+}
+
+.rcc-time {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+
+.rcc-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rcc-client {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.rcc-service {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+
+.rcc-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rcc-method-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #27272a;
+  color: #d4d4d8;
+}
+
+.rcc-method-tag.credit {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.rcc-method-tag.cash {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.rcc-price {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--gold-light, #fcd34d);
+}
+
+.rcc-price.credit-price {
+  color: #f59e0b;
+}

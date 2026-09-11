@@ -139,4 +139,123 @@
   padding: 6px 10px;
   background: rgba(229, 169, 60, 0.1);
   border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-rating-view:hover {
+  background: rgba(229, 169, 60, 0.2);
+}
+
+/* ========================================================================= */
+/* BARRA DE FILTRO DE RANGO TEMPORAL (PERÍODO)                                */
+/* ========================================================================= */
+.metrics-filter-bar {
+  background: #14141a;
+  border: 1px solid #23232e;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fh-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fh-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gold-primary);
+  background: rgba(229, 169, 60, 0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fh-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.period-pills-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.period-pill {
+  padding: 5px 12px;
+  background: #1a1a24;
+  border: 1px solid #2a2a38;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.period-pill:hover {
+  background: #232330;
+  color: var(--text-main);
+  border-color: #3d3d52;
+}
+
+.period-pill.active {
+  background: var(--gold-primary);
+  color: #121215;
+  border-color: var(--gold-primary);
+  box-shadow: 0 2px 8px rgba(229, 169, 60, 0.28);
+  font-weight: 700;
+}
+
+/* ========================================================================= */
+/* DESGLOSE CONTABLE DE COBRANZA EN TARJETA                                  */
+/* ========================================================================= */
+.kpi-breakdown-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.kb-item {
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.kb-item.green {
+  color: #2ed573;
+}
+
+.kb-item.orange {
+  color: #ffa502;
+}
+
+.kpi-icon-wrapper.blue-icon {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.kpi-icon-wrapper.purple-icon {
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
 }

@@ -7,7 +7,7 @@
     </div>
   }
 
-  <!-- Encabezado de Página -->
+  <!-- Encabezado de Página con Botón de Sincronización Rápida -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
@@ -16,8 +16,14 @@
       </div>
       <h1 class="page-title">Mi Perfil &amp; Configuración</h1>
       <p class="page-subtitle">
-        Gestiona tus datos personales, preferencias de visualización y estado de sesión.
+        Gestiona tus datos personales, rendimiento operativo en tiempo real y estado de sesión.
       </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-sync-action" [disabled]="isRefreshing()" (click)="refreshData()" title="Sincronizar datos con la nube">
+        <span class="sync-icon" [class.spin]="isRefreshing()">🔄</span>
+        <span>{{ isRefreshing() ? 'Sincronizando...' : 'Sincronizar' }}</span>
+      </button>
     </div>
   </header>
 
@@ -107,40 +113,99 @@
     </section>
   }
 
-  <!-- Grid de Métricas Personales -->
+  <!-- Toggle de Ámbito para Administradores (Mis Métricas vs Toda la Barbería) -->
+  @if (isAdmin()) {
+    <div class="scope-toggle-container">
+      <div class="scope-toggle-pills">
+        <button
+          type="button"
+          class="scope-btn"
+          [class.active]="viewScope() === 'personal'"
+          (click)="setScope('personal')">
+          👤 Mis Métricas Personales
+        </button>
+        <button
+          type="button"
+          class="scope-btn"
+          [class.active]="viewScope() === 'shop'"
+          (click)="setScope('shop')">
+          💈 Toda la Barbería
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Grid de Métricas Reactivas Sincronizadas -->
   <section class="profile-stats-grid">
     <div class="stat-card">
       <div class="sc-icon gold">✂</div>
       <div class="sc-info">
-        <span class="sc-val">{{ barberService.cutsToday() }}</span>
-        <span class="sc-lbl">Servicios Hoy</span>
+        <span class="sc-val">{{ myCutsToday().length }}</span>
+        <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mis Cortes Hoy' : 'Cortes Hoy' }}</span>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="sc-icon blue">📅</div>
       <div class="sc-info">
-        <span class="sc-val">{{ barberService.todayAppointments().length }}</span>
-        <span class="sc-lbl">Turnos Agendados</span>
+        <span class="sc-val">{{ myAppointmentsToday().length }}</span>
+        <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mis Turnos Hoy' : 'Turnos Hoy' }}</span>
       </div>
     </div>
 
     <div class="stat-card">
       <div class="sc-icon green">👥</div>
       <div class="sc-info">
-        <span class="sc-val">{{ barberService.clients().length }}</span>
-        <span class="sc-lbl">Cartera Clientes</span>
+        <span class="sc-val">{{ myUniqueClientsToday() }}</span>
+        <span class="sc-lbl">Clientes Atendidos Hoy</span>
       </div>
     </div>
 
     <div class="stat-card highlight">
       <div class="sc-icon gold-filled">💰</div>
       <div class="sc-info">
-        <span class="sc-val gold">{{ barberService.currencySymbol() }}{{ barberService.revenueToday().toFixed(2) }}</span>
-        <span class="sc-lbl">Recaudación Hoy</span>
+        <span class="sc-val gold">{{ barberService.currencySymbol() }}{{ myProductionToday().toFixed(2) }}</span>
+        <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mi Producción Hoy' : 'Producción Hoy' }}</span>
+        <div class="sc-breakdown">
+          <span class="sc-sub-pill green">Cobrado: {{ barberService.currencySymbol() }}{{ myCashCollectedToday().toFixed(2) }}</span>
+          @if (myCreditToday() > 0) {
+            <span class="sc-sub-pill orange">Fiado: {{ barberService.currencySymbol() }}{{ myCreditToday().toFixed(2) }}</span>
+          }
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- Historial Reciente de Servicios del Barbero -->
+  @if (recentMyCuts().length > 0) {
+    <section class="recent-cuts-card">
+      <div class="rcc-header">
+        <h3 class="rcc-title">⚡ Actividad Reciente de Servicios</h3>
+        <span class="rcc-badge">{{ recentMyCuts().length }} registros</span>
+      </div>
+      <div class="rcc-list">
+        @for (cut of recentMyCuts(); track cut.id) {
+          <div class="rcc-item">
+            <div class="rcc-time-wrap">
+              <span class="rcc-time">{{ formatDate(cut.date) }}</span>
+            </div>
+            <div class="rcc-main">
+              <strong class="rcc-client">{{ cut.clientName }}</strong>
+              <span class="rcc-service">{{ cut.serviceName }}</span>
+            </div>
+            <div class="rcc-meta">
+              <span class="rcc-method-tag" [class]="cut.paymentMethod">
+                {{ cut.paymentMethod === 'credit' ? 'Crédito' : cut.paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta / Yape' }}
+              </span>
+              <strong class="rcc-price" [class.credit-price]="cut.paymentMethod === 'credit'">
+                {{ barberService.currencySymbol() }}{{ cut.price.toFixed(2) }}
+              </strong>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  }
 
   <!-- Panel de Información de Sesión y Conexión -->
   <section class="session-card">

@@ -136,7 +136,7 @@
     <div class="stat-card highlight">
       <div class="sc-icon gold-filled">💰</div>
       <div class="sc-info">
-        <span class="sc-val gold">${{ barberService.revenueToday().toFixed(2) }}</span>
+        <span class="sc-val gold">{{ barberService.currencySymbol() }}{{ barberService.revenueToday().toFixed(2) }}</span>
         <span class="sc-lbl">Recaudación Hoy</span>
       </div>
     </div>

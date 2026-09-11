@@ -34,7 +34,7 @@
         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
       </svg>
     </div>
-    <div class="kpi-value">${{ barberService.totalRevenue().toFixed(2) }}</div>
+    <div class="kpi-value">{{ barberService.currencySymbol() }}{{ barberService.totalRevenue().toFixed(2) }}</div>
     <div class="kpi-label">Ingresos totales</div>
   </div>
 
@@ -45,7 +45,7 @@
         <line x1="2" y1="10" x2="22" y2="10"></line>
       </svg>
     </div>
-    <div class="kpi-value green-val">${{ barberService.totalFinancialBalance().toFixed(2) }}</div>
+    <div class="kpi-value green-val">{{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</div>
     <div class="kpi-label">Saldo en Cuentas</div>
   </div>
 

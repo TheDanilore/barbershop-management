@@ -88,7 +88,7 @@
           <span class="kpi-icon">💰</span>
           <span class="kpi-label">Ingresos Proyectados</span>
         </div>
-        <div class="kpi-val">${{ dateKPIs().projectedRevenue.toFixed(2) }}</div>
+        <div class="kpi-val">{{ barberService.currencySymbol() }}{{ dateKPIs().projectedRevenue.toFixed(2) }}</div>
         <div class="kpi-sub">
           <span>{{ dateKPIs().confirmed + dateKPIs().inProgress }} activas</span>
         </div>
@@ -311,7 +311,7 @@
                   </span>
                   }
                   <div class="meta-item price">
-                    <span class="meta-price">${{ apt.price.toFixed(2) }}</span>
+                    <span class="meta-price">{{ barberService.currencySymbol() }}{{ apt.price.toFixed(2) }}</span>
                   </div>
                   <div class="meta-item barber">
                     <span class="meta-icon">👤</span>
@@ -445,7 +445,7 @@
               </span>
             </td>
             <td class="td-price text-right">
-              <span class="price-val">${{ apt.price.toFixed(2) }}</span>
+              <span class="price-val">{{ barberService.currencySymbol() }}{{ apt.price.toFixed(2) }}</span>
             </td>
             <td class="td-actions text-right">
               <div class="table-actions-group">

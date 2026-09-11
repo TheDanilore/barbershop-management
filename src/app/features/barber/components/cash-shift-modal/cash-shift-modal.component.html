@@ -15,6 +15,13 @@
       <button class="sheet-close-btn" (click)="closeModal()" title="Cerrar (Esc)">✕</button>
     </div>
 
+    @if (errorMessage()) {
+    <div class="modal-error-banner" role="alert">
+      <span class="meb-icon">⚠️</span>
+      <span class="meb-text">{{ errorMessage() }}</span>
+    </div>
+    }
+
     <form [formGroup]="mode === 'open' ? openShiftForm : closeShiftForm" (ngSubmit)="submitShift()" class="sheet-form">
       @if (mode === 'open') {
       <!-- Modo Apertura -->
@@ -24,9 +31,9 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="shiftInitialCash">Fondo Inicial en Efectivo ($) *</label>
+        <label class="form-label" for="shiftInitialCash">Fondo Inicial en Efectivo ({{ currencySymbol() }}) *</label>
         <div class="input-prefix-wrapper">
-          <span class="input-prefix">$</span>
+          <span class="input-prefix">{{ currencySymbol() }}</span>
           <input
             id="shiftInitialCash"
             type="number"
@@ -34,9 +41,14 @@
             min="0"
             class="form-input with-prefix"
             formControlName="initialCash"
-            placeholder="Ej: 50.00"
+            placeholder="0.00"
             autofocus />
         </div>
+        @if (isLoadingSuggested()) {
+          <span class="field-hint loading">⏳ Consultando arqueo anterior...</span>
+        } @else if (suggestedAmount() > 0) {
+          <span class="field-hint success">✓ Sugerido según el último arqueo: {{ currencySymbol() }}{{ suggestedAmount().toFixed(2) }}</span>
+        }
       </div>
 
       <div class="form-group">
@@ -46,7 +58,7 @@
           type="text"
           class="form-input"
           formControlName="notes"
-          placeholder="Ej: Billetes de 10 y monedas" />
+          placeholder="Ej: Billetes y monedas de cambio inicial" />
       </div>
       } @else {
       <!-- Modo Cierre con Auditoría y Descuadre en Tiempo Real -->
@@ -54,27 +66,27 @@
       <div class="audit-summary-box">
         <div class="as-row">
           <span class="as-label">Fondo Inicial Apertura:</span>
-          <span class="as-value">${{ shift.initialCash.toFixed(2) }}</span>
+          <span class="as-value">{{ currencySymbol() }}{{ shift.initialCash.toFixed(2) }}</span>
         </div>
         <div class="as-row">
           <span class="as-label">Ventas en Efectivo (+):</span>
-          <span class="as-value text-green">+${{ shift.cashSales.toFixed(2) }}</span>
+          <span class="as-value text-green">+{{ currencySymbol() }}{{ shift.cashSales.toFixed(2) }}</span>
         </div>
         <div class="as-row">
           <span class="as-label">Egresos de Caja (-):</span>
-          <span class="as-value text-red">-${{ shift.cashExpenses.toFixed(2) }}</span>
+          <span class="as-value text-red">-{{ currencySymbol() }}{{ shift.cashExpenses.toFixed(2) }}</span>
         </div>
         <div class="as-divider"></div>
         <div class="as-row highlight">
           <span class="as-label">Efectivo Teórico Esperado:</span>
-          <strong class="as-value gold">${{ shift.expectedCash.toFixed(2) }}</strong>
+          <strong class="as-value gold">{{ currencySymbol() }}{{ shift.expectedCash.toFixed(2) }}</strong>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="shiftActualCash">Efectivo Real Contado en Gaveta ($) *</label>
+        <label class="form-label" for="shiftActualCash">Efectivo Real Contado en Gaveta ({{ currencySymbol() }}) *</label>
         <div class="input-prefix-wrapper">
-          <span class="input-prefix">$</span>
+          <span class="input-prefix">{{ currencySymbol() }}</span>
           <input
             id="shiftActualCash"
             type="number"
@@ -93,7 +105,7 @@
       <div class="discrepancy-card perfect">
         <span class="disc-icon">✨</span>
         <div>
-          <strong>Cuadre Perfecto ($0.00)</strong>
+          <strong>Cuadre Perfecto ({{ currencySymbol() }}0.00)</strong>
           <p class="disc-sub">El efectivo físico coincide exactamente con los registros del sistema.</p>
         </div>
       </div>
@@ -101,7 +113,7 @@
       <div class="discrepancy-card shortage">
         <span class="disc-icon">⚠️</span>
         <div>
-          <strong>Faltante de Dinero: -${{ (shiftDiscrepancy().difference * -1).toFixed(2) }}</strong>
+          <strong>Faltante de Dinero: -{{ currencySymbol() }}{{ (shiftDiscrepancy().difference * -1).toFixed(2) }}</strong>
           <p class="disc-sub">Falta dinero en la gaveta física. Por favor, indica la causa en las observaciones.</p>
         </div>
       </div>
@@ -109,7 +121,7 @@
       <div class="discrepancy-card surplus">
         <span class="disc-icon">ℹ️</span>
         <div>
-          <strong>Sobrante de Dinero: +${{ shiftDiscrepancy().difference.toFixed(2) }}</strong>
+          <strong>Sobrante de Dinero: +{{ currencySymbol() }}{{ shiftDiscrepancy().difference.toFixed(2) }}</strong>
           <p class="disc-sub">Hay más efectivo del registrado teóricamente en el sistema.</p>
         </div>
       </div>

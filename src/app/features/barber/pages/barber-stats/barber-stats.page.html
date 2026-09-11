@@ -25,7 +25,7 @@
       </div>
       <div class="kpi-body">
         <span class="kpi-label">Ingresos de Hoy</span>
-        <div class="kpi-value gold">${{ barberService.revenueToday().toFixed(2) }}</div>
+        <div class="kpi-value gold">{{ barberService.currencySymbol() }}{{ barberService.revenueToday().toFixed(2) }}</div>
         <span class="kpi-hint">{{ barberService.cutsToday() }} servicios completados</span>
       </div>
     </div>
@@ -38,7 +38,7 @@
       </div>
       <div class="kpi-body">
         <span class="kpi-label">Últimos 7 Días</span>
-        <div class="kpi-value">${{ barberService.revenueThisWeek().toFixed(2) }}</div>
+        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ barberService.revenueThisWeek().toFixed(2) }}</div>
         <span class="kpi-hint">Facturación semanal</span>
       </div>
     </div>
@@ -52,7 +52,7 @@
       </div>
       <div class="kpi-body">
         <span class="kpi-label">Saldo en Cuentas</span>
-        <div class="kpi-value emerald">${{ barberService.totalFinancialBalance().toFixed(2) }}</div>
+        <div class="kpi-value emerald">{{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</div>
         <span class="kpi-hint">{{ barberService.financialAccounts().length }} cuentas bancarias / caja</span>
       </div>
     </div>
@@ -65,7 +65,7 @@
       </div>
       <div class="kpi-body">
         <span class="kpi-label">Ticket Promedio</span>
-        <div class="kpi-value">${{ averageTicket().toFixed(2) }}</div>
+        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ averageTicket().toFixed(2) }}</div>
         <span class="kpi-hint">Por servicio atendido</span>
       </div>
     </div>
@@ -96,7 +96,7 @@
                   <span class="ssr-count-badge">{{ srv.count }} cortes</span>
                 </div>
                 <div class="ssr-revenue-wrap">
-                  <span class="ssr-revenue">${{ srv.revenue.toFixed(2) }}</span>
+                  <span class="ssr-revenue">{{ barberService.currencySymbol() }}{{ srv.revenue.toFixed(2) }}</span>
                   <span class="ssr-pct">{{ srv.percentage }}%</span>
                 </div>
               </div>
@@ -130,7 +130,7 @@
             <span class="bi-bullet gold"></span>
             <span class="bi-label">Facturación Histórica Consolidada</span>
           </div>
-          <span class="bi-value gold">${{ barberService.totalRevenue().toFixed(2) }}</span>
+          <span class="bi-value gold">{{ barberService.currencySymbol() }}{{ barberService.totalRevenue().toFixed(2) }}</span>
         </div>
 
         <div class="breakdown-item">
@@ -164,7 +164,7 @@
         <div class="lb-content">
           <div class="lb-title">Balance de Liquidez Disponible</div>
           <div class="lb-desc">
-            Dispones de <strong>${{ barberService.totalFinancialBalance().toFixed(2) }}</strong> distribuidos en tus cuentas de caja y financieras.
+            Dispones de <strong>{{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</strong> distribuidos en tus cuentas de caja y financieras.
           </div>
         </div>
       </div>

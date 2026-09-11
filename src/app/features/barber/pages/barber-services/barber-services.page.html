@@ -45,7 +45,7 @@
       <div class="sci-info">
         <h3 class="sci-name">{{ srv.name }}</h3>
         <div class="sci-meta">
-          <span class="sci-price">${{ srv.price.toFixed(2) }}</span>
+          <span class="sci-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
           <span class="sci-duration">⏱️ {{ srv.durationMinutes }} min</span>
         </div>
       </div>
@@ -89,7 +89,7 @@
 
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="servicePrice">Precio ($) *</label>
+            <label class="form-label" for="servicePrice">Precio ({{ barberService.currencySymbol() }}) *</label>
             <input id="servicePrice" type="number" step="0.50" min="0.5" class="form-input" formControlName="price" />
           </div>
 

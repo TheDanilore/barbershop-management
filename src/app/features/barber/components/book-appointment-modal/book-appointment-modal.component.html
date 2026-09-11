@@ -113,7 +113,7 @@
               <div class="msc-info">
                 <span class="msc-name">{{ srv.name }}</span>
                 <div class="msc-meta">
-                  <span class="msc-price">${{ srv.price.toFixed(2) }}</span>
+                  <span class="msc-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
                   <span class="msc-duration">{{ srv.durationMinutes }}m</span>
                 </div>
               </div>
@@ -190,7 +190,7 @@
                 <span class="service-tag-badge gold">Por definir en sillón</span>
                 } @else if (selectedServicesList().length > 0) {
                   @for (s of selectedServicesList(); track s.serviceId) {
-                  <span class="service-tag-badge">{{ s.name }} (${{ s.price }})</span>
+                  <span class="service-tag-badge">{{ s.name }} ({{ barberService.currencySymbol() }}{{ s.price }})</span>
                   }
                 } @else {
                 <span class="lsc-val text-dim">Ninguno seleccionado</span>
@@ -210,7 +210,7 @@
 
             <div class="lsc-row total">
               <span class="lsc-label">Total a Cobrar Estimado:</span>
-              <span class="lsc-val-price">${{ totalEstimatedPrice().toFixed(2) }}</span>
+              <span class="lsc-val-price">{{ barberService.currencySymbol() }}{{ totalEstimatedPrice().toFixed(2) }}</span>
             </div>
           </div>
         </div>

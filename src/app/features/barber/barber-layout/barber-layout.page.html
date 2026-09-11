@@ -156,8 +156,8 @@
         <span class="live-pill">Turno Cerrado</span>
         }
       </div>
-      <div class="scc-amount">${{ barberService.cashDrawerBalance().toFixed(2) }}</div>
-      <div class="scc-footer">Total en Cuentas: ${{ barberService.totalFinancialBalance().toFixed(2) }}</div>
+      <div class="scc-amount">{{ barberService.currencySymbol() }}{{ barberService.cashDrawerBalance().toFixed(2) }}</div>
+      <div class="scc-footer">Total en Cuentas: {{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</div>
     </div>
 
     <!-- Perfil del Usuario / Sesión Activa -->
@@ -362,7 +362,7 @@
               (click)="toggleCutService(srv.id)">
               <div class="chip-content">
                 <span class="chip-name">{{ srv.name }}</span>
-                <span class="chip-price">${{ srv.price.toFixed(2) }}</span>
+                <span class="chip-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
               </div>
               @if (selectedCutServiceIds().includes(srv.id)) {
               <div class="chip-check-icon">✓</div>
@@ -379,7 +379,7 @@
             </div>
             <div class="csb-right">
               <span class="csb-subtotal-label">Subtotal sugerido:</span>
-              <span class="csb-subtotal-value">${{ cutCalculatedSubtotal().toFixed(2) }}</span>
+              <span class="csb-subtotal-value">{{ barberService.currencySymbol() }}{{ cutCalculatedSubtotal().toFixed(2) }}</span>
             </div>
           </div>
           }
@@ -388,7 +388,7 @@
         <div class="form-group">
           <label class="form-label" for="cutPrice">Precio Final Acordado / Especial (Opcional)</label>
           <input id="cutPrice" type="number" step="0.50" min="0.01" class="form-input"
-            formControlName="customPrice" [placeholder]="'Dejar vacío para cobrar el subtotal ($' + cutCalculatedSubtotal().toFixed(2) + ')'" />
+            formControlName="customPrice" [placeholder]="'Dejar vacío para cobrar el subtotal (' + barberService.currencySymbol() + cutCalculatedSubtotal().toFixed(2) + ')'" />
         </div>
 
         <div class="form-group">

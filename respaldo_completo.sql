@@ -66,6 +66,47 @@ CREATE TYPE "public"."user_role" AS ENUM (
 ALTER TYPE "public"."user_role" OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."close_cash_shift_atomic"("p_shift_id" "uuid", "p_actual_cash" numeric, "p_notes" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_shift RECORD;
+    v_diff NUMERIC;
+    v_result jsonb;
+BEGIN
+    -- Bloquear el turno para actualización exclusiva
+    SELECT * INTO v_shift
+    FROM public.cash_shifts
+    WHERE id = p_shift_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'El turno con ID % no existe', p_shift_id;
+    END IF;
+
+    IF v_shift.status = 'closed' THEN
+        RAISE EXCEPTION 'El turno ya se encuentra cerrado';
+    END IF;
+
+    v_diff := p_actual_cash - v_shift.expected_cash;
+
+    UPDATE public.cash_shifts
+    SET closed_at = NOW(),
+        actual_cash = p_actual_cash,
+        difference = v_diff,
+        status = 'closed',
+        notes = COALESCE(p_notes, notes)
+    WHERE id = p_shift_id
+    RETURNING to_jsonb(cash_shifts.*) INTO v_result;
+
+    RETURN v_result;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."close_cash_shift_atomic"("p_shift_id" "uuid", "p_actual_cash" numeric, "p_notes" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."fn_on_account_movement"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -345,6 +386,53 @@ $$;
 
 
 ALTER FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid" DEFAULT NULL::"uuid") RETURNS numeric
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_acc_id UUID := p_account_id;
+    v_last_closed_cash NUMERIC;
+    v_account_balance NUMERIC;
+BEGIN
+    -- Si no se especifica cuenta, buscar la cuenta tipo 'cash' activa
+    IF v_acc_id IS NULL THEN
+        SELECT id INTO v_acc_id 
+        FROM public.financial_accounts 
+        WHERE type = 'cash' AND is_active = true 
+        ORDER BY created_at ASC 
+        LIMIT 1;
+    END IF;
+
+    -- 1. Intentar obtener el último arqueo real de un turno cerrado
+    IF v_acc_id IS NOT NULL THEN
+        SELECT actual_cash INTO v_last_closed_cash
+        FROM public.cash_shifts
+        WHERE account_id = v_acc_id AND status = 'closed' AND actual_cash IS NOT NULL
+        ORDER BY closed_at DESC
+        LIMIT 1;
+        
+        IF v_last_closed_cash IS NOT NULL THEN
+            RETURN v_last_closed_cash;
+        END IF;
+
+        -- 2. Fallback: saldo contable disponible en la cuenta
+        SELECT current_balance INTO v_account_balance
+        FROM public.financial_accounts
+        WHERE id = v_acc_id;
+
+        IF v_account_balance IS NOT NULL THEN
+            RETURN v_account_balance;
+        END IF;
+    END IF;
+
+    RETURN 0.00;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
@@ -903,6 +991,10 @@ CREATE INDEX "idx_reviews_order_id" ON "public"."reviews" USING "btree" ("order_
 
 
 
+CREATE UNIQUE INDEX "idx_single_open_cash_shift" ON "public"."cash_shifts" USING "btree" ("account_id") WHERE ("status" = 'open'::"text");
+
+
+
 CREATE UNIQUE INDEX "reviews_order_id_key" ON "public"."reviews" USING "btree" ("order_id") WHERE ("order_id" IS NOT NULL);
 
 
@@ -1448,6 +1540,12 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."close_cash_shift_atomic"("p_shift_id" "uuid", "p_actual_cash" numeric, "p_notes" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."close_cash_shift_atomic"("p_shift_id" "uuid", "p_actual_cash" numeric, "p_notes" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."close_cash_shift_atomic"("p_shift_id" "uuid", "p_actual_cash" numeric, "p_notes" "text") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "anon";
 GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."fn_on_account_movement"() TO "service_role";
@@ -1487,6 +1585,12 @@ GRANT ALL ON FUNCTION "public"."fn_on_orders_truncated"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") TO "service_role";
 
 
 

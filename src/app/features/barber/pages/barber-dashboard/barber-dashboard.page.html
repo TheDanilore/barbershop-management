@@ -70,7 +70,7 @@
                   </span>
                 </td>
                 <td class="text-right cell-price" [class.credit-text]="cut.paymentMethod === 'credit'">
-                  ${{ cut.price.toFixed(2) }}
+                  {{ barberService.currencySymbol() }}{{ cut.price.toFixed(2) }}
                 </td>
               </tr>
               } @empty {
@@ -109,7 +109,7 @@
           <div class="debt-row">
             <div class="debt-info">
               <span class="debt-name">{{ debtCli.name }}</span>
-              <span class="debt-amount">Debe: ${{ (debtCli.currentDebt || 0).toFixed(2) }}</span>
+              <span class="debt-amount">Debe: {{ barberService.currencySymbol() }}{{ (debtCli.currentDebt || 0).toFixed(2) }}</span>
             </div>
             <button class="btn-pay-debt-sm" (click)="openDebtPaymentModal(debtCli)">
               Abonar
@@ -146,11 +146,11 @@
           @if (barberService.activeCashShift(); as shift) {
           <div class="shift-live-row">
             <span class="slr-label">Fondo Inicial:</span>
-            <strong class="slr-val">${{ shift.initialCash.toFixed(2) }}</strong>
+            <strong class="slr-val">{{ barberService.currencySymbol() }}{{ shift.initialCash.toFixed(2) }}</strong>
           </div>
           <div class="shift-live-row">
             <span class="slr-label">Efectivo Esperado:</span>
-            <strong class="slr-val gold">${{ shift.expectedCash.toFixed(2) }}</strong>
+            <strong class="slr-val gold">{{ barberService.currencySymbol() }}{{ shift.expectedCash.toFixed(2) }}</strong>
           </div>
           <div class="acc-actions-row">
             <button class="btn-outline-danger" (click)="openShiftModal('close')">
@@ -237,7 +237,7 @@
           <label class="form-label" for="cutServiceId">Servicio Realizado *</label>
           <select id="cutServiceId" class="form-input form-select" formControlName="serviceId">
             @for (srv of barberService.services(); track srv.id) {
-            <option [value]="srv.id">{{ srv.name }} - ${{ srv.price.toFixed(2) }} ({{ srv.durationMinutes }} min)</option>
+            <option [value]="srv.id">{{ srv.name }} - {{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }} ({{ srv.durationMinutes }} min)</option>
             }
           </select>
         </div>
@@ -297,14 +297,14 @@
       <div class="sheet-header">
         <div class="sheet-title-group">
           <h2 class="sheet-title">Abonar a Deuda de Cliente</h2>
-          <p class="sheet-subtitle">{{ debtPaymentClient()?.name }} • Deuda actual: ${{ (debtPaymentClient()?.currentDebt || 0).toFixed(2) }}</p>
+          <p class="sheet-subtitle">{{ debtPaymentClient()?.name }} • Deuda actual: {{ barberService.currencySymbol() }}{{ (debtPaymentClient()?.currentDebt || 0).toFixed(2) }}</p>
         </div>
         <button class="btn-close-sheet" (click)="closeDebtPaymentModal()" title="Cerrar">✕</button>
       </div>
 
       <form [formGroup]="debtPaymentForm" (ngSubmit)="submitDebtPayment()" class="sheet-body">
         <div class="form-group">
-          <label class="form-label" for="dashDebtAmount">Monto a Abonar ($) *</label>
+          <label class="form-label" for="dashDebtAmount">Monto a Abonar ({{ barberService.currencySymbol() }}) *</label>
           <input id="dashDebtAmount" type="number" step="0.50" min="0.5" class="form-input" formControlName="amount" />
         </div>
 
@@ -312,7 +312,7 @@
           <label class="form-label" for="dashDebtAccount">Cuenta Destino *</label>
           <select id="dashDebtAccount" class="form-input form-select" formControlName="accountId">
             @for (acc of barberService.financialAccounts(); track acc.id) {
-            <option [value]="acc.id">{{ acc.name }} (${{ acc.currentBalance.toFixed(2) }})</option>
+            <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
             }
           </select>
         </div>

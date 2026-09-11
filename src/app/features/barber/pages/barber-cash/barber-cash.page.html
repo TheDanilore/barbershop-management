@@ -61,7 +61,7 @@
     <div class="lhc-main">
       <div class="lhc-caption">Capital Total en Circulación</div>
       <div class="lhc-total">
-        <span class="currency-symbol">$</span>
+        <span class="currency-symbol">{{ barberService.currencySymbol() }}</span>
         <span class="total-number">{{ totalConsolidatedBalance().toFixed(2) }}</span>
       </div>
       <div class="lhc-meta">
@@ -77,11 +77,11 @@
           <span class="bc-icon">💵</span>
           <span class="bc-label">Efectivo Físico</span>
         </div>
-        <div class="bc-amount">${{ cashBalance().toFixed(2) }}</div>
+        <div class="bc-amount">{{ barberService.currencySymbol() }}{{ cashBalance().toFixed(2) }}</div>
         <div class="bc-sub">
           @if (activeShift()) {
           <span class="bc-live-dot"></span>
-          <span>En Gaveta: <strong>${{ activeShift()?.expectedCash?.toFixed(2) }}</strong></span>
+          <span>En Gaveta: <strong>{{ barberService.currencySymbol() }}{{ activeShift()?.expectedCash?.toFixed(2) }}</strong></span>
           } @else {
           <span>Sin turno activo</span>
           }
@@ -94,7 +94,7 @@
           <span class="bc-icon">🏦</span>
           <span class="bc-label">Bancos &amp; POS</span>
         </div>
-        <div class="bc-amount">${{ bankBalance().toFixed(2) }}</div>
+        <div class="bc-amount">{{ barberService.currencySymbol() }}{{ bankBalance().toFixed(2) }}</div>
         <div class="bc-sub">Tarjetas de crédito / débito</div>
       </div>
 
@@ -104,7 +104,7 @@
           <span class="bc-icon">📱</span>
           <span class="bc-label">Billeteras Digitales</span>
         </div>
-        <div class="bc-amount">${{ walletBalance().toFixed(2) }}</div>
+        <div class="bc-amount">{{ barberService.currencySymbol() }}{{ walletBalance().toFixed(2) }}</div>
         <div class="bc-sub">Yape / Plin / Transferencias</div>
       </div>
     </div>
@@ -124,11 +124,11 @@
           <span class="slb-barber">Responsable: {{ shift.barberName || 'Cajero' }}</span>
         </div>
         <div class="slb-metrics-row">
-          <span>Fondo Apertura: <strong>${{ shift.initialCash.toFixed(2) }}</strong></span>
+          <span>Fondo Apertura: <strong>{{ barberService.currencySymbol() }}{{ shift.initialCash.toFixed(2) }}</strong></span>
           <span class="divider">•</span>
-          <span>Ventas Efectivo: <strong class="text-green">+${{ shift.cashSales.toFixed(2) }}</strong></span>
+          <span>Ventas Efectivo: <strong class="text-green">+{{ barberService.currencySymbol() }}{{ shift.cashSales.toFixed(2) }}</strong></span>
           <span class="divider">•</span>
-          <span>Egresos Efectivo: <strong class="text-red">-${{ shift.cashExpenses.toFixed(2) }}</strong></span>
+          <span>Egresos Efectivo: <strong class="text-red">-{{ barberService.currencySymbol() }}{{ shift.cashExpenses.toFixed(2) }}</strong></span>
         </div>
       </div>
     </div>
@@ -136,7 +136,7 @@
     <div class="slb-right">
       <div class="slb-cash-box">
         <span class="slb-cash-label">Efectivo Teórico en Gaveta</span>
-        <strong class="slb-cash-amount">${{ shift.expectedCash.toFixed(2) }}</strong>
+        <strong class="slb-cash-amount">{{ barberService.currencySymbol() }}{{ shift.expectedCash.toFixed(2) }}</strong>
       </div>
       <button class="btn-shift-action" (click)="openShiftModal('close')">
         Cerrar Turno &amp; Arquear (Alt+Q)
@@ -191,7 +191,7 @@
         <div class="fac-body">
           <h3 class="fac-name">{{ acc.name }}</h3>
           <div class="fac-balance-row">
-            <span class="fac-currency">$</span>
+            <span class="fac-currency">{{ barberService.currencySymbol() }}</span>
             <span class="fac-amount">{{ acc.currentBalance.toFixed(2) }}</span>
           </div>
 
@@ -365,7 +365,7 @@
               <span class="amount-sign">
                 {{ (mov.movementType === 'income' || mov.movementType === 'transfer_in') ? '+' : '-' }}
               </span>
-              <span class="amount-value">${{ mov.amount.toFixed(2) }}</span>
+              <span class="amount-value">{{ barberService.currencySymbol() }}{{ mov.amount.toFixed(2) }}</span>
             </td>
           </tr>
           }
@@ -440,9 +440,9 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="initialBalance">Saldo Inicial ($) *</label>
+            <label class="form-label" for="initialBalance">Saldo Inicial ({{ barberService.currencySymbol() }}) *</label>
             <div class="input-prefix-wrapper">
-              <span class="input-prefix">$</span>
+              <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
               <input
                 id="initialBalance"
                 type="number"
@@ -495,7 +495,7 @@
             <label class="form-label" for="movAccount">Cuenta Afectada *</label>
             <select id="movAccount" class="form-input" formControlName="accountId">
               @for (acc of barberService.financialAccounts(); track acc.id) {
-              <option [value]="acc.id">{{ acc.name }} (${{ acc.currentBalance.toFixed(2) }})</option>
+              <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
               }
             </select>
           </div>
@@ -509,9 +509,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="movAmount">Monto ($) *</label>
+          <label class="form-label" for="movAmount">Monto ({{ barberService.currencySymbol() }}) *</label>
           <div class="input-prefix-wrapper">
-            <span class="input-prefix">$</span>
+            <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
             <input
               id="movAmount"
               type="number"
@@ -565,7 +565,7 @@
             <label class="form-label" for="fromAccount">Cuenta Origen *</label>
             <select id="fromAccount" class="form-input" formControlName="fromAccountId">
               @for (acc of barberService.financialAccounts(); track acc.id) {
-              <option [value]="acc.id">{{ acc.name }} (${{ acc.currentBalance.toFixed(2) }})</option>
+              <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
               }
             </select>
           </div>
@@ -573,16 +573,16 @@
             <label class="form-label" for="toAccount">Cuenta Destino *</label>
             <select id="toAccount" class="form-input" formControlName="toAccountId">
               @for (acc of barberService.financialAccounts(); track acc.id) {
-              <option [value]="acc.id">{{ acc.name }} (${{ acc.currentBalance.toFixed(2) }})</option>
+              <option [value]="acc.id">{{ acc.name }} ({{ barberService.currencySymbol() }}{{ acc.currentBalance.toFixed(2) }})</option>
               }
             </select>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="transAmount">Monto a Transferir ($) *</label>
+          <label class="form-label" for="transAmount">Monto a Transferir ({{ barberService.currencySymbol() }}) *</label>
           <div class="input-prefix-wrapper">
-            <span class="input-prefix">$</span>
+            <span class="input-prefix">{{ barberService.currencySymbol() }}</span>
             <input
               id="transAmount"
               type="number"

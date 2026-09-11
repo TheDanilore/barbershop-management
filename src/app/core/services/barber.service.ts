@@ -139,9 +139,12 @@ export class BarberService {
     this.loadFromStorage(STORAGE_KEYS.BUSINESS_SETTINGS, {
       id: 'default',
       businessName: 'BarberTrack PRO',
-      currencySymbol: '$',
+      currencySymbol: 'S/',
     })
   );
+
+  // Prefijo / Símbolo de moneda oficial reactivo en toda la PWA
+  readonly currencySymbol = computed<string>(() => this.businessSettings().currencySymbol || 'S/');
 
   readonly appSettings = signal<Record<string, number>>(
     this.loadFromStorage(STORAGE_KEYS.APP_SETTINGS, { stamps_required: 10 })
@@ -396,7 +399,7 @@ export class BarberService {
           this.businessSettings.set({
             id: bsData.id,
             businessName: bsData.business_name ?? 'BarberTrack PRO',
-            currencySymbol: bsData.currency_symbol ?? '$',
+            currencySymbol: bsData.currency_symbol ?? 'S/',
           });
           this.saveToStorage(STORAGE_KEYS.BUSINESS_SETTINGS, this.businessSettings());
         }
@@ -1200,9 +1203,47 @@ export class BarberService {
   }
 
   /**
+   * Obtener el fondo inicial sugerido para la apertura de turno de caja.
+   * 1. Consulta el arqueo real del último turno cerrado (campo actual_cash).
+   * 2. Si no hay turno previo, toma el balance contable de la cuenta de efectivo.
+   * 3. Fallback a 0.
+   */
+  async getSuggestedOpeningCash(): Promise<number> {
+    const cashAcc = this.financialAccounts().find((a) => a.type === 'cash') || this.financialAccounts()[0];
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const { data, error } = await this.supabaseService.supabase
+          .from('cash_shifts')
+          .select('actual_cash, expected_cash')
+          .eq('status', 'closed')
+          .order('closed_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data && data.actual_cash !== null && data.actual_cash !== undefined) {
+          return Number(data.actual_cash);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Error consultando último turno cerrado', err);
+      }
+    }
+
+    if (cashAcc && cashAcc.currentBalance !== undefined) {
+      return Number(cashAcc.currentBalance);
+    }
+
+    return 0;
+  }
+
+  /**
    * Apertura de Turno de Caja
    */
   async openCashShift(initialCash: number, notes?: string): Promise<CashShift> {
+    if (this.activeCashShift()) {
+      throw new Error('Ya existe un turno de caja activo en el sistema.');
+    }
+
     const cashAcc = this.financialAccounts().find((a) => a.type === 'cash') || this.financialAccounts()[0];
     const profile = this.supabaseService.userProfile();
     const barberId = profile?.id || this.barbers()[0]?.id;
@@ -1211,6 +1252,19 @@ export class BarberService {
 
     if (this.supabaseService.isConfigured() && cashAcc?.id && barberId) {
       try {
+        // Validación atómica de concurrencia: evitar duplicidad de turno abierto
+        const { data: existingOpen } = await this.supabaseService.supabase
+          .from('cash_shifts')
+          .select('id')
+          .eq('account_id', cashAcc.id)
+          .eq('status', 'open')
+          .limit(1)
+          .maybeSingle();
+
+        if (existingOpen) {
+          throw new Error('Ya existe un turno abierto en esta gaveta física.');
+        }
+
         const { data, error } = await this.supabaseService.supabase
           .from('cash_shifts')
           .insert({

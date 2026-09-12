@@ -1,0 +1,131 @@
+@if (isOpen) {
+<div class="modal-backdrop" (click)="close()" role="presentation">
+  <div
+    class="modal-sheet"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="profileModalTitle"
+    appBottomSheet
+    (dismiss)="close()"
+  >
+    <!-- iOS Drag Handle for Apple Bottom Sheet -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para descartar">
+      <div class="sheet-drag-handle"></div>
+    </div>
+
+    <!-- Header del Modal -->
+    <div class="sheet-header">
+      <div class="sheet-title-group">
+        <span class="sheet-badge gold">Mi Cuenta</span>
+        <h3 id="profileModalTitle" class="sheet-title">Modificar Datos Personales</h3>
+        <p class="sheet-subtitle">Actualiza tu nombre visible y teléfono de contacto para citas</p>
+      </div>
+      <button
+        type="button"
+        class="btn-close-sheet"
+        (click)="close()"
+        aria-label="Cerrar formulario"
+        title="Cerrar (Esc)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Banner de Error si ocurre -->
+    @if (errorMessage()) {
+      <div class="modal-error-banner" role="alert">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Formulario de Edición -->
+    <form [formGroup]="profileForm" (ngSubmit)="submit()" class="sheet-form">
+      <div class="sheet-body">
+        <!-- Campo: Nombre Completo -->
+        <div class="form-group">
+          <label class="form-label" for="profileFullName">Nombre Completo *</label>
+          <div class="input-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-icon">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input
+              id="profileFullName"
+              type="text"
+              class="form-input with-icon"
+              formControlName="fullName"
+              placeholder="Ej: Daniel Moreno"
+              autocomplete="name"
+            />
+          </div>
+          @if (profileForm.get('fullName')?.touched && profileForm.get('fullName')?.invalid) {
+            <span class="form-error">El nombre es obligatorio (mínimo 2 caracteres)</span>
+          }
+        </div>
+
+        <!-- Campo: Teléfono / WhatsApp -->
+        <div class="form-group">
+          <label class="form-label" for="profilePhone">Teléfono / WhatsApp</label>
+          <div class="input-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="field-icon">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <input
+              id="profilePhone"
+              type="tel"
+              class="form-input with-icon"
+              formControlName="phone"
+              placeholder="Ej: +51 987 654 321"
+              autocomplete="tel"
+            />
+          </div>
+          @if (profileForm.get('phone')?.touched && profileForm.get('phone')?.invalid) {
+            <span class="form-error">Formato de teléfono no válido</span>
+          }
+        </div>
+
+        <!-- Info sutil de correo no editable -->
+        <div class="meta-notice">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="notice-svg">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>El correo electrónico ({{ profile?.email || 'cuenta' }}) está vinculado a tu cuenta de acceso y no puede modificarse desde aquí.</span>
+        </div>
+      </div>
+
+      <!-- Footer con Acciones -->
+      <div class="sheet-footer">
+        <button type="button" class="btn-secondary" (click)="close()">
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn-primary-action"
+          [disabled]="profileForm.invalid || isSubmitting()"
+        >
+          @if (isSubmitting()) {
+            <span class="btn-spinner"></span>
+            <span>Guardando...</span>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="save-svg">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Guardar Cambios</span>
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+}

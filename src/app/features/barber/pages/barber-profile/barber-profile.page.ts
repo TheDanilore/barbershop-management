@@ -2,21 +2,22 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { SupabaseService } from '../../../../core/services/supabase.service';
 import { getLocalDateString, isSameLocalDate } from '../../../../core/utils/date.utils';
+import { ProfileModalComponent } from '../../components/profile-modal/profile-modal.component';
 
 @Component({
   selector: 'app-barber-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ProfileModalComponent],
   templateUrl: './barber-profile.page.html',
   styleUrl: './barber-profile.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,13 +27,13 @@ export class BarberProfilePage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
   private readonly router = inject(Router);
-  private readonly fb = inject(FormBuilder);
 
   readonly isEditingProfile = signal(false);
-  readonly isSubmitting = signal(false);
   readonly isRefreshing = signal(false);
+  readonly isCopied = signal(false);
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: any = null;
+  private copyTimeout: any = null;
 
   // Ámbito de visualización de métricas (Personal vs Toda la Barbería si es admin)
   readonly viewScope = signal<'personal' | 'shop'>('personal');
@@ -92,11 +93,6 @@ export class BarberProfilePage {
       .slice(0, 5);
   });
 
-  readonly profileForm = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(2)]],
-    phone: [''],
-  });
-
   setScope(scope: 'personal' | 'shop'): void {
     this.haptics.lightTap();
     this.viewScope.set(scope);
@@ -120,11 +116,6 @@ export class BarberProfilePage {
 
   openEditProfile(): void {
     this.haptics.lightTap();
-    const profile = this.supabaseService.userProfile();
-    this.profileForm.reset({
-      fullName: profile?.full_name || '',
-      phone: profile?.phone || '',
-    });
     this.isEditingProfile.set(true);
   }
 
@@ -133,47 +124,60 @@ export class BarberProfilePage {
     this.isEditingProfile.set(false);
   }
 
-  async submitProfile(): Promise<void> {
-    if (this.profileForm.invalid || this.isSubmitting()) {
-      this.profileForm.markAllAsTouched();
-      this.haptics.warning();
+  onProfileSaved(message: string): void {
+    this.showToast(message);
+    this.isEditingProfile.set(false);
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalShortcuts(event: KeyboardEvent): void {
+    // Escape cierra el modal de edición
+    if (event.key === 'Escape' && this.isEditingProfile()) {
+      event.preventDefault();
+      this.cancelEditProfile();
       return;
     }
 
-    const { fullName, phone } = this.profileForm.value;
-    this.isSubmitting.set(true);
+    // Alt + E o Meta + E abre el editor de perfil
+    if ((event.altKey || event.metaKey) && (event.key === 'e' || event.key === 'E')) {
+      event.preventDefault();
+      this.openEditProfile();
+      return;
+    }
+
+    // Alt + S o Meta + S sincroniza datos con la nube
+    if ((event.altKey || event.metaKey) && (event.key === 's' || event.key === 'S')) {
+      event.preventDefault();
+      this.refreshData();
+      return;
+    }
+  }
+
+  async copyAccountId(): Promise<void> {
+    const id = this.supabaseService.currentUser()?.id;
+    if (!id) return;
 
     try {
-      const profile = this.supabaseService.userProfile();
-      if (profile && this.supabaseService.isConfigured()) {
-        const { error } = await this.supabaseService.supabase
-          .from('profiles')
-          .update({
-            full_name: fullName?.trim(),
-            phone: phone?.trim() || null,
-          })
-          .eq('id', profile.id);
-
-        if (!error) {
-          await this.supabaseService.refreshUserProfile();
-          await this.barberService.syncFromSupabase();
-          this.haptics.success();
-          this.isEditingProfile.set(false);
-          this.showToast('✅ Perfil actualizado con éxito');
-        } else {
-          this.haptics.warning();
-          this.showToast('Error al actualizar perfil en la base de datos');
-        }
-      } else {
-        this.showToast('Sin conexión a Supabase — cambios locales');
-        this.isEditingProfile.set(false);
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(id);
       }
+      this.isCopied.set(true);
+      this.haptics.success();
+      this.showToast('✅ ID de cuenta copiado al portapapeles');
+      if (this.copyTimeout) clearTimeout(this.copyTimeout);
+      this.copyTimeout = setTimeout(() => {
+        this.isCopied.set(false);
+      }, 2500);
     } catch {
-      this.haptics.warning();
-      this.showToast('Error inesperado al guardar el perfil');
-    } finally {
-      this.isSubmitting.set(false);
+      this.showToast('⚠️ No se pudo copiar al portapapeles');
     }
+  }
+
+  getLatencyQuality(latency: number | null): 'good' | 'medium' | 'high' {
+    if (latency === null) return 'good';
+    if (latency < 150) return 'good';
+    if (latency < 350) return 'medium';
+    return 'high';
   }
 
   logout(): void {

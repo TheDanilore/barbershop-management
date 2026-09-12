@@ -213,7 +213,6 @@
 .kpi-card.active-kpi {
   border-color: var(--gold-primary, #e5a93c);
   background: rgba(229, 169, 60, 0.08);
-  box-shadow: 0 0 16px rgba(229, 169, 60, 0.15);
 }
 
 .kpi-icon-box {

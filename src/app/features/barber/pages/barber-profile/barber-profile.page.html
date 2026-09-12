@@ -1,266 +1,438 @@
-<div class="profile-page">
-  <!-- Toast Notification -->
+<div class="profile-page fade-in">
+  <!-- Toast Notificación Local Flotante (Apple Dynamic Island) -->
   @if (toastMessage()) {
-    <div class="toast-banner">
-      <span class="toast-icon">✨</span>
-      <span class="toast-text">{{ toastMessage() }}</span>
-    </div>
+  <aside class="local-toast" role="alert" aria-live="polite">
+    <span class="toast-dot" aria-hidden="true"></span>
+    <span class="toast-text">{{ toastMessage() }}</span>
+  </aside>
   }
 
-  <!-- Encabezado de Página con Botón de Sincronización Rápida -->
+  <!-- ========================================================================= -->
+  <!-- 1. ENCABEZADO DE PÁGINA Y ACCIONES PRINCIPALES                            -->
+  <!-- ========================================================================= -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
-        <span class="badge-gold">Cuenta de Usuario</span>
-        <span class="badge-active">Sesión Activa</span>
+        <span class="badge-role">
+          <svg class="badge-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Cuenta de Usuario
+        </span>
+        <span class="badge-active">
+          <span class="pulse-dot"></span>
+          Sesión Activa
+        </span>
+        @if (supabaseService.connectionStatus() === 'connected') {
+        <span class="badge-cloud-live">
+          <span class="cloud-dot"></span>
+          Cloud Sync
+        </span>
+        }
       </div>
+
       <h1 class="page-title">Mi Perfil &amp; Configuración</h1>
       <p class="page-subtitle">
         Gestiona tus datos personales, rendimiento operativo en tiempo real y estado de sesión.
       </p>
     </div>
+
     <div class="header-actions">
-      <button class="btn-sync-action" [disabled]="isRefreshing()" (click)="refreshData()" title="Sincronizar datos con la nube">
-        <span class="sync-icon" [class.spin]="isRefreshing()">🔄</span>
+      <button type="button" class="btn-sync-action" [disabled]="isRefreshing()" (click)="refreshData()"
+        title="Sincronizar datos y latencia con la nube (Alt + S)">
+        <svg class="sync-svg" [class.spin]="isRefreshing()" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
         <span>{{ isRefreshing() ? 'Sincronizando...' : 'Sincronizar' }}</span>
+        <kbd class="kbd-chip" aria-hidden="true">Alt+S</kbd>
       </button>
     </div>
   </header>
 
-  <!-- Hero Card del Perfil -->
-  <section class="profile-hero-card">
-    <div class="phc-avatar-wrap">
-      <div class="phc-avatar">
-        {{ (supabaseService.userProfile()?.full_name || 'U').charAt(0).toUpperCase() }}
-      </div>
-      <div class="phc-avatar-ring"></div>
-    </div>
-
-    <div class="phc-info">
-      <h2 class="phc-name">{{ supabaseService.userProfile()?.full_name || 'Usuario del Sistema' }}</h2>
-      <div class="phc-badges">
-        <span class="phc-role-chip" [attr.data-role]="supabaseService.userProfile()?.role">
-          {{ getRoleLabel(supabaseService.userProfile()?.role) }}
-        </span>
-        <span class="phc-status-chip">En Línea</span>
-      </div>
-      <div class="phc-contact-row">
-        @if (supabaseService.userProfile()?.phone) {
-          <span class="phc-meta">📞 {{ supabaseService.userProfile()?.phone }}</span>
-        }
-        <span class="phc-meta">📧 {{ supabaseService.currentUser()?.email || 'Sin correo registrado' }}</span>
-      </div>
-    </div>
-
-    @if (!isEditingProfile()) {
-      <button class="phc-edit-btn" (click)="openEditProfile()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-        </svg>
-        <span>Editar Perfil</span>
-      </button>
-    }
-  </section>
-
-  <!-- Formulario de Edición Inline -->
-  @if (isEditingProfile()) {
-    <section class="profile-edit-card">
-      <div class="pec-header">
-        <div>
-          <h3 class="pec-title">Modificar Datos Personales</h3>
-          <p class="pec-sub">Actualiza tu nombre visible y número de contacto para citas</p>
+  <!-- ========================================================================= -->
+  <!-- 2. LAYOUT PRINCIPAL (SPLIT VIEW EN TABLET/DESKTOP, STREAM EN MÓVIL)       -->
+  <!-- ========================================================================= -->
+  <main class="profile-layout-grid">
+    <!-- ==================== COLUMNA IZQUIERDA: IDENTIDAD & SISTEMA ============ -->
+    <div class="profile-col-primary">
+      <!-- Tarjeta Hero de Perfil -->
+      <section class="profile-hero-card" aria-label="Información de perfil">
+        <div class="phc-avatar-wrap">
+          <div class="phc-avatar">
+            {{ (supabaseService.userProfile()?.full_name || 'U').charAt(0).toUpperCase() }}
+          </div>
+          <div class="phc-avatar-ring"></div>
         </div>
-        <button class="btn-close-edit" (click)="cancelEditProfile()" title="Cancelar">✕</button>
-      </div>
 
-      <form [formGroup]="profileForm" (ngSubmit)="submitProfile()" class="pec-body">
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label" for="profileFullName">Nombre Completo *</label>
-            <input
-              id="profileFullName"
-              type="text"
-              class="form-input"
-              formControlName="fullName"
-              placeholder="Tu nombre completo"
-            />
+        <div class="phc-info">
+          <div class="phc-header-line">
+            <h2 class="phc-name">{{ supabaseService.userProfile()?.full_name || 'Usuario del Sistema' }}</h2>
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="profilePhone">Teléfono / WhatsApp</label>
-            <input
-              id="profilePhone"
-              type="tel"
-              class="form-input"
-              formControlName="phone"
-              placeholder="Ej: +51 987 654 321"
-            />
+          <div class="phc-badges">
+            <span class="phc-role-chip" [attr.data-role]="supabaseService.userProfile()?.role">
+              {{ getRoleLabel(supabaseService.userProfile()?.role) }}
+            </span>
+            <span class="phc-status-chip">
+              <span class="live-dot"></span>
+              En Línea
+            </span>
+          </div>
+
+          <div class="phc-contact-list">
+            @if (supabaseService.userProfile()?.phone) {
+            <div class="phc-contact-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="contact-svg">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                </path>
+              </svg>
+              <span>{{ supabaseService.userProfile()?.phone }}</span>
+            </div>
+            }
+            <div class="phc-contact-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="contact-svg">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <span>{{ supabaseService.currentUser()?.email || 'Sin correo registrado' }}</span>
+            </div>
           </div>
         </div>
 
-        <div class="pec-actions">
-          <button type="button" class="btn-secondary" (click)="cancelEditProfile()">Cancelar</button>
-          <button
-            type="submit"
-            class="btn-primary-action"
-            [disabled]="profileForm.invalid || isSubmitting()"
-          >
-            {{ isSubmitting() ? 'Guardando...' : 'Guardar Cambios' }}
+        <button type="button" class="phc-edit-btn" (click)="openEditProfile()"
+          title="Modificar datos personales (Alt + E)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>Editar Perfil</span>
+          <kbd class="kbd-chip subtle" aria-hidden="true">Alt+E</kbd>
+        </button>
+      </section>
+
+      <!-- Panel de Diagnóstico de Red, Caja & Plataforma (Estilo Apple System Monitor) -->
+      <section class="session-card" aria-label="Diagnóstico del sistema y estado de sesión">
+        <div class="sc-card-header">
+          <div class="sc-title-group">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sc-header-icon">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            <div>
+              <h3 class="sc-title">Diagnóstico de Sesión &amp; Red</h3>
+              <p class="sc-desc">Estado de los servicios en la nube, caja e integridad</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="session-details-list">
+          <!-- Row 1: Conexión Supabase -->
+          <div class="sdl-row">
+            <div class="sdl-label-group">
+              <span class="sdl-label">Nube Supabase</span>
+              <span class="sdl-sub">Sincronización en tiempo real</span>
+            </div>
+            <div class="sdl-value-wrap">
+              @if (supabaseService.connectionStatus() === 'connected') {
+              <span class="status-pill online">
+                <span class="dot-radar"></span>
+                Conectado
+              </span>
+              } @else if (supabaseService.connectionStatus() === 'offline') {
+              <span class="status-pill offline">
+                <span class="dot-radar offline"></span>
+                Modo Local
+              </span>
+              } @else {
+              <span class="status-pill checking">
+                <span class="dot-radar checking"></span>
+                Verificando
+              </span>
+              }
+            </div>
+          </div>
+
+          <!-- Row 2: Latencia -->
+          @if (supabaseService.latencyMs() !== null) {
+          <div class="sdl-row">
+            <div class="sdl-label-group">
+              <span class="sdl-label">Latencia de Red</span>
+              <span class="sdl-sub">Tiempo de respuesta a servidores</span>
+            </div>
+            <div class="sdl-value-wrap">
+              <span class="latency-badge" [class]="'quality-' + getLatencyQuality(supabaseService.latencyMs())">
+                <span class="latency-dot"></span>
+                {{ supabaseService.latencyMs() }} ms
+              </span>
+            </div>
+          </div>
+          }
+
+          <!-- Row 3: Turno de Caja -->
+          <div class="sdl-row">
+            <div class="sdl-label-group">
+              <span class="sdl-label">Turno de Caja</span>
+              <span class="sdl-sub">Apertura y flujo contable</span>
+            </div>
+            <div class="sdl-value-wrap">
+              @if (barberService.activeCashShift()) {
+              <span class="status-pill shift-open"
+                title="Iniciado {{ formatDate(barberService.activeCashShift()!.openedAt) }}">
+                <span class="shift-dot"></span>
+                Turno Abierto
+              </span>
+              } @else {
+              <span class="status-pill shift-closed">
+                Turno Cerrado
+              </span>
+              }
+            </div>
+          </div>
+
+          <!-- Row 4: ID de Cuenta con Copiado en 1 clic -->
+          <div class="sdl-row">
+            <div class="sdl-label-group">
+              <span class="sdl-label">ID de Cuenta</span>
+              <span class="sdl-sub">Identificador único del perfil</span>
+            </div>
+            <div class="sdl-value-wrap">
+              <button type="button" class="btn-copy-uuid" (click)="copyAccountId()" [class.copied]="isCopied()"
+                title="Copiar ID de cuenta completo al portapapeles">
+                <code
+                  class="uuid-text">{{ (supabaseService.currentUser()?.id || 'offline-user') | slice:0:13 }}...</code>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-svg">
+                  @if (isCopied()) {
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                  } @else {
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  }
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sc-actions">
+          <button type="button" class="btn-logout" (click)="logout()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
-      </form>
-    </section>
-  }
-
-  <!-- Toggle de Ámbito para Administradores (Mis Métricas vs Toda la Barbería) -->
-  @if (isAdmin()) {
-    <div class="scope-toggle-container">
-      <div class="scope-toggle-pills">
-        <button
-          type="button"
-          class="scope-btn"
-          [class.active]="viewScope() === 'personal'"
-          (click)="setScope('personal')">
-          👤 Mis Métricas Personales
-        </button>
-        <button
-          type="button"
-          class="scope-btn"
-          [class.active]="viewScope() === 'shop'"
-          (click)="setScope('shop')">
-          💈 Toda la Barbería
-        </button>
-      </div>
-    </div>
-  }
-
-  <!-- Grid de Métricas Reactivas Sincronizadas -->
-  <section class="profile-stats-grid">
-    <div class="stat-card">
-      <div class="sc-icon gold">✂</div>
-      <div class="sc-info">
-        <span class="sc-val">{{ myCutsToday().length }}</span>
-        <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mis Cortes Hoy' : 'Cortes Hoy' }}</span>
-      </div>
+      </section>
     </div>
 
-    <div class="stat-card">
-      <div class="sc-icon blue">📅</div>
-      <div class="sc-info">
-        <span class="sc-val">{{ myAppointmentsToday().length }}</span>
-        <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mis Turnos Hoy' : 'Turnos Hoy' }}</span>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="sc-icon green">👥</div>
-      <div class="sc-info">
-        <span class="sc-val">{{ myUniqueClientsToday() }}</span>
-        <span class="sc-lbl">Clientes Atendidos Hoy</span>
-      </div>
-    </div>
-
-    <div class="stat-card highlight">
-      <div class="sc-icon gold-filled">💰</div>
-      <div class="sc-info">
-        <span class="sc-val gold">{{ barberService.currencySymbol() }}{{ myProductionToday().toFixed(2) }}</span>
-        <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mi Producción Hoy' : 'Producción Hoy' }}</span>
-        <div class="sc-breakdown">
-          <span class="sc-sub-pill green">Cobrado: {{ barberService.currencySymbol() }}{{ myCashCollectedToday().toFixed(2) }}</span>
-          @if (myCreditToday() > 0) {
-            <span class="sc-sub-pill orange">Fiado: {{ barberService.currencySymbol() }}{{ myCreditToday().toFixed(2) }}</span>
-          }
+    <!-- ==================== COLUMNA DERECHA: RENDIMIENTO & OPERACIÓN =========== -->
+    <div class="profile-col-secondary">
+      <!-- Selector de Ámbito para Administradores -->
+      @if (isAdmin()) {
+      <div class="scope-toggle-card">
+        <div class="scope-toggle-pills" role="group" aria-label="Cambiar alcance de métricas">
+          <button type="button" class="scope-btn" [class.active]="viewScope() === 'personal'"
+            (click)="setScope('personal')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="scope-svg">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Mis Métricas</span>
+          </button>
+          <button type="button" class="scope-btn" [class.active]="viewScope() === 'shop'" (click)="setScope('shop')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="scope-svg">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+            </svg>
+            <span>Toda la Barbería</span>
+          </button>
         </div>
       </div>
-    </div>
-  </section>
+      }
 
-  <!-- Historial Reciente de Servicios del Barbero -->
-  @if (recentMyCuts().length > 0) {
-    <section class="recent-cuts-card">
-      <div class="rcc-header">
-        <h3 class="rcc-title">⚡ Actividad Reciente de Servicios</h3>
-        <span class="rcc-badge">{{ recentMyCuts().length }} registros</span>
-      </div>
-      <div class="rcc-list">
-        @for (cut of recentMyCuts(); track cut.id) {
+      <!-- Grid Camaleónico de Métricas (Matriz 2x2 en móvil / 4 columnas en desktop) -->
+      <section class="profile-stats-grid" aria-label="Métricas del turno">
+        <!-- Métrica 1: Cortes Hoy -->
+        <article class="stat-card">
+          <div class="sc-top">
+            <div class="sc-icon-bubble gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mis Cortes' : 'Cortes Totales' }}</span>
+          </div>
+          <div class="sc-val">{{ myCutsToday().length }}</div>
+          <div class="sc-sub">
+            <span class="sub-dot gold"></span>
+            <span>Completados hoy</span>
+          </div>
+        </article>
+
+        <!-- Métrica 2: Turnos Hoy -->
+        <article class="stat-card">
+          <div class="sc-top">
+            <div class="sc-icon-bubble cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mis Citas' : 'Citas Totales' }}</span>
+          </div>
+          <div class="sc-val">{{ myAppointmentsToday().length }}</div>
+          <div class="sc-sub">
+            <span class="sub-dot cyan"></span>
+            <span>Programadas en agenda</span>
+          </div>
+        </article>
+
+        <!-- Métrica 3: Clientes Atendidos -->
+        <article class="stat-card">
+          <div class="sc-top">
+            <div class="sc-icon-bubble green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <span class="sc-lbl">Clientes Únicos</span>
+          </div>
+          <div class="sc-val">{{ myUniqueClientsToday() }}</div>
+          <div class="sc-sub">
+            <span class="sub-dot green"></span>
+            <span>Atendidos en el turno</span>
+          </div>
+        </article>
+
+        <!-- Métrica 4: Producción Total (Destacada) -->
+        <article class="stat-card highlight">
+          <div class="sc-top">
+            <div class="sc-icon-bubble gold-glow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+              </svg>
+            </div>
+            <span class="sc-lbl">{{ viewScope() === 'personal' ? 'Mi Producción' : 'Producción Total' }}</span>
+          </div>
+          <div class="sc-val text-gold">
+            {{ barberService.currencySymbol() }}{{ myProductionToday().toFixed(2) }}
+          </div>
+          <div class="sc-breakdown">
+            <span class="sc-sub-pill green" title="Total recaudado al contado">
+              <span class="pill-dot green"></span>
+              Cobrado: {{ barberService.currencySymbol() }}{{ myCashCollectedToday().toFixed(2) }}
+            </span>
+            @if (myCreditToday() > 0) {
+            <span class="sc-sub-pill orange" title="Cuentas por cobrar fiadas">
+              <span class="pill-dot orange"></span>
+              Fiado: {{ barberService.currencySymbol() }}{{ myCreditToday().toFixed(2) }}
+            </span>
+            }
+          </div>
+        </article>
+      </section>
+
+      <!-- Actividad Reciente de Servicios -->
+      <section class="recent-cuts-card" aria-label="Historial de actividad reciente">
+        <div class="rcc-header">
+          <div class="rcc-header-left">
+            <div class="rcc-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="rcc-flash-icon">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <div>
+              <h3 class="rcc-title">Actividad Reciente de Servicios</h3>
+              <p class="rcc-sub">Últimos servicios registrados en tu estación de trabajo</p>
+            </div>
+          </div>
+          @if (recentMyCuts().length > 0) {
+          <span class="rcc-badge">{{ recentMyCuts().length }} registros</span>
+          }
+        </div>
+
+        @if (recentMyCuts().length > 0) {
+        <div class="rcc-list">
+          @for (cut of recentMyCuts(); track cut.id) {
           <div class="rcc-item">
             <div class="rcc-time-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="time-svg">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
               <span class="rcc-time">{{ formatDate(cut.date) }}</span>
             </div>
+
             <div class="rcc-main">
               <strong class="rcc-client">{{ cut.clientName }}</strong>
               <span class="rcc-service">{{ cut.serviceName }}</span>
             </div>
+
             <div class="rcc-meta">
               <span class="rcc-method-tag" [class]="cut.paymentMethod">
-                {{ cut.paymentMethod === 'credit' ? 'Crédito' : cut.paymentMethod === 'cash' ? 'Efectivo' : 'Tarjeta / Yape' }}
+                @if (cut.paymentMethod === 'credit') {
+                Fiado / Crédito
+                } @else if (cut.paymentMethod === 'cash') {
+                Efectivo
+                } @else {
+                Digital / Tarjeta
+                }
               </span>
               <strong class="rcc-price" [class.credit-price]="cut.paymentMethod === 'credit'">
                 {{ barberService.currencySymbol() }}{{ cut.price.toFixed(2) }}
               </strong>
             </div>
           </div>
-        }
-      </div>
-    </section>
-  }
-
-  <!-- Panel de Información de Sesión y Conexión -->
-  <section class="session-card">
-    <div class="sc-card-header">
-      <h3 class="sc-title">Diagnóstico de Sesión &amp; Plataforma</h3>
-      <span class="sc-desc">Estado de los servicios en la nube e integridad de red</span>
-    </div>
-
-    <div class="session-details-list">
-      <div class="sdl-row">
-        <span class="sdl-label">Estado de Conexión en la Nube:</span>
-        <span class="sdl-value">
-          @if (supabaseService.connectionStatus() === 'connected') {
-            <span class="status-online">● Supabase Conectado</span>
-          } @else if (supabaseService.connectionStatus() === 'offline') {
-            <span class="status-offline">● Sin conexión a internet (Modo Local)</span>
-          } @else {
-            <span class="status-checking">⏳ Verificando...</span>
           }
-        </span>
-      </div>
-
-      @if (supabaseService.latencyMs() !== null) {
-        <div class="sdl-row">
-          <span class="sdl-label">Latencia de Conexión:</span>
-          <span class="sdl-value latency">{{ supabaseService.latencyMs() }} ms</span>
         </div>
-      }
-
-      <div class="sdl-row">
-        <span class="sdl-label">Turno de Caja Actual:</span>
-        <span class="sdl-value">
-          @if (barberService.activeCashShift()) {
-            <span class="status-online">● Turno Abierto (Iniciado {{ formatDate(barberService.activeCashShift()!.openedAt) }})</span>
-          } @else {
-            <span class="status-offline">● Turno Cerrado</span>
-          }
-        </span>
-      </div>
-
-      <div class="sdl-row">
-        <span class="sdl-label">ID de Cuenta:</span>
-        <span class="sdl-value code-font">{{ supabaseService.currentUser()?.id || 'offline-user' }}</span>
-      </div>
+        } @else {
+        <!-- Empty State Elegante -->
+        <div class="rcc-empty-state">
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="empty-svg">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <h4 class="empty-title">Sin servicios registrados hoy</h4>
+          <p class="empty-desc">
+            Los cortes y tratamientos que cobres en tu turno aparecerán automáticamente en esta lista en tiempo real.
+          </p>
+        </div>
+        }
+      </section>
     </div>
+  </main>
 
-    <div class="sc-actions">
-      <button class="btn-logout" (click)="logout()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-        <span>Cerrar Sesión</span>
-      </button>
-    </div>
-  </section>
+
 </div>
+
+<!-- ========================================================================= -->
+<!-- 3. MODAL / BOTTOM SHEET DE EDICIÓN DE PERFIL (STANDALONE COMPONENT)       -->
+<!-- ========================================================================= -->
+<app-profile-modal [isOpen]="isEditingProfile()" [profile]="supabaseService.userProfile()"
+  (closed)="cancelEditProfile()" (saved)="onProfileSaved($event)"></app-profile-modal>

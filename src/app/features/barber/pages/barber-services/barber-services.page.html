@@ -1,68 +1,392 @@
 <div class="services-page fade-in">
+  <!-- Toast Notificación Flotante -->
   @if (toastMessage()) {
-  <div class="local-toast">
+  <aside class="local-toast" role="alert" aria-live="polite">
     <div class="toast-dot"></div>
     <span>{{ toastMessage() }}</span>
-  </div>
+  </aside>
   }
 
+  <!-- 1. ENCABEZADO DE PÁGINA & ACCIONES GLOBALES -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
-        <span class="badge-gold">Tarifario</span>
-        <span class="badge-counter">{{ barberService.services().length }} Servicios Activos</span>
+        <span class="badge-gold">
+          <svg class="badge-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+          </svg>
+          Tarifario PRO
+        </span>
+        <span class="badge-counter">{{ activeServicesCount() }} Servicios Activos</span>
       </div>
-      <h1 class="page-title">Catálogo de Servicios & Tarifas</h1>
-      <p class="page-subtitle">Gestiona los precios, nombres y tiempos estimados de corte</p>
+      <h1 class="page-title">Catálogo de Servicios &amp; Tarifas</h1>
+      <p class="page-subtitle">
+        Gestiona precios, tiempos de corte y disponibilidad en el punto de venta (POS).
+      </p>
     </div>
 
     <div class="header-actions">
-      <button class="btn-primary-create" (click)="openCreateServiceModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+      <button type="button" class="btn-primary-create" (click)="openCreateServiceModal()" title="Registrar nuevo servicio (Alt+S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
         <span>Nuevo Servicio</span>
+        <kbd class="kbd-hint">Alt+S</kbd>
       </button>
     </div>
   </header>
 
-  <!-- Grid de Servicios -->
-  <div class="services-cards-grid">
-    @for (srv of barberService.services(); track srv.id) {
-    <div class="service-card-item" [class.paused]="srv.isActive === false">
-      <div class="sci-top">
-        <div class="sci-icon-box">✂️</div>
-        <div class="sci-status">
-          @if (srv.isActive !== false) {
-          <span class="status-pill active">Activo</span>
-          } @else {
-          <span class="status-pill paused">Inactivo</span>
-          }
-        </div>
+  <!-- 2. CINTA DE MÉTRICAS RÁPIDAS DEL CATÁLOGO (KPI STRIP) -->
+  <section class="services-kpi-strip" aria-label="Métricas del tarifario">
+    <article class="kpi-capsule gold">
+      <div class="kpi-icon gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
       </div>
-
-      <div class="sci-info">
-        <h3 class="sci-name">{{ srv.name }}</h3>
-        <div class="sci-meta">
-          <span class="sci-price">{{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}</span>
-          <span class="sci-duration">⏱️ {{ srv.durationMinutes }} min</span>
-        </div>
+      <div class="kpi-data">
+        <span class="kpi-val">{{ activeServicesCount() }} / {{ allServices().length }}</span>
+        <span class="kpi-lbl">Servicios Activos</span>
       </div>
+    </article>
 
-      <div class="sci-actions">
-        <button class="btn-sci-action" (click)="openEditServiceModal(srv)">
-          ✏️ Editar
+    <article class="kpi-capsule blue">
+      <div class="kpi-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-val">{{ barberService.currencySymbol() }}{{ averagePrice().toFixed(2) }}</span>
+        <span class="kpi-lbl">Tarifa Promedio</span>
+      </div>
+    </article>
+
+    <article class="kpi-capsule purple">
+      <div class="kpi-icon purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-val">{{ averageDuration() }} min</span>
+        <span class="kpi-lbl">Duración Media</span>
+      </div>
+    </article>
+  </section>
+
+  <!-- 3. BARRA DE HERRAMIENTAS: SEGMENTED CONTROLS, BÚSQUEDA & SWITCHER DE VISTA -->
+  <section class="services-toolbar" aria-label="Herramientas de filtrado y búsqueda">
+    <!-- Segmented Tabs (Todos / Activos / Pausados) -->
+    <div class="segmented-control" role="tablist" aria-label="Filtrar por estado">
+      <button
+        type="button"
+        role="tab"
+        class="seg-btn"
+        [class.active]="selectedSegment() === 'all'"
+        [attr.aria-selected]="selectedSegment() === 'all'"
+        (click)="setSegment('all')">
+        Todos ({{ allServices().length }})
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="seg-btn active-filter"
+        [class.active]="selectedSegment() === 'active'"
+        [attr.aria-selected]="selectedSegment() === 'active'"
+        (click)="setSegment('active')">
+        <span class="seg-dot green"></span>
+        Activos ({{ activeServicesCount() }})
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="seg-btn paused-filter"
+        [class.active]="selectedSegment() === 'paused'"
+        [attr.aria-selected]="selectedSegment() === 'paused'"
+        (click)="setSegment('paused')">
+        <span class="seg-dot gray"></span>
+        Pausados ({{ pausedServicesCount() }})
+      </button>
+    </div>
+
+    <!-- Controles Secundarios: Buscador + Switcher Cards/Tabla -->
+    <div class="toolbar-side-group">
+      <div class="search-box">
+        <svg class="search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar por servicio, precio o duración..."
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+          aria-label="Buscar servicios" />
+        @if (searchQuery()) {
+        <button type="button" class="btn-clear-search" (click)="clearSearch()" aria-label="Limpiar búsqueda">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
-        <button class="btn-sci-action toggle" (click)="toggleServiceActive(srv)">
-          {{ srv.isActive === false ? 'Activar' : 'Desactivar' }}
+        }
+      </div>
+
+      <!-- Switcher de Vista (Oculto en Móvil pequeño, activo en Tablet/Desktop) -->
+      <div class="view-mode-toggle" role="radiogroup" aria-label="Modo de visualización">
+        <button
+          type="button"
+          class="view-btn"
+          [class.active]="viewMode() === 'cards'"
+          (click)="setViewMode('cards')"
+          title="Vista en Tarjetas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="view-btn"
+          [class.active]="viewMode() === 'table'"
+          (click)="setViewMode('table')"
+          title="Vista en Tabla ERP">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. CONTENIDO PRINCIPAL: SKELETON ↔ CARDS ↔ TABLA ERP -->
+  <main class="services-main-content">
+    @if (isServicesInitialLoading()) {
+    <!-- Shimmer Skeleton -->
+    <div class="skeleton-grid" aria-label="Cargando servicios...">
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+      <div class="skeleton-service-card">
+        <div class="skeleton-top">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-pill"></div>
+        </div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-meta">
+          <div class="skeleton-price"></div>
+          <div class="skeleton-dur"></div>
+        </div>
+      </div>
+      }
+    </div>
+    } @else {
+
+    <!-- ====================================================================== -->
+    <!-- VISTA 1: TARJETAS LUXURY ERGONÓMICAS (Mobile First & Touch Ready)       -->
+    <!-- ====================================================================== -->
+    @if (viewMode() === 'cards') {
+    <div class="services-cards-grid">
+      @for (srv of filteredServices(); track srv.id) {
+      <article
+        class="service-card"
+        [class.paused]="srv.isActive === false"
+        (click)="openEditServiceModal(srv)">
+        <div class="card-header-row">
+          <div class="service-avatar-wrap">
+            <div class="service-avatar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="scissors-icon">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <div class="service-title-group">
+              <h3 class="service-name" [title]="srv.name">{{ srv.name }}</h3>
+              <span class="duration-capsule">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="clock-svg">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {{ srv.durationMinutes }} min
+              </span>
+            </div>
+          </div>
+
+          <!-- Estado Toggle Switch Rápido -->
+          <button
+            type="button"
+            class="status-toggle-pill"
+            [class.active]="srv.isActive !== false"
+            (click)="toggleServiceActive(srv, $event)"
+            [title]="srv.isActive !== false ? 'Pausar servicio en POS' : 'Activar servicio en POS'">
+            <span class="status-indicator-dot"></span>
+            <span>{{ srv.isActive !== false ? 'Activo' : 'Pausado' }}</span>
+          </button>
+        </div>
+
+        <div class="card-footer-row">
+          <div class="price-display">
+            <span class="currency-tag">{{ barberService.currencySymbol() }}</span>
+            <strong class="price-num">{{ srv.price.toFixed(2) }}</strong>
+          </div>
+
+          <div class="card-actions-group" (click)="$event.stopPropagation()">
+            <button
+              type="button"
+              class="btn-card-edit"
+              (click)="openEditServiceModal(srv, $event)"
+              title="Editar nombre, precio o duración">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="action-svg">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>Editar</span>
+            </button>
+          </div>
+        </div>
+      </article>
+      }
+    </div>
+    }
+
+    <!-- ====================================================================== -->
+    <!-- VISTA 2: TABLA ERP DATAGRID DE ALTA DENSIDAD (Linear / Stripe Style)   -->
+    <!-- ====================================================================== -->
+    @if (viewMode() === 'table') {
+    <div class="datagrid-container">
+      <table class="erp-table" role="table" aria-label="Tarifario de Servicios">
+        <thead>
+          <tr>
+            <th scope="col" class="th-service">Servicio</th>
+            <th scope="col" class="th-duration">Tiempo Estimado</th>
+            <th scope="col" class="th-price">Tarifa / Precio</th>
+            <th scope="col" class="th-status">Estado en POS</th>
+            <th scope="col" class="th-actions text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (srv of filteredServices(); track srv.id) {
+          <tr class="erp-row" [class.paused-row]="srv.isActive === false" (click)="openEditServiceModal(srv)">
+            <td class="td-service">
+              <div class="table-service-cell">
+                <div class="table-avatar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="6" cy="6" r="3"></circle>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                    <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                    <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                  </svg>
+                </div>
+                <span class="table-service-name" [title]="srv.name">{{ srv.name }}</span>
+              </div>
+            </td>
+            <td class="td-duration">
+              <span class="table-duration-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mini-clock">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {{ srv.durationMinutes }} minutos
+              </span>
+            </td>
+            <td class="td-price">
+              <span class="table-price-gold">
+                {{ barberService.currencySymbol() }}{{ srv.price.toFixed(2) }}
+              </span>
+            </td>
+            <td class="td-status">
+              <button
+                type="button"
+                class="status-toggle-pill table"
+                [class.active]="srv.isActive !== false"
+                (click)="toggleServiceActive(srv, $event)">
+                <span class="status-indicator-dot"></span>
+                <span>{{ srv.isActive !== false ? 'Activo' : 'Pausado' }}</span>
+              </button>
+            </td>
+            <td class="td-actions text-right">
+              <div class="table-actions-hub" (click)="$event.stopPropagation()">
+                <button
+                  type="button"
+                  class="btn-row-action edit"
+                  (click)="openEditServiceModal(srv, $event)"
+                  title="Editar">
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="btn-row-action toggle"
+                  (click)="toggleServiceActive(srv, $event)"
+                  [title]="srv.isActive !== false ? 'Pausar' : 'Activar'">
+                  {{ srv.isActive !== false ? 'Pausar' : 'Activar' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    }
+
+    <!-- ====================================================================== -->
+    <!-- EMPTY STATE CONTEXTUAL ELEGANTE                                        -->
+    <!-- ====================================================================== -->
+    @if (filteredServices().length === 0) {
+    <div class="empty-state-box">
+      <div class="empty-icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <h3 class="empty-title">Sin servicios que coincidan</h3>
+      <p class="empty-desc">
+        @if (searchQuery()) {
+        No se encontraron resultados para la búsqueda <strong>"{{ searchQuery() }}"</strong>.
+        } @else if (selectedSegment() === 'paused') {
+        No tienes servicios pausados; todo tu tarifario está activo y disponible en el POS.
+        } @else {
+        Comienza configurando las opciones de tu tarifario para cobrar en caja y agendar citas.
+        }
+      </p>
+      <div class="empty-actions">
+        @if (searchQuery() || selectedSegment() !== 'all') {
+        <button type="button" class="btn-reset-filters" (click)="clearSearch(); setSegment('all')">
+          Restablecer Filtros
+        </button>
+        }
+        <button type="button" class="btn-create-empty" (click)="openCreateServiceModal()">
+          + Crear Nuevo Servicio
         </button>
       </div>
     </div>
     }
-  </div>
+    }
+  </main>
 
-  <!-- Modal Crear / Editar Servicio (STANDALONE) -->
+  <!-- 5. MODAL INDEPENDIENTE PARA ALTA / EDICIÓN (STANDALONE) -->
   <app-service-modal
     [isOpen]="isServiceModalOpen()"
     [serviceToEdit]="editingService()"

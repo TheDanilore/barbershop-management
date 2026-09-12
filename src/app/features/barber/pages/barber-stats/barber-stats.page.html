@@ -1,10 +1,18 @@
-<div class="stats-page">
-  <!-- Encabezado de Página con Selector de Rango Temporal -->
+<div class="stats-page fade-in">
+  <!-- 1. ENCABEZADO DE PÁGINA CON SELECTOR DOCK DE RANGO TEMPORAL -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
-        <span class="badge-gold">Inteligencia de Negocio</span>
-        <span class="badge-kpi">Métricas en Tiempo Real</span>
+        <span class="badge-gold">
+          <svg class="badge-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          Inteligencia de Negocio
+        </span>
+        <span class="badge-kpi">
+          <span class="live-dot"></span>
+          Métricas en Tiempo Real
+        </span>
       </div>
       <h1 class="page-title">Finanzas &amp; Estadísticas</h1>
       <p class="page-subtitle">
@@ -12,194 +20,323 @@
       </p>
     </div>
 
-    <!-- Barra de Filtro de Período -->
-    <div class="period-pills-bar">
-      @for (p of periods; track p.id) {
+    <!-- Barra de Filtro de Período Ergonómica (Pill Dock Swipeable en Móvil / Atajos en Desktop) -->
+    <nav class="period-dock" role="tablist" aria-label="Seleccionar rango temporal">
+      <div class="period-dock-track">
+        @for (p of periods; track p.id) {
         <button
           type="button"
+          role="tab"
           class="period-pill"
           [class.active]="selectedPeriod() === p.id"
-          (click)="setPeriod(p.id)">
-          {{ p.label }}
+          [attr.aria-selected]="selectedPeriod() === p.id"
+          (click)="setPeriod(p.id)"
+          [title]="'Filtrar por ' + p.label + ' (' + p.shortcut + ')'">
+          <span class="pill-label">{{ p.label }}</span>
+          <kbd class="pill-kbd">{{ p.shortcut }}</kbd>
         </button>
-      }
-    </div>
+        }
+      </div>
+    </nav>
   </header>
 
-  <!-- Tarjetas KPI Principales Adaptadas al Período -->
-  <section class="kpi-grid">
-    <!-- 1. Ventas / Facturación -->
-    <div class="kpi-card">
-      <div class="kpi-icon-wrap gold">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="6" x2="12" y2="12"></line>
-          <line x1="12" y1="12" x2="16" y2="14"></line>
-        </svg>
-      </div>
-      <div class="kpi-body">
-        <span class="kpi-label">Ventas • {{ currentMetrics().periodLabel }}</span>
-        <div class="kpi-value gold">{{ barberService.currencySymbol() }}{{ currentMetrics().production.toFixed(2) }}</div>
-        <span class="kpi-hint">{{ currentMetrics().cutsCount }} servicios realizados</span>
-      </div>
+  <!-- 2. MATRIZ DE KPIS CAMALEÓNICA (2x2 EN MÓVIL / 4 COLUMNAS EN DESKTOP) -->
+  <section class="kpi-section" aria-label="Métricas clave de rendimiento">
+    <div class="kpi-grid">
+      <!-- 1. Ventas / Facturación del Período -->
+      <article class="kpi-card gold" [class.active-glow]="selectedPeriod() !== 'all'">
+        <div class="kpi-top">
+          <div class="kpi-icon-box gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <span class="kpi-tag gold">Ventas</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Facturado • {{ currentMetrics().periodLabel }}</span>
+          <div class="kpi-value gold">
+            <span class="kpi-currency">{{ barberService.currencySymbol() }}</span>{{ currentMetrics().production.toFixed(2) }}
+          </div>
+          <span class="kpi-hint">
+            <strong>{{ currentMetrics().cutsCount }}</strong> servicios realizados
+          </span>
+        </div>
+      </article>
+
+      <!-- 2. Recaudación Efectiva Cobrada -->
+      <article class="kpi-card blue">
+        <div class="kpi-top">
+          <div class="kpi-icon-box blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg" aria-hidden="true">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <span class="kpi-tag blue">Recaudado</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Ingreso en Efectivo</span>
+          <div class="kpi-value blue">
+            <span class="kpi-currency">{{ barberService.currencySymbol() }}</span>{{ currentMetrics().cashCollected.toFixed(2) }}
+          </div>
+          <span class="kpi-hint" [class.has-credit]="currentMetrics().creditSales > 0">
+            @if (currentMetrics().creditSales > 0) {
+              Fiado: {{ barberService.currencySymbol() }}{{ currentMetrics().creditSales.toFixed(2) }}
+            } @else {
+              ✓ 100% cobrado al día
+            }
+          </span>
+        </div>
+      </article>
+
+      <!-- 3. Saldo Total en Cuentas y Caja -->
+      <article class="kpi-card emerald">
+        <div class="kpi-top">
+          <div class="kpi-icon-box emerald">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </div>
+          <span class="kpi-tag emerald">Liquidez</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Saldo en Cuentas</span>
+          <div class="kpi-value emerald">
+            <span class="kpi-currency">{{ barberService.currencySymbol() }}</span>{{ barberService.totalFinancialBalance().toFixed(2) }}
+          </div>
+          <span class="kpi-hint">
+            <strong>{{ barberService.financialAccounts().length }}</strong> cuentas / gaveta
+          </span>
+        </div>
+      </article>
+
+      <!-- 4. Ticket Promedio por Cliente -->
+      <article class="kpi-card purple">
+        <div class="kpi-top">
+          <div class="kpi-icon-box purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M14.5 9a2.5 2.5 0 0 0-5 0c0 4 5 2 5 6a2.5 2.5 0 0 1-5 0"></path>
+              <path d="M12 5v14"></path>
+            </svg>
+          </div>
+          <span class="kpi-tag purple">Promedio</span>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Ticket Promedio</span>
+          <div class="kpi-value purple">
+            <span class="kpi-currency">{{ barberService.currencySymbol() }}</span>{{ currentMetrics().averageTicket.toFixed(2) }}
+          </div>
+          <span class="kpi-hint">
+            <strong>{{ currentMetrics().uniqueClientsCount }}</strong> clientes atendidos
+          </span>
+        </div>
+      </article>
     </div>
 
-    <!-- 2. Recaudación Efectiva Cobrada -->
-    <div class="kpi-card">
-      <div class="kpi-icon-wrap blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-        </svg>
+    <!-- 2.1 Barra de Realización Financiera: Efectivo vs Crédito (Solo si hay producción) -->
+    @if (currentMetrics().production > 0) {
+    <div class="collection-ratio-capsule">
+      <div class="crc-header">
+        <div class="crc-title-wrap">
+          <span class="crc-title">Realización de Cobranza del Período</span>
+          <span class="crc-subtitle">Proporción de facturación convertida en liquidez inmediata</span>
+        </div>
+        <div class="crc-badges">
+          <span class="crc-badge collected">
+            <span class="dot green"></span>
+            Cobrado: {{ collectionRate() }}% ({{ barberService.currencySymbol() }}{{ currentMetrics().cashCollected.toFixed(2) }})
+          </span>
+          @if (currentMetrics().creditSales > 0) {
+          <span class="crc-badge credit">
+            <span class="dot amber"></span>
+            Fiado: {{ creditRate() }}% ({{ barberService.currencySymbol() }}{{ currentMetrics().creditSales.toFixed(2) }})
+          </span>
+          }
+        </div>
       </div>
-      <div class="kpi-body">
-        <span class="kpi-label">Recaudación Cobrada</span>
-        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ currentMetrics().cashCollected.toFixed(2) }}</div>
-        <span class="kpi-hint">
-          {{ currentMetrics().creditSales > 0 ? ('Fiado: ' + barberService.currencySymbol() + currentMetrics().creditSales.toFixed(2)) : '100% cobrado' }}
-        </span>
-      </div>
-    </div>
 
-    <!-- 3. Saldo Total en Cuentas -->
-    <div class="kpi-card highlight-card">
-      <div class="kpi-icon-wrap emerald">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
-          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-          <line x1="2" y1="10" x2="22" y2="10"></line>
-        </svg>
-      </div>
-      <div class="kpi-body">
-        <span class="kpi-label">Saldo en Cuentas</span>
-        <div class="kpi-value emerald">{{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</div>
-        <span class="kpi-hint">{{ barberService.financialAccounts().length }} cuentas bancarias / caja</span>
+      <div class="crc-progress-track" title="Cobrado: {{ collectionRate() }}% | Fiado: {{ creditRate() }}%">
+        <div class="crc-bar-collected" [style.width.%]="collectionRate()"></div>
+        <div class="crc-bar-credit" [style.width.%]="creditRate()"></div>
       </div>
     </div>
-
-    <!-- 4. Ticket Promedio -->
-    <div class="kpi-card">
-      <div class="kpi-icon-wrap purple">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-        </svg>
-      </div>
-      <div class="kpi-body">
-        <span class="kpi-label">Ticket Promedio</span>
-        <div class="kpi-value">{{ barberService.currencySymbol() }}{{ currentMetrics().averageTicket.toFixed(2) }}</div>
-        <span class="kpi-hint">{{ currentMetrics().uniqueClientsCount }} clientes atendidos</span>
-      </div>
-    </div>
+    }
   </section>
 
-  <!-- Métricas Secundarias & Servicios Estrella -->
+  <!-- 3. DISPOSICIÓN PRINCIPAL DE ANÁLISIS: SERVICIOS ESTRELLA & SALUD OPERATIVA -->
   <div class="stats-split-layout">
-    <!-- Panel Izquierdo: Servicios más Solicitados -->
-    <section class="stats-panel">
+    <!-- Panel Izquierdo: Ranking de Servicios Más Solicitados -->
+    <section class="stats-panel" aria-label="Ranking de servicios más solicitados">
       <div class="panel-header">
         <div class="panel-title-wrap">
-          <h2 class="panel-title">Servicios Más Solicitados</h2>
-          <p class="panel-sub">Ranking granular por volumen y recaudación ({{ currentMetrics().periodLabel }})</p>
+          <div class="panel-title-row">
+            <h2 class="panel-title">Servicios Más Solicitados</h2>
+            @if (highPerformanceService(); as topSrv) {
+            <span class="badge-top-service">★ Top #1: {{ topSrv.name }}</span>
+            }
+          </div>
+          <p class="panel-sub">Ranking por volumen y recaudación ({{ currentMetrics().periodLabel }})</p>
         </div>
-        @if (highPerformanceService(); as topSrv) {
-          <span class="badge-top-service">★ Top #1: {{ topSrv.name }}</span>
-        }
       </div>
 
       <div class="services-stats-list">
         @for (srv of currentTopServices(); track srv.id; let idx = $index) {
-          <div class="service-stat-row">
-            <div class="ssr-rank">#{{ idx + 1 }}</div>
-            <div class="ssr-main">
-              <div class="ssr-info">
-                <div class="ssr-name-wrap">
-                  <span class="ssr-name">{{ srv.name }}</span>
-                  <span class="ssr-count-badge">{{ srv.count }} cortes</span>
-                </div>
-                <div class="ssr-revenue-wrap">
-                  <span class="ssr-revenue">{{ barberService.currencySymbol() }}{{ srv.revenue.toFixed(2) }}</span>
-                  <span class="ssr-pct">{{ srv.percentage }}%</span>
-                </div>
+        <article class="service-stat-row" [class.podium-first]="idx === 0 && srv.count > 0">
+          <div class="ssr-rank" [attr.data-rank]="idx + 1">
+            @if (idx === 0 && srv.count > 0) {
+              <span>🥇</span>
+            } @else if (idx === 1 && srv.count > 0) {
+              <span>🥈</span>
+            } @else if (idx === 2 && srv.count > 0) {
+              <span>🥉</span>
+            } @else {
+              #{{ idx + 1 }}
+            }
+          </div>
+
+          <div class="ssr-main">
+            <div class="ssr-info">
+              <div class="ssr-name-wrap">
+                <span class="ssr-name" [title]="srv.name">{{ srv.name }}</span>
+                <span class="ssr-count-badge">{{ srv.count }} cortes</span>
               </div>
-              <div class="ssr-progress-track">
-                <div class="ssr-progress-bar" [style.width.%]="srv.percentage"></div>
+              <div class="ssr-revenue-wrap">
+                <span class="ssr-revenue">{{ barberService.currencySymbol() }}{{ srv.revenue.toFixed(2) }}</span>
+                <span class="ssr-pct">{{ srv.percentage }}%</span>
               </div>
             </div>
+
+            <div class="ssr-progress-track">
+              <div class="ssr-progress-bar" [style.width.%]="srv.percentage"></div>
+            </div>
           </div>
+        </article>
         } @empty {
-          <div class="empty-state-card">
-            <div class="empty-icon">📊</div>
-            <p class="empty-title">Sin servicios registrados en este período</p>
-            <p class="empty-desc">Los datos de servicios más solicitados se actualizarán automáticamente con cada cobro.</p>
+        <div class="empty-state-card">
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="empty-svg">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
           </div>
+          <h3 class="empty-title">Sin servicios en este período</h3>
+          <p class="empty-desc">Los datos se actualizarán en tiempo real cuando registres servicios o cobros.</p>
+        </div>
         }
       </div>
     </section>
 
-    <!-- Panel Derecho: Desglose Histórico & Salud Financiera -->
-    <section class="stats-panel">
+    <!-- Panel Derecho: Salud Operativa & Liquidez Global -->
+    <section class="stats-panel" aria-label="Salud operativa y balance del negocio">
       <div class="panel-header">
         <div class="panel-title-wrap">
           <h2 class="panel-title">Salud Operativa del Negocio</h2>
-          <p class="panel-sub">Historial acumulado y volumen de operaciones</p>
+          <p class="panel-sub">Historial acumulado y volumen global de operaciones</p>
         </div>
       </div>
 
       <div class="breakdown-list">
         <div class="breakdown-item">
           <div class="bi-left">
-            <span class="bi-bullet gold"></span>
-            <span class="bi-label">Facturación Histórica Consolidada</span>
+            <span class="bi-icon-circle gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <div class="bi-text-group">
+              <span class="bi-label">Facturación Histórica Consolidada</span>
+              <span class="bi-desc">Ventas totales registradas desde el primer día</span>
+            </div>
           </div>
           <span class="bi-value gold">{{ barberService.currencySymbol() }}{{ barberService.totalRevenue().toFixed(2) }}</span>
         </div>
 
         <div class="breakdown-item">
           <div class="bi-left">
-            <span class="bi-bullet blue"></span>
-            <span class="bi-label">Total de Cortes Realizados</span>
+            <span class="bi-icon-circle blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </span>
+            <div class="bi-text-group">
+              <span class="bi-label">Total de Cortes Realizados</span>
+              <span class="bi-desc">Servicios individuales culminados con éxito</span>
+            </div>
           </div>
-          <span class="bi-value">{{ barberService.cuts().length }} servicios</span>
+          <span class="bi-value">{{ barberService.cuts().length }} cortes</span>
         </div>
 
         <div class="breakdown-item">
           <div class="bi-left">
-            <span class="bi-bullet green"></span>
-            <span class="bi-label">Clientes en Cartera</span>
+            <span class="bi-icon-circle green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <div class="bi-text-group">
+              <span class="bi-label">Clientes en Cartera</span>
+              <span class="bi-desc">Base de clientes registrados en el directorio</span>
+            </div>
           </div>
-          <span class="bi-value">{{ barberService.clients().length }} registrados</span>
+          <span class="bi-value">{{ barberService.clients().length }} clientes</span>
         </div>
 
         <div class="breakdown-item">
           <div class="bi-left">
-            <span class="bi-bullet purple"></span>
-            <span class="bi-label">Catálogo Activo</span>
+            <span class="bi-icon-circle purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </span>
+            <div class="bi-text-group">
+              <span class="bi-label">Catálogo de Servicios Activo</span>
+              <span class="bi-desc">Opciones disponibles para ofrecer en el POS</span>
+            </div>
           </div>
           <span class="bi-value">{{ barberService.services().length }} opciones</span>
         </div>
       </div>
 
-      <!-- Card informativa de liquidez -->
+      <!-- Banner de Liquidez Disponible -->
       <div class="liquidity-banner">
-        <div class="lb-icon">💎</div>
-        <div class="lb-content">
-          <div class="lb-title">Balance de Liquidez Disponible</div>
-          <div class="lb-desc">
-            Dispones de <strong>{{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</strong> distribuidos en tus cuentas de caja y financieras.
+        <div class="lb-left">
+          <div class="lb-icon-box">💎</div>
+          <div class="lb-content">
+            <h3 class="lb-title">Balance de Liquidez Disponible</h3>
+            <p class="lb-desc">
+              Dispones de <strong class="lb-amount">{{ barberService.currencySymbol() }}{{ barberService.totalFinancialBalance().toFixed(2) }}</strong> distribuidos en tus cuentas de caja y financieras.
+            </p>
           </div>
         </div>
       </div>
     </section>
   </div>
 
-  <!-- Satisfacción y Reseñas de Clientes -->
-  <section class="reviews-section">
+  <!-- 4. SATISFACCIÓN Y RESEÑAS DE CLIENTES -->
+  <section class="reviews-section" aria-label="Reseñas y satisfacción de clientes">
     <div class="reviews-header">
       <div class="rh-left">
         <h2 class="section-title">Reseñas &amp; Satisfacción de Clientes</h2>
         <p class="section-sub">Calificaciones emitidas por tus clientes en sus visitas</p>
       </div>
       <div class="rh-rating-badge">
-        <div class="rating-stars-gold">
-          ★ ★ ★ ★ ★
+        <div class="rating-stars-gold" aria-hidden="true">
+          ★★★★★
         </div>
         <span class="rating-number">{{ barberService.averageRating() }} / 5.0</span>
         <span class="rating-count">({{ barberService.reviews().length }} opiniones)</span>
@@ -208,32 +345,36 @@
 
     <div class="reviews-grid">
       @for (rev of barberService.reviews(); track rev.id) {
-        <article class="review-card">
-          <div class="rc-header">
-            <div class="rc-user">
-              <div class="rc-avatar">{{ rev.clientName.charAt(0).toUpperCase() }}</div>
-              <div class="rc-meta">
-                <span class="rc-name">{{ rev.clientName }}</span>
-                <span class="rc-barber">Atendido por: <strong>{{ rev.barberName }}</strong></span>
-              </div>
-            </div>
-            <div class="rc-stars">
-              @for (star of [1, 2, 3, 4, 5]; track star) {
-                <span class="star" [class.filled]="star <= rev.rating">★</span>
-              }
+      <article class="review-card">
+        <div class="rc-header">
+          <div class="rc-user">
+            <div class="rc-avatar">{{ (rev.clientName || 'C').charAt(0).toUpperCase() }}</div>
+            <div class="rc-meta">
+              <span class="rc-name">{{ rev.clientName }}</span>
+              <span class="rc-barber">Atendido por: <strong>{{ rev.barberName }}</strong></span>
             </div>
           </div>
-          <p class="rc-comment">"{{ rev.comment }}"</p>
-          <div class="rc-footer">
-            <span class="rc-date">{{ rev.date }}</span>
+          <div class="rc-stars" aria-label="Calificación: {{ rev.rating }} de 5 estrellas">
+            @for (star of [1, 2, 3, 4, 5]; track star) {
+            <span class="star" [class.filled]="star <= rev.rating">★</span>
+            }
           </div>
-        </article>
-      } @empty {
-        <div class="empty-state-card full-span">
-          <div class="empty-icon">⭐</div>
-          <p class="empty-title">Sin reseñas registradas aún</p>
-          <p class="empty-desc">Las opiniones de tus clientes sobre cortes y atención se mostrarán aquí.</p>
         </div>
+        <p class="rc-comment">"{{ rev.comment }}"</p>
+        <div class="rc-footer">
+          <span class="rc-date">{{ rev.date }}</span>
+        </div>
+      </article>
+      } @empty {
+      <div class="empty-state-card full-span">
+        <div class="empty-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="empty-svg gold">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </div>
+        <h3 class="empty-title">Sin reseñas registradas aún</h3>
+        <p class="empty-desc">Las opiniones de tus clientes sobre cortes y atención se consolidarán aquí automáticamente.</p>
+      </div>
       }
     </div>
   </section>

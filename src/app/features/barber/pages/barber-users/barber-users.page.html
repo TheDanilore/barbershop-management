@@ -1,130 +1,491 @@
 <div class="users-page">
-  <!-- Toast Notification -->
+  <!-- Toast Flotante Local (Estilo Apple Dynamic Island) -->
   @if (toastMessage()) {
-  <div class="toast-banner">
-    <span class="toast-icon">✨</span>
+  <div class="local-toast" role="status" aria-live="polite">
+    <span class="toast-dot"></span>
     <span class="toast-text">{{ toastMessage() }}</span>
   </div>
   }
 
-  <!-- Encabezado de Página -->
+  <!-- 1. ENCABEZADO DE PÁGINA & ACCIONES PRINCIPALES -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
-        <span class="badge-gold">Equipo &amp; Acceso</span>
-        <span class="badge-users-count">{{ barberService.systemUsers().length }} colaboradores</span>
+        <span class="badge-gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="badge-icon">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Equipo &amp; Personal
+        </span>
+        <span class="badge-counter">{{ totalUsersCount() }} colaboradores</span>
       </div>
       <h1 class="page-title">Gestión de Usuarios &amp; Personal</h1>
       <p class="page-subtitle">
-        Administra las cuentas de acceso, roles (administradores y barberos) y permisos de tu equipo de trabajo.
+        Administra cuentas de acceso, roles operativos (administradores y barberos) y permisos de tu equipo de trabajo.
       </p>
     </div>
 
     <div class="header-actions">
-      <button class="btn-primary-action" (click)="openCreateUserModal()">
+      <button type="button" class="btn-primary-action" (click)="openCreateUserModal()" title="Crear colaborador (Alt+U)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-icon">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
         <span>Nuevo Colaborador</span>
+        <kbd class="shortcut-badge">Alt+U</kbd>
       </button>
     </div>
   </header>
 
-  <!-- Barra de Filtros & Búsqueda -->
+  <!-- 2. KPI METRICS EXECUTIVE STRIP (DESLIZABLE EN MÓVIL, MATRIX EN ESCRITORIO) -->
+  <section class="users-kpi-strip" aria-label="Métricas del equipo de trabajo">
+    <!-- KPI 1: Total Equipo -->
+    <article class="kpi-card" [class.active-kpi]="roleFilter() === 'all' && statusFilter() === 'all'"
+      (click)="setRoleFilter('all'); setStatusFilter('all')" role="button" tabindex="0"
+      title="Filtrar todos los usuarios">
+      <div class="kpi-icon-box gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total Equipo</span>
+        <div class="kpi-value-row">
+          <strong class="kpi-value">{{ totalUsersCount() }}</strong>
+          <span class="kpi-subtext">registrados</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- KPI 2: Barberos Operativos -->
+    <article class="kpi-card cyan" [class.active-kpi]="roleFilter() === 'barber'"
+      (click)="setRoleFilter('barber')" role="button" tabindex="0"
+      title="Filtrar solo barberos">
+      <div class="kpi-icon-box cyan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Barberos Activos</span>
+        <div class="kpi-value-row">
+          <strong class="kpi-value">{{ activeBarbersCount() }}</strong>
+          <span class="kpi-subtext">de {{ totalBarbersCount() }} barberos</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- KPI 3: Administradores -->
+    <article class="kpi-card amber" [class.active-kpi]="roleFilter() === 'admin'"
+      (click)="setRoleFilter('admin')" role="button" tabindex="0"
+      title="Filtrar solo administradores">
+      <div class="kpi-icon-box amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Administradores</span>
+        <div class="kpi-value-row">
+          <strong class="kpi-value">{{ adminsCount() }}</strong>
+          <span class="kpi-subtext">acceso total</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- KPI 4: Cuentas Pausadas -->
+    <article class="kpi-card rose" [class.active-kpi]="statusFilter() === 'inactive'"
+      (click)="setStatusFilter('inactive')" role="button" tabindex="0"
+      title="Filtrar cuentas inactivas o pausadas">
+      <div class="kpi-icon-box rose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="10" y1="15" x2="10" y2="9"></line>
+          <line x1="14" y1="15" x2="14" y2="9"></line>
+        </svg>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Acceso Pausado</span>
+        <div class="kpi-value-row">
+          <strong class="kpi-value">{{ pausedCount() }}</strong>
+          <span class="kpi-subtext">inactivos</span>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- 3. TOOLBAR DE BÚSQUEDA, FILTROS Y CONMUTADOR DE VISTAS -->
   <section class="filter-toolbar">
+    <!-- Buscador Reactivo -->
     <div class="search-box">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <input type="search" class="search-input" placeholder="Buscar colaborador por nombre o teléfono..."
+      <input #searchInput type="search" class="search-input"
+        placeholder="Buscar por nombre, correo o teléfono... ('/' para enfocar)"
         [value]="searchTerm()" (input)="searchTerm.set($any($event.target).value)" />
+      @if (searchTerm()) {
+      <button type="button" class="btn-clear-search" (click)="clearSearch()" title="Limpiar búsqueda (Esc)">
+        ✕
+      </button>
+      }
     </div>
 
-    <div class="role-filter-group">
-      <button class="filter-pill" [class.active]="roleFilter() === 'all'" (click)="setRoleFilter('all')">
-        Todos ({{ barberService.systemUsers().length }})
+    <!-- Segmented Pills: Roles -->
+    <div class="role-filter-group" role="radiogroup" aria-label="Filtro por rol">
+      <button type="button" class="filter-pill" [class.active]="roleFilter() === 'all'"
+        (click)="setRoleFilter('all')">
+        Todos ({{ totalUsersCount() }})
       </button>
-      <button class="filter-pill" [class.active]="roleFilter() === 'admin'" (click)="setRoleFilter('admin')">
-        🛡️ Admins
+      <button type="button" class="filter-pill cyan" [class.active]="roleFilter() === 'barber'"
+        (click)="setRoleFilter('barber')">
+        <span class="pill-dot cyan"></span>
+        Barberos ({{ totalBarbersCount() }})
       </button>
-      <button class="filter-pill" [class.active]="roleFilter() === 'barber'" (click)="setRoleFilter('barber')">
-        ✂️ Barberos
+      <button type="button" class="filter-pill amber" [class.active]="roleFilter() === 'admin'"
+        (click)="setRoleFilter('admin')">
+        <span class="pill-dot amber"></span>
+        Admins ({{ adminsCount() }})
+      </button>
+      @if (customersCount() > 0) {
+      <button type="button" class="filter-pill purple" [class.active]="roleFilter() === 'customer'"
+        (click)="setRoleFilter('customer')">
+        <span class="pill-dot purple"></span>
+        Clientes ({{ customersCount() }})
+      </button>
+      }
+    </div>
+
+    <!-- Segmented Pills: Estado -->
+    <div class="status-filter-group" role="radiogroup" aria-label="Filtro por estado de cuenta">
+      <button type="button" class="status-pill" [class.active]="statusFilter() === 'all'"
+        (click)="setStatusFilter('all')">
+        Todos
+      </button>
+      <button type="button" class="status-pill active-status" [class.active]="statusFilter() === 'active'"
+        (click)="setStatusFilter('active')" title="Solo cuentas activas">
+        Activos
+      </button>
+      <button type="button" class="status-pill paused-status" [class.active]="statusFilter() === 'inactive'"
+        (click)="setStatusFilter('inactive')" title="Solo cuentas pausadas">
+        Pausados
+      </button>
+    </div>
+
+    <!-- Conmutador de Vista (Desktop View Switcher: Cards vs ERP Table) -->
+    <div class="view-mode-toggle" role="group" aria-label="Modo de visualización">
+      <button type="button" class="view-toggle-btn" [class.active]="viewMode() === 'grid'"
+        (click)="setViewMode('grid')" title="Vista en tarjetas cuadrícula">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+      </button>
+      <button type="button" class="view-toggle-btn" [class.active]="viewMode() === 'table'"
+        (click)="setViewMode('table')" title="Vista en tabla tabular ERP">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
       </button>
     </div>
   </section>
 
-  <!-- Grid de Usuarios -->
+  <!-- 4. CONTENIDO PRINCIPAL: VISTA DE TARJETAS (MOBILE / DESKTOP GRID) -->
+  @if (viewMode() === 'grid') {
   <section class="users-grid">
     @for (usr of filteredUsers(); track usr.id) {
-    <div class="user-card-v2" [class.inactive]="!usr.isActive" [attr.data-role]="usr.role">
-      <!-- Stripe lateral de acento de rol -->
-      <div class="ucv2-role-stripe"></div>
+    <article class="user-card-v3" [class.inactive]="!usr.isActive" [attr.data-role]="usr.role">
+      <!-- Barra lateral de acento de rol -->
+      <div class="card-role-stripe" [attr.data-role]="usr.role"></div>
 
-      <div class="ucv2-top">
-        <!-- Avatar con inicial y online dot -->
-        <div class="ucv2-avatar" [attr.data-role]="usr.role">
-          {{ usr.fullName.charAt(0).toUpperCase() }}
-          @if (usr.isActive) {
-          <span class="ucv2-online-dot" title="Usuario activo"></span>
-          }
+      <!-- Cabecera de la Tarjeta -->
+      <div class="card-top">
+        <div class="avatar-wrap">
+          <div class="user-avatar" [attr.data-role]="usr.role">
+            {{ getInitials(usr.fullName) }}
+          </div>
+          <span class="status-indicator" [class.online]="usr.isActive"
+            [title]="usr.isActive ? 'Usuario activo en el sistema' : 'Acceso pausado'">
+          </span>
         </div>
 
-        <!-- Información Principal -->
-        <div class="ucv2-identity">
-          <h3 class="ucv2-name">{{ usr.fullName }}</h3>
-          <div class="ucv2-chips">
-            <span class="ucv2-chip-role" [attr.data-role]="usr.role">
-              {{ usr.role === 'admin' ? '🛡️ Admin' : usr.role === 'barber' ? '✂️ Barbero' : '👤 Cliente' }}
-            </span>
-            <span class="ucv2-chip-status" [class.active]="usr.isActive">
-              {{ usr.isActive ? 'Activo' : 'Inactivo' }}
-            </span>
+        <div class="user-identity">
+          <div class="name-badge-row">
+            <h3 class="user-name" [title]="usr.fullName">{{ usr.fullName }}</h3>
           </div>
-          <div class="ucv2-meta">
-            @if (usr.email) {
-            <span class="ucv2-meta-item">✉️ {{ usr.email }}</span>
-            }
-            @if (usr.phone) {
-            <span class="ucv2-meta-item">📞 {{ usr.phone }}</span>
+
+          <div class="user-badges-row">
+            <!-- Badge de Rol -->
+            @if (usr.role === 'admin') {
+            <span class="role-badge admin">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="role-svg">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              Admin
+            </span>
+            } @else if (usr.role === 'barber') {
+            <span class="role-badge barber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="role-svg">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+              Barbero
+            </span>
             } @else {
-            <span class="ucv2-meta-item dim">Sin teléfono registrado</span>
+            <span class="role-badge customer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="role-svg">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Cliente
+            </span>
             }
-            @if (usr.createdAt) {
-            <span class="ucv2-meta-item dim">• Registrado: {{ formatDate(usr.createdAt) }}</span>
-            }
+
+            <!-- Badge de Estado -->
+            <span class="state-pill" [class.active]="usr.isActive">
+              <span class="pulse-dot" [class.active]="usr.isActive"></span>
+              {{ usr.isActive ? 'Activo' : 'Pausado' }}
+            </span>
           </div>
         </div>
       </div>
 
-      <div class="ucv2-actions">
-        <button class="ucv2-btn-edit" (click)="openEditUserModal(usr)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+      <!-- Datos de Contacto y Metadatos -->
+      <div class="card-meta">
+        @if (usr.email) {
+        <div class="meta-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="meta-icon">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+          <span class="meta-text truncate" [title]="usr.email">{{ usr.email }}</span>
+        </div>
+        }
+
+        @if (usr.phone) {
+        <div class="meta-row phone-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="meta-icon">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="meta-text">{{ usr.phone }}</span>
+          <!-- Botón Directo WhatsApp -->
+          <button type="button" class="btn-wa-micro" (click)="openWhatsApp(usr.phone, $event)"
+            title="Abrir chat de WhatsApp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="wa-icon">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            <span>WhatsApp</span>
+          </button>
+        </div>
+        } @else {
+        <div class="meta-row dim">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="meta-icon dim">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span class="meta-text dim">Sin teléfono registrado</span>
+        </div>
+        }
+
+        <div class="meta-row date-row">
+          <span class="meta-text dim">Alta: {{ formatDate(usr.createdAt) }}</span>
+        </div>
+      </div>
+
+      <!-- Pie de Acciones -->
+      <div class="card-actions">
+        <button type="button" class="btn-card-edit" (click)="openEditUserModal(usr)" title="Editar datos del colaborador">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
           </svg>
-          Editar
+          <span>Editar</span>
         </button>
-        <button class="ucv2-btn-toggle" [class.deactivate]="usr.isActive" (click)="toggleUserStatus(usr)">
-          {{ usr.isActive ? 'Pausar Acceso' : 'Reactivar' }}
+
+        <button type="button" class="btn-card-toggle" [class.deactivate]="usr.isActive"
+          (click)="toggleUserStatus(usr, $event)"
+          [title]="usr.isActive ? 'Pausar acceso al sistema' : 'Reactivar acceso al sistema'">
+          @if (usr.isActive) {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="10" y1="15" x2="10" y2="9"></line>
+            <line x1="14" y1="15" x2="14" y2="9"></line>
+          </svg>
+          <span>Pausar</span>
+          } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Reactivar</span>
+          }
+        </button>
+      </div>
+    </article>
+    } @empty {
+    <div class="empty-state-card full-span">
+      <div class="empty-icon-wrap">👥</div>
+      <h3 class="empty-title">Sin colaboradores encontrados</h3>
+      <p class="empty-desc">No hay usuarios que coincidan con los filtros o el término de búsqueda actual.</p>
+      <div class="empty-actions">
+        <button type="button" class="btn-secondary" (click)="clearSearch(); setRoleFilter('all'); setStatusFilter('all')">
+          Limpiar Filtros
+        </button>
+        <button type="button" class="btn-primary-action" (click)="openCreateUserModal()">
+          + Crear Colaborador
         </button>
       </div>
     </div>
-    } @empty {
-    <div class="empty-state-card full-span">
-      <div class="empty-icon">👥</div>
-      <h3 class="empty-title">Sin colaboradores encontrados</h3>
-      <p class="empty-desc">No hay usuarios que coincidan con la búsqueda o filtro aplicado.</p>
-      <button class="btn-primary-action" (click)="openCreateUserModal()">+ Crear Nuevo Colaborador</button>
-    </div>
     }
   </section>
+  }
 
+  <!-- 5. VISTA DE TABLA CORPORATIVA ERP (DESKTOP HIGH DENSITY) -->
+  @if (viewMode() === 'table') {
+  <section class="users-table-container">
+    <table class="users-erp-table" aria-label="Tabla de colaboradores del sistema">
+      <thead>
+        <tr>
+          <th scope="col">Colaborador</th>
+          <th scope="col">Rol &amp; Permisos</th>
+          <th scope="col">Contacto / WhatsApp</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Fecha Alta</th>
+          <th scope="col" class="th-actions">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (usr of filteredUsers(); track usr.id) {
+        <tr class="erp-row" [class.row-inactive]="!usr.isActive">
+          <!-- Columna Colaborador -->
+          <td>
+            <div class="table-user-cell">
+              <div class="table-avatar" [attr.data-role]="usr.role">
+                {{ getInitials(usr.fullName) }}
+              </div>
+              <div class="table-user-info">
+                <span class="table-user-name">{{ usr.fullName }}</span>
+                <span class="table-user-email truncate">{{ usr.email || 'Sin correo asignado' }}</span>
+              </div>
+            </div>
+          </td>
 
+          <!-- Columna Rol -->
+          <td>
+            @if (usr.role === 'admin') {
+            <span class="role-badge admin">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="role-svg">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              Administrador
+            </span>
+            } @else if (usr.role === 'barber') {
+            <span class="role-badge barber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="role-svg">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+              Barbero Pro
+            </span>
+            } @else {
+            <span class="role-badge customer">Cliente</span>
+            }
+          </td>
+
+          <!-- Columna Contacto -->
+          <td>
+            <div class="table-contact-cell">
+              @if (usr.phone) {
+              <span class="contact-number">{{ usr.phone }}</span>
+              <button type="button" class="btn-table-wa" (click)="openWhatsApp(usr.phone, $event)"
+                title="Abrir chat de WhatsApp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="wa-icon">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                </svg>
+              </button>
+              <button type="button" class="btn-table-copy" (click)="copyPhone(usr.phone, $event)"
+                title="Copiar número al portapapeles">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              } @else {
+              <span class="dim-text">No registrado</span>
+              }
+            </div>
+          </td>
+
+          <!-- Columna Estado -->
+          <td>
+            <button type="button" class="table-switch-btn" [class.active]="usr.isActive"
+              (click)="toggleUserStatus(usr, $event)"
+              [title]="usr.isActive ? 'Clic para pausar acceso' : 'Clic para reactivar acceso'">
+              <span class="switch-toggle-track">
+                <span class="switch-toggle-thumb"></span>
+              </span>
+              <span class="switch-text">{{ usr.isActive ? 'Activo' : 'Pausado' }}</span>
+            </button>
+          </td>
+
+          <!-- Columna Fecha de Alta -->
+          <td>
+            <span class="date-cell">{{ formatDate(usr.createdAt) }}</span>
+          </td>
+
+          <!-- Columna Acciones -->
+          <td class="td-actions">
+            <div class="actions-group">
+              <button type="button" class="btn-table-action" (click)="openEditUserModal(usr)"
+                title="Editar colaborador">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Editar</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="6" class="td-empty">
+            <div class="table-empty-box">
+              <p class="empty-title">Sin colaboradores encontrados</p>
+              <p class="empty-desc">No hay usuarios que coincidan con la búsqueda o filtro aplicado.</p>
+              <button type="button" class="btn-primary-action" (click)="openCreateUserModal()">
+                + Crear Nuevo Colaborador
+              </button>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+  }
 </div>
 
-<!-- MODAL: CREAR / EDITAR USUARIO (STANDALONE) -->
+<!-- 6. MODAL INDEPENDIENTE PARA ALTA / EDICIÓN (STANDALONE BOTTOM SHEET / DIALOG) -->
 <app-user-modal [isOpen]="isUserModalOpen()" [userToEdit]="editingUser()" (closed)="closeUserModal()"
   (saved)="showToast($event)">
 </app-user-modal>

@@ -193,6 +193,7 @@
 }
 
 .kbd-key {
+  display: none;
   font-size: 0.65rem;
   font-family: inherit;
   font-weight: 700;
@@ -201,6 +202,12 @@
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (min-width: 1025px) {
+  .kbd-key {
+    display: inline-block;
+  }
 }
 
 /* Botón Primario Agendar Cita */
@@ -229,6 +236,7 @@
 }
 
 .kbd-hint {
+  display: none;
   font-size: 0.65rem;
   font-family: inherit;
   padding: 1px 5px;
@@ -237,6 +245,12 @@
   color: #0b0f19;
   font-weight: 700;
   border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+@media (min-width: 1025px) {
+  .kbd-hint {
+    display: inline-block;
+  }
 }
 
 /* ==============================================================================
@@ -908,18 +922,65 @@
   opacity: 1;
 }
 
-/* Ranura Horaria Pasada / Transcurrida (Solo lectura/informativa) */
+/* Acordeón Inteligente de Horarios Transcurridos */
+.past-slots-accordion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+  user-select: none;
+}
+
+.past-slots-accordion:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(229, 169, 60, 0.35);
+  color: var(--gold-primary);
+}
+
+.psa-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.psa-icon {
+  font-size: 1.1rem;
+}
+
+.psa-text {
+  font-weight: 600;
+}
+
+.psa-toggle-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(229, 169, 60, 0.12);
+  color: var(--gold-primary);
+  border: 1px solid rgba(229, 169, 60, 0.25);
+}
+
+/* Ranura Horaria Pasada / Transcurrida (Solo lectura/informativa con contraste WCAG) */
 .past-slot-bar {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.012);
-  border: 1px dashed rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-sm);
-  color: rgba(255, 255, 255, 0.28);
-  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
   user-select: none;
   cursor: default;
 }
@@ -932,33 +993,33 @@
 
 .psb-icon {
   font-size: 0.85rem;
-  opacity: 0.45;
+  opacity: 0.8;
 }
 
 .psb-text {
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .psb-tag {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(255, 255, 255, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
   letter-spacing: 0.02em;
 }
 
 /* Modificadores de slots pasados en Timeline */
 .timeline-slot-row.is-past-slot {
-  opacity: 0.58;
+  opacity: 0.72;
   transition: opacity 0.2s ease;
 }
 
 .timeline-slot-row.is-past-slot:hover {
-  opacity: 0.88;
+  opacity: 1;
 }
 
 .slot-time-label.past-time {
@@ -1277,10 +1338,19 @@ button:disabled,
 
 /* MÓVIL (iOS HIG / PWA) */
 @media (max-width: 768px) {
+  .appointments-page {
+    padding-bottom: calc(var(--safe-bottom, 0px) + 96px);
+    gap: 16px;
+  }
+
   .page-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .page-title {
+    font-size: 1.35rem;
   }
 
   .header-actions {
@@ -1296,7 +1366,42 @@ button:disabled,
 
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .kpi-capsule {
+    padding: 8px 10px;
+    gap: 2px;
+  }
+
+  .kpi-val {
+    font-size: 1.15rem;
+  }
+
+  .kpi-sub {
+    font-size: 0.68rem;
+  }
+
+  .date-strip-scroll {
+    scroll-snap-type: x mandatory;
+    scroll-padding: 6px;
+  }
+
+  .day-pill {
+    min-width: 52px;
+    height: 56px;
+    padding: 4px;
+    scroll-snap-align: center;
+  }
+
+  .dp-number {
+    font-size: 1.05rem;
+  }
+
+  .btn-nav-arrow {
+    min-width: 36px;
+    height: 56px;
+    font-size: 1.3rem;
   }
 
   .agenda-toolbar {
@@ -1317,21 +1422,21 @@ button:disabled,
   .v-btn {
     flex: 1;
     justify-content: center;
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .filter-select {
     width: 100%;
-    min-height: 42px;
+    min-height: 44px;
   }
 
   .timeline-slot-row {
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 56px 1fr;
     gap: 10px;
   }
 
   .slot-time-label {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
   }
 
   .form-row-2 {
@@ -1341,11 +1446,14 @@ button:disabled,
   .time-chips-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-
 }
 
 /* TABLET (HÍBRIDO EFICIENTE) */
 @media (min-width: 769px) and (max-width: 1024px) {
+  .appointments-page {
+    padding-bottom: 40px;
+  }
+
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }

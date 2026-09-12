@@ -185,6 +185,14 @@ export class BarberAppointmentsPage {
   // Es una fecha en el pasado?
   readonly isViewingPastDate = computed(() => this.selectedDate() < this.todayDateStr());
 
+  // Control de visualización inteligente de horarios pasados transcurridos
+  readonly showPastSlots = signal<boolean>(false);
+
+  // Esqueleto condicional: solo si no hay citas en memoria y está sincronizando
+  readonly shouldShowSkeleton = computed(() => {
+    return this.barberService.isAppointmentsLoading() && this.barberService.appointments().length === 0;
+  });
+
   // Estructura de Timeline enriquecida para cada slot horario
   readonly timelineSlots = computed(() => {
     const appointments = this.filteredAppointments();
@@ -209,7 +217,23 @@ export class BarberAppointmentsPage {
     });
   });
 
+  // Slots vacíos ya transcurridos (para agrupar en el acordeón inteligente)
+  readonly pastEmptySlotsCount = computed(() => {
+    return this.timelineSlots().filter((s) => s.isPast && s.appointments.length === 0).length;
+  });
 
+  // Slots visibles en el timeline (si showPastSlots es falso, oculta los vacíos pasados pero MANTIENE los que tienen citas)
+  readonly visibleTimelineSlots = computed(() => {
+    if (this.showPastSlots()) {
+      return this.timelineSlots();
+    }
+    return this.timelineSlots().filter((s) => !s.isPast || s.appointments.length > 0);
+  });
+
+  togglePastSlots(): void {
+    this.haptics.lightTap();
+    this.showPastSlots.update((v) => !v);
+  }
 
   // --- ATAJOS DE TECLADO POWER USER ---
   @HostListener('window:keydown', ['$event'])

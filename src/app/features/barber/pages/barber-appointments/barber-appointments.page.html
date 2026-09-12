@@ -233,7 +233,7 @@
   <!-- ============================================================================== -->
   <main class="agenda-main-canvas">
     <!-- ESTADO DE CARGA REACTIVO (SKELETON LOADER - EVITA EMPTY FLICKERS) -->
-    @if (barberService.isAppointmentsLoading()) {
+    @if (shouldShowSkeleton()) {
     <div class="appointments-skeleton-container" aria-busy="true" aria-label="Sincronizando agenda...">
       <div class="skeleton-slot-row">
         <div class="skeleton-time-pill"></div>
@@ -296,7 +296,28 @@
     <!-- VISTA CRONOGRAMA (TIMELINE PRO CON SLOTS LIBRES INTERACTIVOS) -->
     @if (viewMode() === 'timeline') {
     <div class="timeline-pro-container">
-      @for (slot of timelineSlots(); track slot.time) {
+      <!-- ACORDEÓN INTELIGENTE: COLAPSO DE HORARIOS PASADOS TRANSCURRIDOS -->
+      @if (pastEmptySlotsCount() > 0 && !isViewingPastDate()) {
+      <div
+        class="past-slots-accordion"
+        (click)="togglePastSlots()"
+        role="button"
+        tabindex="0"
+        (keydown.enter)="togglePastSlots()"
+        title="Click para alternar la visualización de horarios anteriores ya concluidos">
+        <div class="psa-left">
+          <span class="psa-icon" aria-hidden="true">⏳</span>
+          <span class="psa-text">
+            {{ showPastSlots() ? 'Ocultar' : 'Mostrar' }} {{ pastEmptySlotsCount() }} horarios transcurridos de la mañana
+          </span>
+        </div>
+        <span class="psa-toggle-pill">
+          {{ showPastSlots() ? 'Plegar ▲' : 'Desplegar ▼' }}
+        </span>
+      </div>
+      }
+
+      @for (slot of visibleTimelineSlots(); track slot.time) {
       <div class="timeline-slot-row" [class.has-appointments]="slot.appointments.length > 0" [class.is-past-slot]="slot.isPast">
         <!-- Columna de Hora -->
         <div class="slot-time-col">

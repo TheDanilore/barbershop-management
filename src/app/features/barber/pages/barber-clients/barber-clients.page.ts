@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   computed,
   inject,
@@ -11,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { Client } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { ClientActionSheetComponent } from '../../components/client-action-sheet/client-action-sheet.component';
 import { NewClientModalComponent } from '../../components/new-client-modal/new-client-modal.component';
 
 export type ClientFilterSegment = 'all' | 'debt' | 'vip' | 'clear' | 'inactive';
@@ -21,7 +23,12 @@ const VIEW_MODE_STORAGE_KEY = 'barbertrack_clients_view_mode';
 @Component({
   selector: 'app-barber-clients',
   standalone: true,
-  imports: [CommonModule, FormsModule, NewClientModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    NewClientModalComponent,
+    ClientActionSheetComponent,
+  ],
   templateUrl: './barber-clients.page.html',
   styleUrl: './barber-clients.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +37,23 @@ export class BarberClientsPage {
   protected readonly Math = Math;
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    });
+  }
+
+  // Estado de Carga Inicial Real (SWR): Solo shimmer si la caché local está 100% vacía
+  readonly isClientsInitialLoading = computed(() => {
+    return this.barberService.isLoading() && this.barberService.clients().length === 0;
+  });
+
+  // Sincronización en segundo plano (los datos en caché se muestran al instante)
+  readonly isBackgroundSyncing = computed(() => {
+    return this.barberService.isLoading() && this.barberService.clients().length > 0;
+  });
 
   // Vista activa (Cards visual ↔ Tabla ERP DataGrid de alta densidad)
   readonly viewMode = signal<ClientViewMode>(this.loadInitialViewMode());
@@ -319,18 +343,17 @@ export class BarberClientsPage {
   async toggleClientStatus(client: Client, event?: Event): Promise<void> {
     event?.stopPropagation();
     this.closeClientActionSheet();
-    const newStatus = client.isActive === false;
+    const previousState = client.isActive !== false;
+    const nextState = !previousState;
     try {
-      await this.barberService.toggleClientStatus(client.id, newStatus);
-      this.haptics.selection();
-      this.showToast(
-        newStatus
-          ? `✓ Cliente "${client.name}" reactivado`
-          : `⏸ Cliente "${client.name}" desactivado`
-      );
-    } catch {
+      await this.barberService.toggleClientStatus(client.id, nextState);
+      this.haptics.lightTap();
+      this.showToast(nextState ? `Cliente ${client.name} reactivado` : `Cliente ${client.name} pausado`);
+    } catch (err: any) {
+      // Reversión local inmediata si la petición al backend falla
+      await this.barberService.toggleClientStatus(client.id, previousState).catch(() => {});
       this.haptics.warning();
-      this.showToast('Error al modificar estado del cliente');
+      this.showToast('Error de conexión: No se pudo modificar el estado');
     }
   }
 

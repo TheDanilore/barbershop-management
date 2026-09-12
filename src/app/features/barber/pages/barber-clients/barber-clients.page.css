@@ -168,6 +168,32 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.badge-syncing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(229, 169, 60, 0.12);
+  color: var(--gold-primary, #e5a93c);
+  border: 1px solid rgba(229, 169, 60, 0.28);
+}
+
+.syncing-spin-dot {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--gold-primary, #e5a93c);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spinSync 0.8s linear infinite;
+}
+
+@keyframes spinSync {
+  to { transform: rotate(360deg); }
+}
+
 .page-title {
   font-size: clamp(1.4rem, 2.5vw, 1.85rem);
   font-weight: 800;
@@ -1492,199 +1518,6 @@
 
 .btn-create-empty:hover {
   transform: translateY(-1px);
-}
-
-/* ==============================================================================
-   8. ACTION SHEET ERGONÓMICO TÁCTIL (APPLE HIG BOTTOM SHEET)
-   ============================================================================== */
-.action-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 1050;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0;
-}
-
-.action-sheet-panel {
-  width: 100%;
-  max-width: 520px;
-  background: var(--bg-surface-elevated, #181924);
-  border-top: 1px solid var(--border-gold-glow, rgba(229, 169, 60, 0.4));
-  border-radius: 24px 24px 0 0;
-  padding: 12px 18px calc(var(--safe-bottom, 16px) + 16px);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: sheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes sheetSlideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.sheet-drag-pill {
-  width: 38px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.25);
-  margin: 0 auto;
-}
-
-.sheet-client-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.sheet-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-main, #f9fafb);
-  font-weight: 800;
-  font-size: 1.05rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sheet-avatar[data-tier="Gold"] { background: var(--tier-gold-bg); color: var(--tier-gold-color); }
-.sheet-avatar[data-tier="VIP"] { background: var(--tier-vip-bg); color: var(--tier-vip-color); }
-
-.sheet-client-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.sheet-client-name {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text-main, #f9fafb);
-  margin: 0;
-}
-
-.sheet-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.sheet-meta-phone {
-  font-size: 0.78rem;
-  color: var(--text-secondary, #cbd5e1);
-}
-
-.sheet-debt-chip {
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: var(--color-danger, #ef4444);
-  background: var(--bg-danger, rgba(239, 68, 68, 0.15));
-  padding: 1px 7px;
-  border-radius: 4px;
-}
-
-.action-sheet-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sheet-action-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 52px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md, 14px);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--text-main, #f9fafb);
-  cursor: pointer;
-  text-decoration: none;
-  text-align: left;
-  transition: all 0.14s ease;
-}
-
-.sheet-action-item:hover,
-.sheet-action-item:active {
-  background: rgba(255, 255, 255, 0.09);
-  transform: scale(0.99);
-}
-
-.sheet-item-svg {
-  width: 20px;
-  height: 20px;
-  color: var(--text-secondary, #cbd5e1);
-  flex-shrink: 0;
-}
-
-.sheet-item-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.sheet-item-text strong {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text-main, #f9fafb);
-}
-
-.sheet-item-text span {
-  font-size: 0.72rem;
-  color: var(--text-muted, #9ca3af);
-}
-
-.sheet-action-item.gold-action .sheet-item-svg {
-  color: var(--gold-primary, #e5a93c);
-}
-
-.sheet-action-item.danger-action {
-  background: var(--bg-danger, rgba(239, 68, 68, 0.12));
-  border-color: rgba(239, 68, 68, 0.28);
-}
-
-.sheet-action-item.danger-action .sheet-item-svg {
-  color: var(--color-danger, #ef4444);
-}
-
-.sheet-action-item.wa-action .sheet-item-svg {
-  color: var(--color-wa);
-}
-
-.sheet-action-item.subtle-danger {
-  opacity: 0.85;
-}
-
-.btn-sheet-cancel {
-  height: 48px;
-  border-radius: var(--radius-md, 14px);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--text-main, #f9fafb);
-  font-size: 0.88rem;
-  font-weight: 800;
-  cursor: pointer;
-  margin-top: 4px;
-  transition: all 0.15s ease;
-}
-
-.btn-sheet-cancel:hover {
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .fade-in {

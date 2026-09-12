@@ -1,0 +1,155 @@
+@if (isOpen && client) {
+<div class="action-sheet-backdrop fade-in" (click)="close()" role="presentation">
+  <div
+    class="action-sheet-panel"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="sheetClientName"
+    appBottomSheet
+    (dismiss)="close()">
+    
+    <!-- Manija táctil / Drag handle interactivo con BottomSheetDirective -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
+
+    <!-- Cabecera de la Hoja de Acciones -->
+    <header class="sheet-client-header">
+      <div class="sheet-avatar" [attr.data-tier]="client.membershipLevel">
+        {{ client.name.charAt(0).toUpperCase() }}
+      </div>
+      <div class="sheet-client-info">
+        <h3 id="sheetClientName" class="sheet-client-name">{{ client.name }}</h3>
+        <div class="sheet-meta-row">
+          <span class="tier-pill" [attr.data-tier]="client.membershipLevel">{{ client.membershipLevel }}</span>
+          <span class="sheet-meta-phone">{{ client.phone || 'Sin número' }}</span>
+          @if ((client.currentDebt || 0) > 0) {
+          <span class="sheet-debt-chip">Debe {{ barberService.currencySymbol() }}{{ (client.currentDebt || 0).toFixed(2) }}</span>
+          }
+        </div>
+      </div>
+    </header>
+
+    <!-- Lista de Opciones Operativas (Área de Toque >= 50px) -->
+    <div class="action-sheet-menu" role="menu">
+      <!-- 1. Cobrar en POS -->
+      <button
+        type="button"
+        class="sheet-action-item gold-action"
+        (click)="onRegisterCut()"
+        role="menuitem">
+        <svg class="sheet-item-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+        <div class="sheet-item-text">
+          <strong>Registrar Cobro / Venta en POS</strong>
+          <span>Generar ticket y sumar sellos de fidelización</span>
+        </div>
+      </button>
+
+      <!-- 2. Abonar Deuda (Si debe) -->
+      @if ((client.currentDebt || 0) > 0) {
+      <button
+        type="button"
+        class="sheet-action-item danger-action"
+        (click)="onPayDebt()"
+        role="menuitem">
+        <svg class="sheet-item-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+          <line x1="12" y1="8" x2="12" y2="16"></line>
+          <line x1="8" y1="12" x2="16" y2="12"></line>
+        </svg>
+        <div class="sheet-item-text">
+          <strong>Liquidar / Abonar Deuda</strong>
+          <span>Saldo fiado pendiente: {{ barberService.currencySymbol() }}{{ (client.currentDebt || 0).toFixed(2) }}</span>
+        </div>
+      </button>
+      }
+
+      <!-- 3. Agendar Cita en Calendario -->
+      <button
+        type="button"
+        class="sheet-action-item"
+        (click)="onBookAppointment()"
+        role="menuitem">
+        <svg class="sheet-item-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <div class="sheet-item-text">
+          <strong>Agendar Cita en Agenda</strong>
+          <span>Apartar turno con barbero y servicio preferido</span>
+        </div>
+      </button>
+
+      <!-- 4. WhatsApp Directo -->
+      @if (client.phone) {
+      <a
+        [href]="getWhatsAppUrl(client.phone)"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="sheet-action-item wa-action"
+        (click)="close()"
+        role="menuitem">
+        <svg class="sheet-item-svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24M8.53 7.33c-.16 0-.36.06-.55.28-.19.22-.73.71-.73 1.73s.75 2.01.85 2.15c.11.14 1.44 2.29 3.56 3.14.5.2 1 .37 1.39.48.52.15 1 .13 1.37.08.42-.06 1.31-.53 1.49-1.05.19-.51.19-.95.13-1.05-.06-.09-.22-.15-.46-.27-.24-.12-1.41-.7-1.63-.78-.22-.08-.38-.12-.55.12-.16.24-.64.78-.78.95-.15.16-.29.18-.53.06-.24-.12-1.02-.38-1.95-1.21-.72-.64-1.2-1.44-1.34-1.68-.15-.24-.02-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.33-.76-1.81-.2-.48-.42-.41-.57-.42h-.49z"></path>
+        </svg>
+        <div class="sheet-item-text">
+          <strong>Chat por WhatsApp</strong>
+          <span>Enviar recordatorio, ofertas o confirmación</span>
+        </div>
+      </a>
+      }
+
+      <!-- 5. Editar Ficha del Cliente -->
+      <button
+        type="button"
+        class="sheet-action-item"
+        (click)="onEditClient()"
+        role="menuitem">
+        <svg class="sheet-item-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+        </svg>
+        <div class="sheet-item-text">
+          <strong>Editar Ficha del Cliente</strong>
+          <span>Modificar nombre, teléfono, notas y preferencias</span>
+        </div>
+      </button>
+
+      <!-- 6. Pausar o Reactivar (Misma semántica y estilo que barber-users) -->
+      <button
+        type="button"
+        class="sheet-action-item toggle-action"
+        [class.deactivate]="client.isActive !== false"
+        (click)="onToggleStatus()"
+        role="menuitem">
+        <svg class="sheet-item-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          @if (client.isActive === false) {
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          } @else {
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+          }
+        </svg>
+        <div class="sheet-item-text">
+          <strong>{{ client.isActive !== false ? 'Pausar Acceso' : 'Reactivar' }}</strong>
+          <span>{{ client.isActive !== false ? 'Pausar cliente temporalmente del directorio' : 'Reactivar cliente en la cartera activa' }}</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Botón Cancelar -->
+    <button type="button" class="btn-sheet-cancel" (click)="close()">
+      Cancelar
+    </button>
+  </div>
+</div>
+}

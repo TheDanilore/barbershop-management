@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   computed,
   inject,
@@ -38,6 +39,23 @@ export class BarberCashPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    });
+  }
+
+  // Estado de Carga Inicial Real (SWR): Solo shimmer si la caché local está 100% vacía
+  readonly isCashInitialLoading = computed(() => {
+    return this.barberService.isLoading() && this.barberService.financialAccounts().length === 0;
+  });
+
+  // Sincronización en segundo plano (datos en caché se muestran al instante)
+  readonly isBackgroundSyncing = computed(() => {
+    return this.barberService.isLoading() && this.barberService.financialAccounts().length > 0;
+  });
 
   // Modales
   readonly isShiftModalOpen = signal(false);

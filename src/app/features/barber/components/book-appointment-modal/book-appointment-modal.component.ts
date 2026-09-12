@@ -80,7 +80,7 @@ export class BookAppointmentModalComponent implements OnChanges {
   readonly selectedServiceIds = signal<string[]>([]);
   readonly isToDefine = signal<boolean>(false);
 
-  // Señales reactivas para cálculo del resumen en vivo
+  // Señales reactivas para cálculo del resumen
   readonly currentBarberId = signal<string>('');
   readonly currentDate = signal<string>(getLocalDateString());
   readonly currentTime = signal<string>('10:00');

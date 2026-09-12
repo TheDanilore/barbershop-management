@@ -47,10 +47,15 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
   private unlistenMouseMove: (() => void) | null = null;
   private unlistenMouseUp: (() => void) | null = null;
 
+  private isMobileViewport(): boolean {
+    return typeof window !== 'undefined' && window.innerWidth <= 768;
+  }
+
   ngOnInit(): void {
-    // Aseguramos que el elemento tenga posición y transformación base preparadas
-    this.renderer.setStyle(this.el.nativeElement, 'touch-action', 'pan-y');
-    this.renderer.setStyle(this.el.nativeElement, 'will-change', 'transform, height');
+    if (this.isMobileViewport()) {
+      this.renderer.setStyle(this.el.nativeElement, 'touch-action', 'pan-y');
+      this.renderer.setStyle(this.el.nativeElement, 'will-change', 'transform, height');
+    }
   }
 
   ngOnDestroy(): void {
@@ -58,12 +63,12 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
   }
 
   // =========================================================================
-  // GESTOS TÁCTILES (Mobile / Tablet Touch)
+  // GESTOS TÁCTILES (Mobile / Tablet Touch <= 768px)
   // =========================================================================
 
   @HostListener('touchstart', ['$event'])
   onTouchStart(e: TouchEvent): void {
-    if (!this.appBottomSheetEnabled || e.touches.length !== 1) return;
+    if (!this.appBottomSheetEnabled || !this.isMobileViewport() || e.touches.length !== 1) return;
 
     const target = e.target as HTMLElement;
     this.wasHandleTarget = this.isDragHandle(target);
@@ -153,12 +158,12 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
   }
 
   // =========================================================================
-  // GESTOS CON MOUSE (Para pruebas en emulador responsivo)
+  // GESTOS CON MOUSE (Solo en emulación móvil <= 768px)
   // =========================================================================
 
   @HostListener('mousedown', ['$event'])
   onMouseDown(e: MouseEvent): void {
-    if (!this.appBottomSheetEnabled || e.button !== 0) return;
+    if (!this.appBottomSheetEnabled || !this.isMobileViewport() || e.button !== 0) return;
 
     const target = e.target as HTMLElement;
     if (!this.isDragHandle(target)) return; // Con mouse solo permitimos arrastrar desde la manija

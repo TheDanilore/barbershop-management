@@ -306,3 +306,41 @@
   color: #52525b;
   letter-spacing: 0.3px;
 }
+
+/* ==========================================================================
+   MOBILE VIEWPORT (Touch Friendly Command Palette)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .cmd-backdrop {
+    padding-top: max(16px, env(safe-area-inset-top, 16px));
+    padding-left: 10px;
+    padding-right: 10px;
+    align-items: flex-start;
+  }
+
+  .cmd-dialog {
+    max-height: 85vh;
+    border-radius: 18px;
+  }
+
+  .cmd-search-wrap {
+    padding: 14px 16px;
+  }
+
+  /* Ocultar teclas físicas en móvil */
+  .cmd-shortcut,
+  .cmd-hint-group,
+  .cmd-esc-key {
+    display: none !important;
+  }
+
+  .cmd-item {
+    padding: 12px 14px;
+    min-height: 52px;
+  }
+
+  .cmd-footer {
+    padding: 8px 14px;
+    justify-content: center;
+  }
+}

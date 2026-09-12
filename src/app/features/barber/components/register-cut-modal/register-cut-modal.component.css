@@ -44,35 +44,9 @@
   to { transform: scale(1); opacity: 1; }
 }
 
+/* Drag handle zone: OCULTO POR DEFECTO EN DESKTOP (Modal Flotante Centrado) */
 .sheet-drag-handle-zone {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px 0 4px;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.sheet-drag-handle-zone:active {
-  cursor: grabbing;
-}
-
-.sheet-drag-handle {
-  display: block;
-  width: 44px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.32);
-  border-radius: 999px;
-  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sheet-drag-handle-zone:hover .sheet-drag-handle,
-.sheet-drag-handle-zone:active .sheet-drag-handle {
-  background: var(--gold-primary, #EBA837);
-  transform: scaleX(1.15);
+  display: none !important;
 }
 
 .pos-dialog-sheet.sheet-expanded {
@@ -849,6 +823,38 @@ input:checked + .slider:before {
    MOBILE & TABLET BREAKPOINTS (APPLE HIG BOTTOM SHEET)
    ========================================================================== */
 @media (max-width: 768px) {
+  /* Drag handle zone: VISIBLE EN MÓVIL (Bottom Sheet táctil) */
+  .sheet-drag-handle-zone {
+    display: flex !important;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0 4px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .sheet-drag-handle-zone:active {
+    cursor: grabbing;
+  }
+
+  .sheet-drag-handle {
+    display: block;
+    width: 44px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.32);
+    border-radius: 999px;
+    transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .sheet-drag-handle-zone:hover .sheet-drag-handle,
+  .sheet-drag-handle-zone:active .sheet-drag-handle {
+    background: var(--gold-primary, #EBA837);
+    transform: scaleX(1.15);
+  }
+
   .sheet-shortcut-badge,
   .kbd-badge {
     display: none !important;

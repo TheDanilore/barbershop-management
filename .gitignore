@@ -42,3 +42,12 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Environments and Secrets (Do not commit real API keys or URLs)
+src/environments/environment.ts
+src/environments/environment.prod.ts
+!src/environments/environment.template.ts
+.env
+.env.local
+.env.*.local
+

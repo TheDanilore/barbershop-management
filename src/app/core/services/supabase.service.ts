@@ -35,6 +35,10 @@ export class SupabaseService {
   public readonly connectionStatus = signal<SupabaseConnectionStatus>('checking');
   public readonly latencyMs = signal<number | null>(null);
 
+  private lastHealthCheck = 0;
+  private isCheckingHealth = false;
+  private readonly HEALTH_COOLDOWN_MS = 30000; // 30s de enfriamiento para proteger cuota de Data Egress
+
   constructor() {
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey, {
       auth: {
@@ -59,7 +63,7 @@ export class SupabaseService {
       }
     });
 
-    // Monitorear conectividad de red para PWA
+    // Monitorear conectividad de red para PWA con debounce
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         this.isOnline.set(true);
@@ -74,18 +78,25 @@ export class SupabaseService {
     }
 
     // Comprobar salud inicial
-    this.checkHealth();
+    this.checkHealth(true);
   }
 
   /**
-   * Ping activo a Supabase para verificar conexión en tiempo real y medir latencia
+   * Ping activo a Supabase para verificar conexión en tiempo real y medir latencia.
+   * Incluye protección de cooldown y candado de ejecución para evitar sobreconsumo de Egress.
    */
-  async checkHealth(): Promise<void> {
+  async checkHealth(force = false): Promise<void> {
     if (!this.isOnline()) {
       this.connectionStatus.set('offline');
       return;
     }
 
+    const now = Date.now();
+    if (!force && (now - this.lastHealthCheck < this.HEALTH_COOLDOWN_MS || this.isCheckingHealth)) {
+      return;
+    }
+
+    this.isCheckingHealth = true;
     this.connectionStatus.set('checking');
     const start = performance.now();
 
@@ -113,6 +124,9 @@ export class SupabaseService {
       this.latencyMs.set(null);
       this.connectionStatus.set(this.isOnline() ? 'error' : 'offline');
       this.logger.warn('SupabaseService', 'Error comprobando conectividad con Supabase', err);
+    } finally {
+      this.lastHealthCheck = Date.now();
+      this.isCheckingHealth = false;
     }
   }
 
@@ -143,11 +157,11 @@ export class SupabaseService {
       });
       this.currentUser.set(res.data.user);
       const profile = await this.loadUserProfile(res.data.user.id);
-      const role =
+      const role: UserRole =
         profile?.role ||
         (res.data.user.app_metadata?.['role'] as UserRole) ||
         (res.data.user.user_metadata?.['role'] as UserRole) ||
-        (res.data.user.email === 'admin@barbertrack.com' ? 'admin' : 'customer');
+        'customer';
       this.setRole(role);
       return { ...res, role };
     }
@@ -189,18 +203,22 @@ export class SupabaseService {
       this.currentUser.set(res.data.user);
       this.setRole('customer');
 
-      // Crear fila inicial en profiles si no existe
+      // Crear o asegurar fila inicial en profiles (inmune a duplicados y sincronizado con triggers)
       try {
-        await this.supabase.from('profiles').insert({
-          auth_user_id: res.data.user.id,
-          full_name: fullName,
-          role: 'customer',
-          phone: phone || null,
-          membership_tier: 'Bronze',
-          is_active: true,
-        });
+        await this.supabase.from('profiles').upsert(
+          {
+            id: res.data.user.id,
+            auth_user_id: res.data.user.id,
+            full_name: fullName.trim(),
+            role: 'customer',
+            phone: phone ? phone.trim() : null,
+            membership_tier: 'Bronze',
+            is_active: true,
+          },
+          { onConflict: 'id', ignoreDuplicates: true }
+        );
       } catch (err) {
-        this.logger.warn('SupabaseService', 'Aviso al insertar perfil en Supabase', err);
+        this.logger.warn('SupabaseService', 'Aviso al asegurar perfil en Supabase', err);
       }
     }
 
@@ -229,12 +247,12 @@ export class SupabaseService {
       this.logger.warn('SupabaseService', 'Error cargando perfil de usuario', err);
     }
 
-    // Fallback con metadata de auth o reconocimiento de admin por correo
+    // Fallback seguro con claims del JWT autenticado en Supabase
     const authUser = this.currentUser();
-    const fallbackRole =
+    const fallbackRole: UserRole =
       (authUser?.app_metadata?.['role'] as UserRole) ||
       (authUser?.user_metadata?.['role'] as UserRole) ||
-      (authUser?.email === 'admin@barbertrack.com' ? 'admin' : 'customer');
+      'customer';
     this.setRole(fallbackRole);
     return null;
   }

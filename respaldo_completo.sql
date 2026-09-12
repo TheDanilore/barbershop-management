@@ -281,25 +281,50 @@ CREATE OR REPLACE FUNCTION "public"."fn_on_order_loyalty_update"() RETURNS "trig
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
-    v_total_cuts integer;
-    v_new_stamps integer;
-    v_new_tier   text;
-    v_reward     RECORD;
+    v_total_cuts     integer;
+    v_new_stamps     integer;
+    v_new_tier       text;
+    v_reward         RECORD;
+    v_loyalty_mode   text;
+    v_stamps_to_add  integer := 1;
 BEGIN
-    -- Solo procesar si la orden está completada y tiene un cliente asociado
+    -- Solo procesar si la orden está completada, tiene un cliente asociado,
+    -- y NO es una venta al crédito/fiada sin pagar (payment_method != 'credit').
     -- Si es un UPDATE, solo disparar si antes NO estaba completed (evita acumulación duplicada)
     IF NEW.customer_id IS NOT NULL 
        AND NEW.status = 'completed' 
+       AND (NEW.payment_method IS DISTINCT FROM 'credit')
        AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed') THEN
 
-        -- 1. Upsert de progreso: 1 orden completada = 1 visita/sello
+        -- Consultar el modo de fidelización configurado por el Administrador
+        SELECT COALESCE(loyalty_mode, 'per_service') 
+        INTO v_loyalty_mode 
+        FROM public.business_settings 
+        LIMIT 1;
+
+        -- En modo 'per_service', contar cuántos servicios de corte/barba se realizaron en la orden
+        IF v_loyalty_mode = 'per_service' THEN
+            SELECT COALESCE(SUM(quantity), 1)
+            INTO v_stamps_to_add
+            FROM public.order_items
+            WHERE order_id = NEW.id AND (item_type = 'service' OR item_type IS NULL);
+
+            IF v_stamps_to_add IS NULL OR v_stamps_to_add < 1 THEN
+                v_stamps_to_add := 1;
+            END IF;
+        ELSE
+            -- En modo 'per_visit', cada ticket completado suma 1 sello
+            v_stamps_to_add := 1;
+        END IF;
+
+        -- 1. Upsert de progreso en loyalty_progress
         INSERT INTO public.loyalty_progress (
             customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
         )
-        VALUES (NEW.customer_id, 1, 1, 0, now())
+        VALUES (NEW.customer_id, v_stamps_to_add, v_stamps_to_add, 0, now())
         ON CONFLICT (customer_id) DO UPDATE SET
-            current_stamps        = public.loyalty_progress.current_stamps + 1,
-            total_historical_cuts = public.loyalty_progress.total_historical_cuts + 1,
+            current_stamps        = public.loyalty_progress.current_stamps + v_stamps_to_add,
+            total_historical_cuts = public.loyalty_progress.total_historical_cuts + v_stamps_to_add,
             updated_at            = now()
         RETURNING current_stamps, total_historical_cuts
         INTO v_new_stamps, v_total_cuts;
@@ -308,7 +333,12 @@ BEGIN
         FOR v_reward IN
             SELECT id, stamps_required, name
             FROM public.loyalty_rewards
-            WHERE is_active = true AND stamps_required = v_new_stamps
+            WHERE is_active = true AND stamps_required <= v_new_stamps
+              AND id NOT IN (
+                  SELECT reward_id 
+                  FROM public.loyalty_reward_claims 
+                  WHERE customer_id = NEW.customer_id AND redeemed_at IS NULL
+              )
         LOOP
             INSERT INTO public.loyalty_reward_claims
                 (customer_id, reward_id, sale_id, order_id, stamps_at_claim)
@@ -316,7 +346,7 @@ BEGIN
                 (NEW.customer_id, v_reward.id, NEW.id, NEW.id, v_new_stamps);
         END LOOP;
 
-        -- 3. Sincronizar nivel de membresía (Alineado con TypeScript: Bronze, Silver, Gold, VIP)
+        -- 3. Sincronizar nivel de membresía (Bronze, Silver, Gold, VIP)
         v_new_tier := CASE
             WHEN v_total_cuts >= 50 THEN 'VIP'
             WHEN v_total_cuts >= 20 THEN 'Gold'
@@ -435,6 +465,51 @@ $$;
 ALTER FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  INSERT INTO public.profiles (
+    id,
+    auth_user_id,
+    full_name,
+    role,
+    phone,
+    membership_tier,
+    is_active,
+    created_at
+  )
+  VALUES (
+    NEW.id,
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', 'Cliente Nuevo'),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'customer')::public.user_role,
+    NEW.raw_user_meta_data->>'phone',
+    'Bronze',
+    true,
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    auth_user_id = EXCLUDED.auth_user_id,
+    full_name = COALESCE(EXCLUDED.full_name, profiles.full_name),
+    phone = COALESCE(EXCLUDED.phone, profiles.phone);
+
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Registro del error sin abortar la transacción de creación de auth.users si profiles falla
+  RAISE WARNING 'Error en trigger handle_new_user: %', SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."handle_new_user"() IS 'Crea automáticamente un perfil en public.profiles al registrar un usuario en auth.users';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -551,7 +626,8 @@ CREATE TABLE IF NOT EXISTS "public"."business_settings" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "business_name" "text" DEFAULT 'BarberTrack PRO'::"text" NOT NULL,
     "currency_symbol" "text" DEFAULT '$'::"text" NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"()
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "loyalty_mode" "text" DEFAULT 'per_service'::"text" NOT NULL
 );
 
 
@@ -1591,6 +1667,12 @@ GRANT ALL ON FUNCTION "public"."get_barber_dashboard_kpis"("p_barber_id" "uuid")
 GRANT ALL ON FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_suggested_opening_cash"("p_account_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
 
 
 

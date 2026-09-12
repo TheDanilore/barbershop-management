@@ -300,80 +300,11 @@
   </main>
 
   <!-- ============================================================================== -->
-  <!-- 5. MODAL ALTA RÁPIDA DE CLIENTE (LOCAL) -->
+  <!-- 5. MODAL ALTA RÁPIDA DE CLIENTE (STANDALONE CON BOTTOM SHEET TÁCTIL) -->
   <!-- ============================================================================== -->
-  @if (isNewClientModalOpen()) {
-  <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="newCliTitle" (click)="closeNewClientModal()">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle"></div>
-
-      <header class="sheet-header">
-        <div class="sheet-title-group">
-          <span class="sheet-badge-pill">Directorio de Clientes</span>
-          <h3 id="newCliTitle" class="sheet-title">Registrar Nuevo Cliente</h3>
-        </div>
-        <button
-          type="button"
-          class="sheet-close-btn"
-          (click)="closeNewClientModal()"
-          title="Cerrar (Esc)"
-          aria-label="Cerrar modal">
-          ✕
-        </button>
-      </header>
-
-      <form [formGroup]="newClientForm" (ngSubmit)="submitNewClient()" class="sheet-form">
-        <div class="form-body">
-          <div class="form-group">
-            <label class="form-label" for="clientFullName">Nombre Completo *</label>
-            <div class="input-icon-wrap">
-              <span class="input-icon">👤</span>
-              <input
-                id="clientFullName"
-                type="text"
-                class="form-input"
-                formControlName="fullName"
-                placeholder="Ej: Carlos Mendoza" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="clientPhone">Teléfono / WhatsApp</label>
-            <div class="input-icon-wrap">
-              <span class="input-icon">📞</span>
-              <input
-                id="clientPhone"
-                type="tel"
-                class="form-input"
-                formControlName="phone"
-                placeholder="+51 987 654 321" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="clientNotes">Notas / Preferencias (Opcional)</label>
-            <input
-              id="clientNotes"
-              type="text"
-              class="form-input"
-              formControlName="notes"
-              placeholder="Ej: Prefiere corte degradado bajo con tijera..." />
-          </div>
-        </div>
-
-        <footer class="sheet-footer">
-          <button type="button" class="btn-secondary-action" (click)="closeNewClientModal()">
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            class="btn-primary-confirm"
-            [disabled]="newClientForm.invalid || isSubmitting()">
-            {{ isSubmitting() ? 'Registrando...' : '✓ Guardar Cliente' }}
-          </button>
-        </footer>
-      </form>
-    </div>
-  </div>
-  }
+  <app-new-client-modal
+    [isOpen]="isNewClientModalOpen()"
+    (closed)="closeNewClientModal()"
+    (clientCreated)="onClientCreated($event)">
+  </app-new-client-modal>
 </div>

@@ -554,9 +554,10 @@
   .sheet-drag-handle-zone {
     display: flex !important;
     width: 100%;
+    min-height: 28px;
     justify-content: center;
     align-items: center;
-    padding: 10px 0 4px;
+    padding: 12px 0 6px;
     cursor: grab;
     touch-action: none;
     user-select: none;
@@ -569,17 +570,20 @@
 
   .sheet-drag-handle {
     display: block;
-    width: 44px;
+    width: 52px;
     height: 5px;
-    background: rgba(255, 255, 255, 0.32);
-    border-radius: 999px;
-    transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    background: rgba(255, 255, 255, 0.45);
+    border-radius: 9999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .sheet-drag-handle-zone:hover .sheet-drag-handle,
   .sheet-drag-handle-zone:active .sheet-drag-handle {
     background: var(--gold-primary, #EBA837);
-    transform: scaleX(1.15);
+    width: 64px;
+    box-shadow: 0 0 12px rgba(235, 168, 55, 0.55), 0 2px 4px rgba(0, 0, 0, 0.6);
+    transform: scaleY(1.1);
   }
 
   .sheet-shortcut-badge {

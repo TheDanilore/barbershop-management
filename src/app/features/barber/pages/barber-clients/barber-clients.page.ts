@@ -1,16 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { Client } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { NewClientModalComponent } from '../../components/new-client-modal/new-client-modal.component';
 
 export type ClientFilterSegment = 'all' | 'debt' | 'vip' | 'clear';
 
 @Component({
   selector: 'app-barber-clients',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, NewClientModalComponent],
   templateUrl: './barber-clients.page.html',
   styleUrl: './barber-clients.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,7 +20,6 @@ export class BarberClientsPage {
   protected readonly Math = Math;
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
-  private readonly fb = inject(FormBuilder);
 
   // Filtros y Segmentación
   readonly clientSearchQuery = signal('');
@@ -27,18 +27,10 @@ export class BarberClientsPage {
 
   // Estados de Modales Locales
   readonly isNewClientModalOpen = signal(false);
-  readonly isSubmitting = signal(false);
 
   // Notificaciones Toast
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  // Formulario de Alta Rápida de Cliente
-  readonly newClientForm: FormGroup = this.fb.group({
-    fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
-    phone: ['', [Validators.pattern(/^[+0-9\s-]{7,20}$/)]],
-    notes: [''],
-  });
 
   // Clientes con Deuda Activa
   readonly clientsWithDebt = computed(() => {
@@ -94,7 +86,6 @@ export class BarberClientsPage {
   // --- ALTA DE CLIENTE ---
   openNewClientModal(): void {
     this.haptics.lightTap();
-    this.newClientForm.reset({ fullName: '', phone: '', notes: '' });
     this.isNewClientModalOpen.set(true);
   }
 
@@ -103,35 +94,9 @@ export class BarberClientsPage {
     this.isNewClientModalOpen.set(false);
   }
 
-  async submitNewClient(): Promise<void> {
-    if (this.newClientForm.invalid || this.isSubmitting()) {
-      this.newClientForm.markAllAsTouched();
-      this.haptics.warning();
-      this.showToast('Ingresa un nombre válido para el cliente');
-      return;
-    }
-
-    const { fullName, phone, notes } = this.newClientForm.value;
-    this.isSubmitting.set(true);
-    try {
-      const cleanName = fullName!.trim();
-      const cleanPhone = phone ? phone.trim() : '';
-      const newClient = await this.barberService.createClient(
-        cleanName,
-        cleanPhone,
-        undefined,
-        notes ? notes.trim() : undefined
-      );
-
-      this.haptics.success();
-      this.showToast(`Cliente "${newClient.name}" registrado con éxito`);
-      this.closeNewClientModal();
-    } catch {
-      this.haptics.warning();
-      this.showToast('Error al registrar el cliente');
-    } finally {
-      this.isSubmitting.set(false);
-    }
+  onClientCreated(client: Client): void {
+    this.showToast(`Cliente "${client.name}" registrado con éxito`);
+    this.closeNewClientModal();
   }
 
   // --- ACCIONES RÁPIDAS OPERATIVAS ---

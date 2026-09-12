@@ -30,8 +30,8 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
   private readonly haptics = inject(HapticsService);
 
   @Input() appBottomSheetEnabled = true;
-  @Input() dismissThreshold = 90; // px necesarios para cerrar
-  @Input() velocityThreshold = 0.35; // velocidad mínima para flick-close
+  @Input() dismissThreshold = 50; // px necesarios para cerrar (ajustado para respuesta ágil con pulgar)
+  @Input() velocityThreshold = 0.22; // velocidad mínima para flick-close natural
 
   @Output() dismiss = new EventEmitter<void>();
   @Output() expandChange = new EventEmitter<boolean>();
@@ -48,14 +48,13 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
   private unlistenMouseUp: (() => void) | null = null;
 
   private isMobileViewport(): boolean {
-    return typeof window !== 'undefined' && window.innerWidth <= 768;
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768 || window.matchMedia('(max-width: 768px)').matches;
   }
 
   ngOnInit(): void {
-    if (this.isMobileViewport()) {
-      this.renderer.setStyle(this.el.nativeElement, 'touch-action', 'pan-y');
-      this.renderer.setStyle(this.el.nativeElement, 'will-change', 'transform, height');
-    }
+    this.renderer.setStyle(this.el.nativeElement, 'touch-action', 'pan-y');
+    this.renderer.setStyle(this.el.nativeElement, 'will-change', 'transform');
   }
 
   ngOnDestroy(): void {
@@ -71,11 +70,18 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
     if (!this.appBottomSheetEnabled || !this.isMobileViewport() || e.touches.length !== 1) return;
 
     const target = e.target as HTMLElement;
+    const isInteractive = this.isInteractiveElement(target);
     this.wasHandleTarget = this.isDragHandle(target);
 
-    // Solo iniciamos arrastre si se tocó la manija, la cabecera, o si el scroll interno está al tope superior
+    // Si se tocó un elemento interactivo (botón cerrar, inputs, selects), no capturamos el gesto
+    if (isInteractive && !this.wasHandleTarget) {
+      return;
+    }
+
+    // Iniciamos arrastre si se tocó la manija, la cabecera, o si el scroll interno está en el tope superior
+    const isHeaderArea = this.isHeader(target);
     const isAtTop = this.el.nativeElement.scrollTop <= 0;
-    if (!this.wasHandleTarget && !this.isHeader(target) && !isAtTop) {
+    if (!this.wasHandleTarget && !isHeaderArea && !isAtTop) {
       return;
     }
 
@@ -85,7 +91,7 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
     this.startTime = Date.now();
     this.isDragging = true;
 
-    // Desactivamos transiciones durante el arrastre para respuesta a 120fps
+    // Desactivamos transiciones durante el arrastre para respuesta inmediata a 120fps
     this.renderer.setStyle(this.el.nativeElement, 'transition', 'none');
   }
 
@@ -97,13 +103,13 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
     const deltaY = this.currentY - this.startY;
     const deltaX = e.touches[0].clientX - this.startX;
 
-    // Si el movimiento horizontal es dominante, no interferir con scroll
+    // Si el movimiento horizontal es dominante, no interferir
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
       return;
     }
 
     if (deltaY > 0) {
-      // Arrastre hacia abajo (Descartar)
+      // Arrastre hacia abajo (Descartar / Cerrar)
       if (e.cancelable && (this.wasHandleTarget || this.el.nativeElement.scrollTop <= 0)) {
         e.preventDefault();
       }
@@ -128,13 +134,13 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
     const velocity = deltaY / duration;
 
     // 1. Descartar hacia abajo (Swipe down o desplazamiento superado)
-    if (deltaY > this.dismissThreshold || (velocity > this.velocityThreshold && deltaY > 30)) {
+    if (deltaY > this.dismissThreshold || (velocity > this.velocityThreshold && deltaY > 25)) {
       this.animateDismiss();
       return;
     }
 
     // 2. Expandir hacia arriba (Swipe up)
-    if (deltaY < -50 || (velocity < -this.velocityThreshold && deltaY < -20)) {
+    if (deltaY < -45 || (velocity < -this.velocityThreshold && deltaY < -20)) {
       this.setExpanded(true);
       return;
     }
@@ -158,7 +164,7 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
   }
 
   // =========================================================================
-  // GESTOS CON MOUSE (Solo en emulación móvil <= 768px)
+  // GESTOS CON MOUSE (Para emulación móvil <= 768px y testing)
   // =========================================================================
 
   @HostListener('mousedown', ['$event'])
@@ -166,10 +172,14 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
     if (!this.appBottomSheetEnabled || !this.isMobileViewport() || e.button !== 0) return;
 
     const target = e.target as HTMLElement;
-    if (!this.isDragHandle(target)) return; // Con mouse solo permitimos arrastrar desde la manija
+    const isInteractive = this.isInteractiveElement(target);
+    const isHandle = this.isDragHandle(target);
+    const isHeaderArea = this.isHeader(target) && !isInteractive;
+
+    if (!isHandle && !isHeaderArea) return;
 
     e.preventDefault();
-    this.wasHandleTarget = true;
+    this.wasHandleTarget = isHandle;
     this.startY = e.clientY;
     this.currentY = this.startY;
     this.startTime = Date.now();
@@ -198,9 +208,9 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
       const duration = Math.max(Date.now() - this.startTime, 1);
       const velocity = deltaY / duration;
 
-      if (deltaY > this.dismissThreshold || (velocity > this.velocityThreshold && deltaY > 30)) {
+      if (deltaY > this.dismissThreshold || (velocity > this.velocityThreshold && deltaY > 25)) {
         this.animateDismiss();
-      } else if (deltaY < -50 || (velocity < -this.velocityThreshold && deltaY < -20)) {
+      } else if (deltaY < -45 || (velocity < -this.velocityThreshold && deltaY < -20)) {
         this.setExpanded(true);
       } else if (Math.abs(deltaY) < 8 && duration < 300) {
         this.toggleExpanded();
@@ -218,21 +228,24 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
     this.renderer.setStyle(
       this.el.nativeElement,
       'transition',
-      'transform 0.24s cubic-bezier(0.32, 0.72, 0, 1)'
+      'transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)'
     );
     this.renderer.setStyle(this.el.nativeElement, 'transform', 'translateY(100%)');
     this.haptics.lightTap();
 
     setTimeout(() => {
       this.dismiss.emit();
-    }, 220);
+      // Limpiar estilos inline inmediatamente para que futuras aperturas no queden bloqueadas
+      this.renderer.removeStyle(this.el.nativeElement, 'transform');
+      this.renderer.removeStyle(this.el.nativeElement, 'transition');
+    }, 200);
   }
 
   private snapBack(): void {
     this.renderer.setStyle(
       this.el.nativeElement,
       'transition',
-      'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)'
+      'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
     );
     this.renderer.setStyle(this.el.nativeElement, 'transform', 'translateY(0)');
   }
@@ -280,6 +293,11 @@ export class BottomSheetDirective implements OnInit, OnDestroy {
       target.closest('.sheet-header') ||
       target.closest('.mas-header')
     );
+  }
+
+  private isInteractiveElement(target: HTMLElement | null): boolean {
+    if (!target) return false;
+    return !!target.closest('button, input, select, textarea, a, .sheet-close-btn, .close-btn');
   }
 
   private cleanupMouseListeners(): void {

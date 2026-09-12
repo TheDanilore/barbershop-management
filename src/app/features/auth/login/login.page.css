@@ -420,76 +420,6 @@
   border-radius: 4px;
 }
 
-/* Sección de evaluación rápida para pruebas demo */
-.demo-eval-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.demo-divider {
-  text-align: center;
-}
-
-.demo-divider span {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-}
-
-.demo-buttons-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.btn-demo-pill {
-  height: 38px;
-  padding: 0 10px;
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  touch-action: manipulation;
-}
-
-.btn-demo-pill.barber {
-  background: rgba(229, 169, 60, 0.08);
-  border: 1px solid rgba(229, 169, 60, 0.25);
-  color: var(--gold-light);
-}
-
-.btn-demo-pill.barber:hover {
-  background: rgba(229, 169, 60, 0.16);
-  border-color: var(--gold-primary);
-  transform: translateY(-1px);
-}
-
-.btn-demo-pill.customer {
-  background: rgba(56, 189, 248, 0.08);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  color: var(--color-info);
-}
-
-.btn-demo-pill.customer:hover {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: var(--color-info);
-  transform: translateY(-1px);
-}
-
-.btn-demo-pill:focus-visible {
-  outline: 2px solid var(--gold-primary);
-  outline-offset: 2px;
-}
-
 /* ---------------- PIE DE PÁGINA ---------------- */
 .auth-footer {
   text-align: center;
@@ -515,10 +445,6 @@
 
   .brand-title {
     font-size: 1.5rem;
-  }
-
-  .demo-buttons-row {
-    grid-template-columns: 1fr;
   }
 }
 

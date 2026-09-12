@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   inject,
   signal,
@@ -23,6 +24,7 @@ import { UserModalComponent } from '../../components/user-modal/user-modal.compo
 export class BarberUsersPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // Filters & State
   readonly searchTerm = signal('');
@@ -30,7 +32,16 @@ export class BarberUsersPage {
   readonly isUserModalOpen = signal(false);
   readonly editingUser = signal<SystemUser | null>(null);
   readonly toastMessage = signal<string | null>(null);
-  private toastTimeout: any = null;
+  private toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.toastTimeout) {
+        clearTimeout(this.toastTimeout);
+        this.toastTimeout = null;
+      }
+    });
+  }
 
   readonly filteredUsers = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
@@ -40,7 +51,8 @@ export class BarberUsersPage {
       const matchTerm =
         !term ||
         u.fullName.toLowerCase().includes(term) ||
-        (u.phone && u.phone.toLowerCase().includes(term));
+        (u.phone && u.phone.toLowerCase().includes(term)) ||
+        (u.email && u.email.toLowerCase().includes(term));
       return matchRole && matchTerm;
     });
   });

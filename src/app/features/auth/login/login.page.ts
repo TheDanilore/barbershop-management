@@ -60,7 +60,7 @@ export class LoginPage {
     fullName: ['', [Validators.required, Validators.minLength(3)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
-    phone: [''],
+    phone: ['', [Validators.pattern(/^\+?[0-9\s-]{7,15}$/)]],
   });
 
   constructor() {
@@ -102,12 +102,14 @@ export class LoginPage {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    const { email, password } = this.loginForm.value;
+    const rawEmail = this.loginForm.value.email || '';
+    const cleanEmail = rawEmail.trim().toLowerCase();
+    const cleanPassword = this.loginForm.value.password || '';
 
-    this.logger.info('LoginPage', `Intento de login con email: ${email}`);
+    this.logger.info('LoginPage', `Intento de login con email: ${cleanEmail}`);
 
     try {
-      const res = await this.supabaseService.signInWithPassword(email.trim(), password);
+      const res = await this.supabaseService.signInWithPassword(cleanEmail, cleanPassword);
 
       if (res.error) {
         this.haptics.warning();
@@ -163,15 +165,18 @@ export class LoginPage {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     const { email, password, fullName, phone } = this.registerForm.value;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanFullName = (fullName || '').trim();
+    const cleanPhone = phone?.trim() || undefined;
 
-    this.logger.info('LoginPage', `Registrando cliente: ${email}`);
+    this.logger.info('LoginPage', `Registrando cliente: ${cleanEmail}`);
 
     try {
       const res = await this.supabaseService.signUpCustomer(
-        email.trim(),
+        cleanEmail,
         password,
-        fullName.trim(),
-        phone?.trim()
+        cleanFullName,
+        cleanPhone
       );
 
       if (res.error) {
@@ -195,34 +200,6 @@ export class LoginPage {
       this.showError(message);
     } finally {
       this.isLoading.set(false);
-    }
-  }
-
-  /**
-   * Acceso rápido de evaluación para pruebas demo (navegación instantánea)
-   */
-  quickDemoLogin(role: 'barber' | 'customer'): void {
-    this.haptics.selection();
-    this.supabaseService.setRole(role);
-    this.barberService.setRole(role === 'barber' ? 'barber' : 'client');
-    this.router.navigate([role === 'barber' ? '/barber' : '/customer']);
-  }
-
-  /**
-   * Relleno rápido de credenciales en el formulario para probar
-   */
-  fillDemoCredentials(role: 'barber' | 'customer'): void {
-    this.haptics.selection();
-    if (role === 'barber') {
-      this.loginForm.patchValue({
-        email: 'admin@barbertrack.com',
-        password: 'barberpassword123',
-      });
-    } else {
-      this.loginForm.patchValue({
-        email: 'mateo@cliente.com',
-        password: 'clientepassword123',
-      });
     }
   }
 

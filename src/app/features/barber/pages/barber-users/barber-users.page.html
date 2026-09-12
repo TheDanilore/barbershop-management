@@ -100,6 +100,9 @@
               </span>
             </div>
             <div class="ucv2-meta">
+              @if (usr.email) {
+                <span class="ucv2-meta-item">✉️ {{ usr.email }}</span>
+              }
               @if (usr.phone) {
                 <span class="ucv2-meta-item">📞 {{ usr.phone }}</span>
               } @else {

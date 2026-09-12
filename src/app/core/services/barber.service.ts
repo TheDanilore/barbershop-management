@@ -2408,14 +2408,19 @@ export class BarberService {
 
   /**
    * Crear Usuario de Sistema (Admin, Barbero o Cliente)
+   * Invoca la Edge Function create-staff-user si se proporcionan credenciales de acceso,
+   * con fallback seguro a perfiles directos en entornos locales u offline.
    */
   async createSystemUser(params: {
     fullName: string;
+    email?: string;
+    password?: string;
     phone?: string;
     role: UserRole;
     isActive?: boolean;
   }): Promise<SystemUser> {
     const cleanName = params.fullName.trim();
+    const cleanEmail = params.email?.trim().toLowerCase() || '';
     const cleanPhone = params.phone?.trim() || '';
     const role = params.role;
     const isActive = params.isActive ?? true;
@@ -2424,6 +2429,42 @@ export class BarberService {
     let createdAt = new Date().toISOString();
 
     if (this.supabaseService.isConfigured()) {
+      // 1. Si se proporciona email y password, intentar vía Edge Function create-staff-user
+      if (cleanEmail && params.password) {
+        try {
+          const { data, error } = await this.supabaseService.supabase.functions.invoke('create-staff-user', {
+            body: {
+              fullName: cleanName,
+              email: cleanEmail,
+              password: params.password,
+              phone: cleanPhone,
+              role: role,
+              isActive: isActive,
+            },
+          });
+
+          if (!error && data?.success && data?.user) {
+            this.logger.info('BarberService', `Colaborador creado exitosamente con Edge Function: ${cleanEmail}`);
+            const newUser: SystemUser = {
+              id: data.user.id,
+              fullName: data.user.fullName,
+              email: data.user.email,
+              phone: data.user.phone,
+              role: data.user.role,
+              isActive: data.user.isActive,
+              createdAt: data.user.createdAt,
+            };
+            this.systemUsers.set([newUser, ...this.systemUsers()]);
+            return newUser;
+          } else if (error) {
+            this.logger.warn('BarberService', 'Edge function create-staff-user no respondió o no está desplegada, usando fallback directo', error);
+          }
+        } catch (efErr) {
+          this.logger.warn('BarberService', 'Aviso al invocar Edge Function, usando fallback de perfiles', efErr);
+        }
+      }
+
+      // 2. Fallback directo en tabla profiles (cuando no hay Edge Function desplegada)
       try {
         const { data, error } = await this.supabaseService.supabase
           .from('profiles')
@@ -2454,6 +2495,7 @@ export class BarberService {
     const newUser: SystemUser = {
       id: userId,
       fullName: cleanName,
+      email: cleanEmail || undefined,
       phone: cleanPhone,
       role: role,
       isActive: isActive,

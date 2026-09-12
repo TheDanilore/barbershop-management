@@ -43,27 +43,56 @@ export class UserModalComponent implements OnChanges {
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly isPasswordVisible = signal(false);
 
   readonly userForm: FormGroup = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(2)]],
-    phone: [''],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    phone: ['', [Validators.pattern(/^\+?[0-9\s-]{7,15}$/)]],
     role: ['barber', Validators.required],
     isActive: [true],
   });
 
+  togglePasswordVisibility(): void {
+    this.haptics.lightTap();
+    this.isPasswordVisible.update((v) => !v);
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen'] && this.isOpen) {
       this.errorMessage.set(null);
+      this.isPasswordVisible.set(false);
+
+      const emailControl = this.userForm.get('email');
+      const passwordControl = this.userForm.get('password');
+
       if (this.userToEdit) {
+        // En edición, email es opcional y password no se requiere modificar aquí
+        emailControl?.setValidators([Validators.email]);
+        passwordControl?.clearValidators();
+        emailControl?.updateValueAndValidity();
+        passwordControl?.updateValueAndValidity();
+
         this.userForm.reset({
           fullName: this.userToEdit.fullName,
+          email: this.userToEdit.email || '',
+          password: '',
           phone: this.userToEdit.phone || '',
           role: this.userToEdit.role,
           isActive: this.userToEdit.isActive,
         });
       } else {
+        // En creación, email y password son obligatorios para habilitar el login del colaborador
+        emailControl?.setValidators([Validators.required, Validators.email]);
+        passwordControl?.setValidators([Validators.required, Validators.minLength(6)]);
+        emailControl?.updateValueAndValidity();
+        passwordControl?.updateValueAndValidity();
+
         this.userForm.reset({
           fullName: '',
+          email: '',
+          password: '',
           phone: '',
           role: 'barber',
           isActive: true,
@@ -84,7 +113,7 @@ export class UserModalComponent implements OnChanges {
       return;
     }
 
-    const { fullName, phone, role, isActive } = this.userForm.value;
+    const { fullName, email, password, phone, role, isActive } = this.userForm.value;
     this.isSubmitting.set(true);
     this.errorMessage.set(null);
 
@@ -101,12 +130,14 @@ export class UserModalComponent implements OnChanges {
       } else {
         await this.barberService.createSystemUser({
           fullName: fullName!.trim(),
+          email: email?.trim().toLowerCase() || undefined,
+          password: password?.trim() || undefined,
           phone: phone?.trim() || undefined,
           role: role as any,
           isActive: Boolean(isActive),
         });
         this.haptics.success();
-        this.saved.emit(`Nuevo colaborador ${fullName} creado`);
+        this.saved.emit(`Nuevo colaborador ${fullName} creado exitosamente`);
       }
       this.close();
     } catch (err: any) {

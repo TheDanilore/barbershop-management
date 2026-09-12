@@ -9,11 +9,15 @@
     <header class="sheet-header">
       <div class="sheet-title-group">
         <div class="sheet-badge-row">
-          <span class="sheet-badge gold">Directorio</span>
-          <span class="sheet-shortcut-badge" title="Atajo de teclado">Alt + C</span>
+          <span class="sheet-badge gold">{{ clientToEdit ? 'Edición ERP' : 'Directorio' }}</span>
+          @if (!clientToEdit) {
+            <span class="sheet-shortcut-badge" title="Atajo de teclado">Alt + N</span>
+          }
         </div>
-        <h2 id="ncModalTitle" class="sheet-title">Nuevo Cliente</h2>
-        <p class="sheet-desc">Registra un nuevo cliente con número para WhatsApp y sellos</p>
+        <h2 id="ncModalTitle" class="sheet-title">{{ clientToEdit ? 'Editar Cliente' : 'Nuevo Cliente' }}</h2>
+        <p class="sheet-desc">
+          {{ clientToEdit ? 'Actualiza los datos personales, contacto y notas del cliente' : 'Registra un nuevo cliente con número para WhatsApp y sellos' }}
+        </p>
       </div>
       <button type="button" class="sheet-close-btn" (click)="close()" aria-label="Cerrar modal" title="Cerrar (Esc)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -57,9 +61,9 @@
         <button type="button" class="btn-secondary" (click)="close()">Cancelar</button>
         <button type="submit" class="btn-primary-action" [disabled]="clientForm.invalid || isSubmitting()">
           @if (isSubmitting()) {
-            <span>Registrando...</span>
+            <span>{{ clientToEdit ? 'Guardando...' : 'Registrando...' }}</span>
           } @else {
-            <span>Registrar Cliente</span>
+            <span>{{ clientToEdit ? 'Guardar Cambios' : 'Registrar Cliente' }}</span>
           }
         </button>
       </div>

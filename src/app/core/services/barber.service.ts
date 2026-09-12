@@ -916,7 +916,7 @@ export class BarberService {
 
           // C. Proyección Soberana de Clientes con Fidelidad y Deuda
           const customerProfiles = allProfilesData.filter(
-            (p: any) => p.role === 'customer' && (p.is_active ?? true)
+            (p: any) => p.role === 'customer'
           );
           const mappedClients: Client[] = customerProfiles.map((p: any) => {
             const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
@@ -931,6 +931,7 @@ export class BarberService {
               avatarUrl: p.avatar_url || undefined,
               currentDebt: Number(cc?.current_debt ?? 0),
               creditLimit: Number(cc?.credit_limit ?? 0),
+              isActive: p.is_active ?? true,
             };
           });
           this.clients.set(mappedClients);
@@ -1530,6 +1531,7 @@ export class BarberService {
       notes,
       currentDebt: 0,
       creditLimit: 0,
+      isActive: true,
     };
 
     const updated = [newClient, ...this.clients()];
@@ -1537,6 +1539,73 @@ export class BarberService {
     this.saveToStorage(STORAGE_KEYS.CLIENTS, updated);
 
     return newClient;
+  }
+
+  /**
+   * Actualizar datos de un cliente existente
+   */
+  async updateClient(
+    clientId: string,
+    updates: {
+      name?: string;
+      phone?: string;
+      email?: string;
+      notes?: string;
+      membershipLevel?: MembershipTier;
+      isActive?: boolean;
+    }
+  ): Promise<Client> {
+    const existing = this.clients().find((c) => c.id === clientId);
+    if (!existing) {
+      throw new Error('Cliente no encontrado');
+    }
+
+    const updatedClient: Client = {
+      ...existing,
+      name: updates.name !== undefined ? updates.name.trim() : existing.name,
+      phone: updates.phone !== undefined ? updates.phone.trim() : existing.phone,
+      email: updates.email !== undefined ? updates.email?.trim() : existing.email,
+      notes: updates.notes !== undefined ? updates.notes?.trim() : existing.notes,
+      membershipLevel: updates.membershipLevel ?? existing.membershipLevel,
+      isActive: updates.isActive !== undefined ? updates.isActive : (existing.isActive ?? true),
+    };
+
+    // Actualizar en Supabase si está configurado
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const payload: any = {};
+        if (updates.name !== undefined) payload.full_name = updatedClient.name;
+        if (updates.phone !== undefined) payload.phone = updatedClient.phone || null;
+        if (updates.membershipLevel !== undefined) payload.membership_tier = updatedClient.membershipLevel;
+        if (updates.isActive !== undefined) payload.is_active = updatedClient.isActive;
+
+        if (Object.keys(payload).length > 0) {
+          const { error } = await this.supabaseService.supabase
+            .from('profiles')
+            .update(payload)
+            .eq('id', clientId);
+
+          if (error) {
+            this.logger.error('BarberService', 'Error al actualizar perfil en Supabase', error);
+          }
+        }
+      } catch (e) {
+        this.logger.error('BarberService', 'Excepción al actualizar cliente en Supabase', e);
+      }
+    }
+
+    const updatedList = this.clients().map((c) => (c.id === clientId ? updatedClient : c));
+    this.clients.set(updatedList);
+    this.saveToStorage(STORAGE_KEYS.CLIENTS, updatedList);
+
+    return updatedClient;
+  }
+
+  /**
+   * Alternar estado Activo / Inactivo de un cliente
+   */
+  async toggleClientStatus(clientId: string, isActive: boolean): Promise<void> {
+    await this.updateClient(clientId, { isActive });
   }
 
   /**

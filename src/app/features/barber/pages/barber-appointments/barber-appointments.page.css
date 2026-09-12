@@ -1339,7 +1339,7 @@ button:disabled,
 /* MÓVIL (iOS HIG / PWA) */
 @media (max-width: 768px) {
   .appointments-page {
-    padding-bottom: calc(var(--safe-bottom, 0px) + 96px);
+    padding-bottom: calc(var(--safe-bottom, 0px) + 6px);
     gap: 16px;
   }
 

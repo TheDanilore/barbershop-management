@@ -154,6 +154,7 @@ export interface Client {
   notes?: string;
   currentDebt?: number;
   creditLimit?: number;
+  isActive?: boolean;
 }
 
 export interface Barber {

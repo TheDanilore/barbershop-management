@@ -37,9 +37,11 @@ export class NewClientModalComponent implements OnChanges {
   private readonly fb = inject(FormBuilder);
 
   @Input() isOpen = false;
+  @Input() clientToEdit: Client | null = null;
 
   @Output() closed = new EventEmitter<void>();
   @Output() clientCreated = new EventEmitter<Client>();
+  @Output() clientUpdated = new EventEmitter<Client>();
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -54,9 +56,17 @@ export class NewClientModalComponent implements OnChanges {
   });
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isOpen'] && this.isOpen) {
+    if ((changes['isOpen'] && this.isOpen) || changes['clientToEdit']) {
       this.errorMessage.set(null);
-      this.clientForm.reset({ fullName: '', phone: '', notes: '' });
+      if (this.clientToEdit) {
+        this.clientForm.reset({
+          fullName: this.clientToEdit.name,
+          phone: this.clientToEdit.phone || '',
+          notes: this.clientToEdit.notes || '',
+        });
+      } else {
+        this.clientForm.reset({ fullName: '', phone: '', notes: '' });
+      }
     }
   }
 
@@ -90,19 +100,32 @@ export class NewClientModalComponent implements OnChanges {
     try {
       const cleanName = (fullName || '').trim();
       const cleanPhone = phone ? phone.trim() : '';
-      const newClient = await this.barberService.createClient(
-        cleanName,
-        cleanPhone,
-        undefined,
-        notes ? notes.trim() : undefined
-      );
 
-      this.haptics.success();
-      this.clientCreated.emit(newClient);
-      this.close();
+      if (this.clientToEdit) {
+        const updated = await this.barberService.updateClient(this.clientToEdit.id, {
+          name: cleanName,
+          phone: cleanPhone,
+          notes: notes ? notes.trim() : undefined,
+        });
+
+        this.haptics.success();
+        this.clientUpdated.emit(updated);
+        this.close();
+      } else {
+        const newClient = await this.barberService.createClient(
+          cleanName,
+          cleanPhone,
+          undefined,
+          notes ? notes.trim() : undefined
+        );
+
+        this.haptics.success();
+        this.clientCreated.emit(newClient);
+        this.close();
+      }
     } catch (err: any) {
       this.haptics.warning();
-      this.errorMessage.set(err?.message || 'Error al registrar el cliente');
+      this.errorMessage.set(err?.message || 'Error al procesar el cliente');
     } finally {
       this.isSubmitting.set(false);
     }

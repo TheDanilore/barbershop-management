@@ -793,6 +793,19 @@
   justify-content: space-around;
 }
 
+/* Ocultar barra inferior automáticamente cuando cualquier Bottom Sheet o Modal esté activo */
+:host:has(.modal-backdrop) .bottom-nav,
+:host:has(.nc-backdrop) .bottom-nav,
+:host:has(.pos-backdrop) .bottom-nav,
+:host:has(.action-sheet-backdrop) .bottom-nav,
+:host:has([role="dialog"]) .bottom-nav,
+body:has(.modal-backdrop) .bottom-nav,
+body:has(.nc-backdrop) .bottom-nav,
+body:has(.pos-backdrop) .bottom-nav,
+body:has(.action-sheet-backdrop) .bottom-nav {
+  display: none !important;
+}
+
 .nav-item {
   flex: 1;
   display: flex;

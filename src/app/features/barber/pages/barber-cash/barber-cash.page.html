@@ -644,27 +644,29 @@
   </section>
   }
 
-  <!-- ============================================================================== -->
-  <!-- MODALES DE FLUJO OPERATIVO -->
-  <!-- ============================================================================== -->
-
-  <!-- 1. MODAL DE TURNO: APERTURA O ARQUEO & CIERRE -->
-  <app-cash-shift-modal [isOpen]="isShiftModalOpen()" [mode]="shiftMode()" (closed)="closeShiftModal()"
-    (shiftSuccess)="showToast($event)">
-  </app-cash-shift-modal>
-
-  <!-- 2. MODAL DE NUEVA O EDICIÓN DE CUENTA -->
-  <app-financial-account-modal [isOpen]="isAccountModalOpen()" [accountToEdit]="editingAccount()"
-    (closed)="closeAccountModal()" (saved)="showToast($event)">
-  </app-financial-account-modal>
-
-  <!-- 3. MODAL DE REGISTRAR MOVIMIENTO -->
-  <app-cash-movement-modal [isOpen]="isMovementModalOpen()" [presetAccountId]="presetMovementAccountId()"
-    (closed)="closeMovementModal()" (saved)="showToast($event)">
-  </app-cash-movement-modal>
-
-  <!-- 4. MODAL DE TRANSFERENCIA ENTRE CUENTAS -->
-  <app-cash-transfer-modal [isOpen]="isTransferModalOpen()" [presetFromAccountId]="presetTransferFromAccountId()"
-    (closed)="closeTransferModal()" (saved)="showToast($event)">
-  </app-cash-transfer-modal>
 </div>
+
+
+<!-- ============================================================================== -->
+<!-- MODALES DE FLUJO OPERATIVO -->
+<!-- ============================================================================== -->
+
+<!-- 1. MODAL DE TURNO: APERTURA O ARQUEO & CIERRE -->
+<app-cash-shift-modal [isOpen]="isShiftModalOpen()" [mode]="shiftMode()" (closed)="closeShiftModal()"
+  (shiftSuccess)="showToast($event)">
+</app-cash-shift-modal>
+
+<!-- 2. MODAL DE NUEVA O EDICIÓN DE CUENTA -->
+<app-financial-account-modal [isOpen]="isAccountModalOpen()" [accountToEdit]="editingAccount()"
+  (closed)="closeAccountModal()" (saved)="showToast($event)">
+</app-financial-account-modal>
+
+<!-- 3. MODAL DE REGISTRAR MOVIMIENTO -->
+<app-cash-movement-modal [isOpen]="isMovementModalOpen()" [presetAccountId]="presetMovementAccountId()"
+  (closed)="closeMovementModal()" (saved)="showToast($event)">
+</app-cash-movement-modal>
+
+<!-- 4. MODAL DE TRANSFERENCIA ENTRE CUENTAS -->
+<app-cash-transfer-modal [isOpen]="isTransferModalOpen()" [presetFromAccountId]="presetTransferFromAccountId()"
+  (closed)="closeTransferModal()" (saved)="showToast($event)">
+</app-cash-transfer-modal>

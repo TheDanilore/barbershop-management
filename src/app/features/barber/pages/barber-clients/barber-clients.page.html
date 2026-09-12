@@ -586,21 +586,21 @@
     }
     }
   </main>
-
-  <!-- ============================================================================== -->
-  <!-- 5. ACTION SHEET ERGONÓMICO TÁCTIL (STANDALONE CON BOTTOM-SHEET.DIRECTIVE)      -->
-  <!-- ============================================================================== -->
-  <app-client-action-sheet [isOpen]="!!clientActionSheetTarget()" [client]="clientActionSheetTarget()"
-    (closed)="closeClientActionSheet()" (registerCut)="openRegisterCutForClient($event)"
-    (payDebt)="openDebtPaymentModal($event)" (bookAppointment)="openBookAppointmentForClient($event)"
-    (editClient)="openEditClientModal($event)" (toggleStatus)="toggleClientStatus($event)">
-  </app-client-action-sheet>
-
-  <!-- ============================================================================== -->
-  <!-- 6. MODAL ALTA Y EDICIÓN DE CLIENTE                                             -->
-  <!-- ============================================================================== -->
-  <app-new-client-modal [isOpen]="isNewClientModalOpen()" [clientToEdit]="clientToEdit()"
-    (closed)="closeNewClientModal()" (clientCreated)="onClientCreated($event)"
-    (clientUpdated)="onClientUpdated($event)">
-  </app-new-client-modal>
 </div>
+
+<!-- ============================================================================== -->
+<!-- 5. ACTION SHEET ERGONÓMICO TÁCTIL (STANDALONE CON BOTTOM-SHEET.DIRECTIVE)      -->
+<!-- ============================================================================== -->
+<app-client-action-sheet [isOpen]="!!clientActionSheetTarget()" [client]="clientActionSheetTarget()"
+  (closed)="closeClientActionSheet()" (registerCut)="openRegisterCutForClient($event)"
+  (payDebt)="openDebtPaymentModal($event)" (bookAppointment)="openBookAppointmentForClient($event)"
+  (editClient)="openEditClientModal($event)" (toggleStatus)="toggleClientStatus($event)">
+</app-client-action-sheet>
+
+<!-- ============================================================================== -->
+<!-- 6. MODAL ALTA Y EDICIÓN DE CLIENTE                                             -->
+<!-- ============================================================================== -->
+<app-new-client-modal [isOpen]="isNewClientModalOpen()" [clientToEdit]="clientToEdit()"
+  (closed)="closeNewClientModal()" (clientCreated)="onClientCreated($event)"
+  (clientUpdated)="onClientUpdated($event)">
+</app-new-client-modal>

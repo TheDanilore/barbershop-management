@@ -385,12 +385,12 @@
     }
     }
   </main>
-
-  <!-- 5. MODAL INDEPENDIENTE PARA ALTA / EDICIÓN (STANDALONE) -->
-  <app-service-modal
-    [isOpen]="isServiceModalOpen()"
-    [serviceToEdit]="editingService()"
-    (closed)="closeServiceModal()"
-    (saved)="showToast($event)">
-  </app-service-modal>
 </div>
+
+<!-- 5. MODAL INDEPENDIENTE PARA ALTA / EDICIÓN (STANDALONE BOTTOM SHEET / DIALOG) -->
+<app-service-modal
+  [isOpen]="isServiceModalOpen()"
+  [serviceToEdit]="editingService()"
+  (closed)="closeServiceModal()"
+  (saved)="showToast($event)">
+</app-service-modal>

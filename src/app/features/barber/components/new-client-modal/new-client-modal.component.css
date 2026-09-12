@@ -12,7 +12,7 @@
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 10000;
+  z-index: 20000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -32,7 +32,7 @@
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(229, 169, 60, 0.08);
@@ -303,7 +303,7 @@
   .nc-dialog-sheet {
     max-width: 100%;
     border-radius: 24px 24px 0 0;
-    max-height: 88vh;
+    max-height: 90vh;
     animation: slideUpBottom 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -312,15 +312,51 @@
     to { transform: translateY(0); }
   }
 
+  .sheet-header {
+    padding: 14px 20px 12px;
+  }
+
+  .sheet-desc {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .sheet-form {
+    padding: 14px 20px 20px;
+    max-height: calc(90vh - 130px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .sheet-drag-handle {
     display: block;
   }
 
-  .sheet-footer {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  .form-input {
+    min-height: 48px;
+    font-size: 0.9375rem;
   }
 
-  .form-input, .btn-primary-action, .btn-secondary {
+  .sheet-footer {
+    flex-direction: column-reverse;
+    gap: 10px;
+    padding: 14px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    margin: 8px -20px -20px -20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-card, #16161d);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  .btn-secondary,
+  .btn-primary-action {
+    width: 100%;
     min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9375rem;
   }
 }

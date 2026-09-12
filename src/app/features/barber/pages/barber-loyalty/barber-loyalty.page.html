@@ -1,44 +1,60 @@
-<!-- ========================================================================= -->
-<!-- BARBERTRACK PRO — PÁGINA DE FIDELIZACIÓN & MULTI-RECOMPENSAS             -->
-<!-- ========================================================================= -->
 <div class="loyalty-page-container fade-in">
   <!-- Toast Notificación Local -->
   @if (toastMessage()) {
-  <div class="local-toast">
+  <div class="local-toast" role="alert" aria-live="polite">
     <div class="toast-dot"></div>
     <span>{{ toastMessage() }}</span>
   </div>
   }
 
-  <!-- Header de la Página con Botón Principal Acotado -->
+  <!-- Header de la Página -->
   <header class="page-header">
     <div class="header-titles">
       <div class="header-badge-row">
-        <span class="badge-gold-sparkle">★ Programa VIP</span>
+        <span class="badge-gold-sparkle">
+          <svg class="badge-svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          Programa VIP
+        </span>
         <span class="badge-counter">{{ barberService.loyaltyRewards().length }} Recompensas</span>
       </div>
-      <h1 class="page-title">Fidelización & Recompensas</h1>
+      <h1 class="page-title">Fidelización &amp; Recompensas</h1>
       <p class="page-subtitle">
         Configura premios escalonados por sellos acumulados (descuentos, cortes gratis, productos) para fidelizar a tus clientes.
       </p>
     </div>
 
     <div class="header-actions">
-      <button class="btn-primary-create" (click)="openLoyaltyRewardModal()" title="Crear un nuevo hito o premio">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="btn-icon">
+      <button class="btn-primary-create" (click)="openLoyaltyRewardModal()" title="Crear un nuevo hito o premio (Alt+R)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
         <span>Nueva Recompensa</span>
+        <kbd class="kbd-hint gold">Alt+R</kbd>
       </button>
     </div>
   </header>
 
-  <!-- Métricas Rápidas del Programa -->
-  <section class="loyalty-kpi-grid">
-    <article class="kpi-card gold-border">
+  <!-- ESTADO DE CARGA SWR SHIMMER -->
+  @if (isLoyaltyInitialLoading()) {
+  <div class="loyalty-shimmer-wrap" aria-busy="true">
+    <div class="shimmer-strip"></div>
+    <div class="shimmer-toggle"></div>
+    <div class="shimmer-cards-grid">
+      <div class="shimmer-card"></div>
+      <div class="shimmer-card"></div>
+      <div class="shimmer-card"></div>
+    </div>
+  </div>
+  } @else {
+
+  <!-- Cinta Compacta de Métricas del Programa (Horizontal Metrics Strip) -->
+  <section class="loyalty-kpi-strip" aria-label="Métricas del programa de fidelización">
+    <article class="kpi-cell gold">
       <div class="kpi-icon-box gold">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
         </svg>
       </div>
@@ -48,9 +64,9 @@
       </div>
     </article>
 
-    <article class="kpi-card" [class.alert-glow]="barberService.pendingRewardClaims().length > 0">
+    <article class="kpi-cell amber" [class.alert-glow]="barberService.pendingRewardClaims().length > 0">
       <div class="kpi-icon-box" [class.amber]="barberService.pendingRewardClaims().length > 0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="20 12 20 22 4 22 4 12"></polyline>
           <rect x="2" y="7" width="20" height="5"></rect>
           <line x1="12" y1="22" x2="12" y2="7"></line>
@@ -59,57 +75,75 @@
         </svg>
       </div>
       <div class="kpi-data">
-        <span class="kpi-num">{{ barberService.pendingRewardClaims().length }}</span>
-        <span class="kpi-label">Premios Pendientes de Canje</span>
+        <span class="kpi-num" [class.text-amber]="barberService.pendingRewardClaims().length > 0">
+          {{ barberService.pendingRewardClaims().length }}
+        </span>
+        <span class="kpi-label">Premios por Canjear</span>
       </div>
     </article>
 
-    <article class="kpi-card">
+    <article class="kpi-cell blue">
       <div class="kpi-icon-box blue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
           <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
       </div>
       <div class="kpi-data">
         <span class="kpi-num">{{ barberService.clients().length }}</span>
-        <span class="kpi-label">Clientes en Base de Datos</span>
+        <span class="kpi-label">Clientes Registrados</span>
       </div>
     </article>
   </section>
 
-  <!-- Barra de Configuración de Fidelización del Negocio (Admin) -->
-  <section class="loyalty-mode-config-card">
-    <div class="lmc-info">
-      <div class="lmc-badge">⚙️ Regla de Acumulación de Sellos</div>
-      <h3 class="lmc-title">Modo de Conteo de Sellos del Cliente</h3>
-      <p class="lmc-desc">
-        Define cómo tus clientes acumulan sellos al registrar servicios en el punto de venta (POS).
-      </p>
+  <!-- Barra de Configuración de Fidelización del Negocio (Segmented Switch) -->
+  <section class="loyalty-mode-strip" aria-label="Modo de acumulación de sellos">
+    <div class="lms-left">
+      <div class="lms-badge">
+        <svg class="lms-badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Regla de Acumulación
+      </div>
+      <span class="lms-desc">Define cómo tus clientes suman sellos en el punto de venta (POS)</span>
     </div>
-    <div class="lmc-toggle-group">
+
+    <div class="lms-switch-wrapper" role="radiogroup" aria-label="Modo de conteo de sellos">
       <button
         type="button"
-        class="lmc-btn"
+        role="radio"
+        class="lms-pill-btn"
         [class.active]="barberService.loyaltyMode() === 'per_service'"
-        (click)="setLoyaltyMode('per_service')">
-        <span class="lmc-icon">✂️</span>
-        <div class="lmc-btn-texts">
-          <span class="lmc-btn-title">Por Servicio Realizado</span>
-          <span class="lmc-btn-sub">Combos suman múltiples sellos (Ej: Corte + Barba = 2)</span>
-        </div>
+        [attr.aria-checked]="barberService.loyaltyMode() === 'per_service'"
+        (click)="setLoyaltyMode('per_service')"
+        title="1 sello por cada servicio realizado (Alt+M)">
+        <svg class="lms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+        <span class="lms-pill-text">Por Servicio Realizado</span>
       </button>
 
       <button
         type="button"
-        class="lmc-btn"
+        role="radio"
+        class="lms-pill-btn"
         [class.active]="barberService.loyaltyMode() === 'per_visit'"
-        (click)="setLoyaltyMode('per_visit')">
-        <span class="lmc-icon">🎟️</span>
-        <div class="lmc-btn-texts">
-          <span class="lmc-btn-title">Por Visita / Ticket</span>
-          <span class="lmc-btn-sub">1 sello por orden completada, sin importar items</span>
-        </div>
+        [attr.aria-checked]="barberService.loyaltyMode() === 'per_visit'"
+        (click)="setLoyaltyMode('per_visit')"
+        title="1 sello por orden completada sin importar servicios (Alt+M)">
+        <svg class="lms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+          <circle cx="12" cy="12" r="2"></circle>
+          <path d="M6 12h.01M18 12h.01"></path>
+        </svg>
+        <span class="lms-pill-text">Por Visita / Ticket</span>
       </button>
     </div>
   </section>
@@ -118,15 +152,23 @@
   <!-- SECCIÓN 1: PREMIOS PENDIENTES DE ENTREGA (ALERTAS ACTIVAS)              -->
   <!-- ======================================================================= -->
   @if (barberService.pendingRewardClaims().length > 0) {
-  <section class="claims-banner-box">
+  <section class="claims-banner-box" aria-label="Premios pendientes de entrega">
     <div class="section-heading">
       <div class="heading-title-group">
-        <span class="heading-icon">🎁</span>
+        <div class="heading-icon-wrap amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 12 20 22 4 22 4 12"></polyline>
+            <rect x="2" y="7" width="20" height="5"></rect>
+            <line x1="12" y1="22" x2="12" y2="7"></line>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+          </svg>
+        </div>
         <h2 class="section-title">Premios Ganados por Entregar</h2>
         <span class="pending-pill">{{ barberService.pendingRewardClaims().length }} pendientes</span>
       </div>
       <p class="section-desc">
-        Estos clientes alcanzaron los sellos requeridos. Entrega su premio en su visita y márcalo como canjeado.
+        Estos clientes alcanzaron los sellos requeridos. Entrega su beneficio en su visita y márcalo como canjeado.
       </p>
     </div>
 
@@ -141,7 +183,12 @@
               <span class="cic-date">Ganado el {{ claim.claimedAt | date:'shortDate' }}</span>
             </div>
           </div>
-          <span class="cic-stamps-pill">★ {{ claim.stampsAtClaim }} cortes</span>
+          <span class="cic-stamps-pill">
+            <svg class="star-icon-sm" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            {{ claim.stampsAtClaim }} cortes
+          </span>
         </div>
 
         <div class="cic-reward-box">
@@ -157,10 +204,10 @@
         </div>
 
         <button class="btn-redeem-gold" [disabled]="isSubmitting()" (click)="submitRedeemClaim(claim.id)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
-          <span>Marcar como Entregado / Canjeado</span>
+          <span>Marcar como Entregado</span>
         </button>
       </div>
       }
@@ -169,28 +216,33 @@
   }
 
   <!-- ======================================================================= -->
-  <!-- SECCIÓN 2: CATÁLOGO DE RECOMPENSAS ESCALONADAS (0 A N PREMIOS)          -->
+  <!-- SECCIÓN 2: CATÁLOGO DE RECOMPENSAS ESCALONADAS (LOYALTY PASS CARDS)     -->
   <!-- ======================================================================= -->
-  <section class="catalog-section">
+  <section class="catalog-section" aria-label="Catálogo de recompensas">
     <div class="section-heading">
       <div class="heading-title-group">
         <h2 class="section-title">Hitos y Recompensas Configuradas</h2>
+        <span class="badge-counter-sub">{{ sortedRewards().length }} niveles</span>
       </div>
       <p class="section-desc">
-        Establece los niveles de cortes necesarios y el beneficio para cada hito de fidelización.
+        Establece los niveles de cortes necesarios y el beneficio otorgado para cada hito de fidelización.
       </p>
     </div>
 
     @if (barberService.loyaltyRewards().length === 0) {
     <!-- Estado Vacío Profesional -->
     <div class="empty-state-box">
-      <div class="empty-illustration">⭐</div>
+      <div class="empty-illustration-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+      </div>
       <h3 class="empty-title">Sin recompensas de fidelización aún</h3>
       <p class="empty-desc">
         Tu barbería aún no tiene premios configurados. Puedes crear hitos como "5 cortes → 15% Descuento", "10 cortes → Corte Gratis" o regalos sorpresa para incentivar la recurrencia.
       </p>
-      <button class="btn-primary-create" (click)="openLoyaltyRewardModal()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="btn-icon">
+      <button class="btn-empty-action" (click)="openLoyaltyRewardModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
@@ -198,18 +250,23 @@
       </button>
     </div>
     } @else {
-    <!-- Grid de Tarjetas de Hito Estilo Linear -->
+    <!-- Grid de Tarjetas de Hito Estilo Loyalty Pass -->
     <div class="rewards-card-grid">
-      @for (reward of barberService.loyaltyRewards(); track reward.id) {
+      @for (reward of sortedRewards(); track reward.id) {
       <div class="reward-card" [class.paused]="!reward.isActive">
         <div class="rc-header">
           <div class="rc-milestone-badge">
-            <span class="star-icon">★</span>
+            <svg class="star-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
             <span class="stamps-count">{{ reward.stampsRequired }}</span>
             <span class="stamps-text">cortes</span>
           </div>
 
-          <button class="status-toggle-chip" [class.active]="reward.isActive"
+          <button
+            type="button"
+            class="status-toggle-chip"
+            [class.active]="reward.isActive"
             (click)="confirmToggleReward(reward.id, reward.isActive)"
             [title]="reward.isActive ? 'Pausar recompensa' : 'Activar recompensa'">
             <span class="status-dot"></span>
@@ -221,7 +278,7 @@
           <span class="rc-type-pill" [attr.data-type]="reward.rewardType">
             {{ getRewardTypeLabel(reward.rewardType) }}
           </span>
-          <h3 class="rc-name">{{ reward.name }}</h3>
+          <h3 class="rc-name" [title]="reward.name">{{ reward.name }}</h3>
           @if (reward.description) {
           <p class="rc-desc">{{ reward.description }}</p>
           }
@@ -237,15 +294,15 @@
         </div>
 
         <div class="rc-footer-actions">
-          <button class="btn-rc-action" (click)="openLoyaltyRewardModal(reward.id)" title="Editar regla">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <button class="btn-rc-action" (click)="openLoyaltyRewardModal(reward.id)" title="Editar regla" aria-label="Editar recompensa">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-sm" aria-hidden="true">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
             </svg>
             <span>Editar</span>
           </button>
-          <button class="btn-rc-action danger" (click)="confirmDeleteReward(reward.id, reward.name)" title="Eliminar regla">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+          <button class="btn-rc-action danger" (click)="confirmDeleteReward(reward.id, reward.name)" title="Eliminar regla" aria-label="Eliminar recompensa">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-sm" aria-hidden="true">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
@@ -259,46 +316,66 @@
   </section>
 
   <!-- ======================================================================= -->
-  <!-- SECCIÓN 3: CLIENTES FRECUENTES (HIGH-DENSITY PROGRESS)                   -->
+  <!-- SECCIÓN 3: TOP CLIENTES (HIGH-DENSITY RANKING PROGRESS)                  -->
   <!-- ======================================================================= -->
-  <section class="ranking-section">
+  <section class="ranking-section" aria-label="Clientes frecuentes y su progreso">
     <div class="section-heading">
       <div class="heading-title-group">
         <h2 class="section-title">Clientes Más Frecuentes y su Progreso</h2>
+        <span class="badge-counter-sub">Top {{ topLoyaltyClientsWithProgress().length }}</span>
       </div>
       <p class="section-desc">
-        Visualiza el avance de los clientes que más visitan tu barbería.
+        Visualiza el avance de fidelización hacia el siguiente premio de tus clientes más asiduos.
       </p>
     </div>
 
+    @if (topLoyaltyClientsWithProgress().length === 0) {
+    <div class="empty-clients-box">
+      <p>Aún no hay clientes con sellos acumulados en la base de datos.</p>
+    </div>
+    } @else {
     <div class="clients-ranking-grid">
-      @for (cli of topLoyaltyClients(); track cli.id) {
+      @for (cli of topLoyaltyClientsWithProgress(); track cli.id) {
       <div class="client-rank-card">
-        <div class="crc-avatar">{{ cli.name.charAt(0) }}</div>
+        <div class="crc-avatar">{{ (cli.name || 'C').charAt(0) }}</div>
         <div class="crc-content">
           <div class="crc-top-row">
             <strong class="crc-name" [title]="cli.name">{{ cli.name }}</strong>
-            <span class="crc-stamps-pill">★ {{ cli.loyaltyStamps }} sellos</span>
+            <span class="crc-stamps-pill">
+              <svg class="star-icon-sm" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              {{ cli.loyaltyStamps }} sellos
+            </span>
           </div>
 
-          <div class="crc-progress-track">
-            <div class="crc-progress-fill"
-              [style.width.%]="barberService.loyaltyRewards().length > 0 ? (cli.loyaltyStamps / barberService.loyaltyRewards()[barberService.loyaltyRewards().length - 1].stampsRequired) * 100 : (cli.loyaltyStamps > 0 ? 50 : 0)">
-            </div>
+          <!-- Barra de Progreso Reactiva Memoizada -->
+          <div class="crc-progress-track" title="Progreso: {{ cli.percentage }}%">
+            <div class="crc-progress-fill" [style.width.%]="cli.percentage"></div>
           </div>
 
           <div class="crc-meta-row">
             <span class="crc-phone">{{ cli.phone || 'Sin teléfono' }}</span>
-            <span class="crc-hint">Frecuente</span>
+            @if (cli.nextRewardName) {
+            <span class="crc-hint" [title]="cli.nextRewardName">
+              @if (cli.stampsRemaining > 0) {
+              Faltan {{ cli.stampsRemaining }} para: {{ cli.nextRewardName }}
+              } @else {
+              {{ cli.nextRewardName }}
+              }
+            </span>
+            }
           </div>
         </div>
       </div>
       }
     </div>
+    }
   </section>
+  }
 
   <!-- ======================================================================= -->
-  <!-- MODAL: CREAR / EDITAR RECOMPENSA DE FIDELIZACIÓN (STANDALONE)           -->
+  <!-- MODAL: CREAR / EDITAR RECOMPENSA DE FIDELIZACIÓN                        -->
   <!-- ======================================================================= -->
   <app-loyalty-reward-modal
     [isOpen]="isLoyaltyRewardModalOpen()"

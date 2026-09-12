@@ -19,11 +19,13 @@
         </span>
         }
         @if (activeShift()) {
-        <span class="badge-shift-online" (click)="openShiftModal('close')" role="button" tabindex="0" title="Turno en curso. Clic para cerrar o arquear">
+        <span class="badge-shift-online" (click)="openShiftModal('close')" role="button" tabindex="0"
+          title="Turno en curso. Clic para cerrar o arquear">
           <span class="pulse-dot"></span> Turno Activo
         </span>
         } @else {
-        <span class="badge-shift-offline" (click)="openShiftModal('open')" role="button" tabindex="0" title="Sin turno abierto. Clic para iniciar turno">
+        <span class="badge-shift-offline" (click)="openShiftModal('open')" role="button" tabindex="0"
+          title="Sin turno abierto. Clic para iniciar turno">
           <span class="offline-dot"></span> Turno Cerrado
         </span>
         }
@@ -36,43 +38,48 @@
     <div class="header-actions">
       @if (activeShift()) {
       <button class="btn-action-outline red" (click)="openShiftModal('close')" title="Cerrar turno y arquear (Alt+Q)">
-        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 3v18M3 12h18M6 8l-3 4 3 4M18 8l3 4-3 4"/>
+        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18M3 12h18M6 8l-3 4 3 4M18 8l3 4-3 4" />
         </svg>
         <span>Arqueo &amp; Cierre</span>
         <kbd class="kbd-hint">Alt+Q</kbd>
       </button>
       } @else {
       <button class="btn-action-outline green" (click)="openShiftModal('open')" title="Abrir turno de caja (Alt+Q)">
-        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
+        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
         </svg>
         <span>Abrir Turno</span>
         <kbd class="kbd-hint">Alt+Q</kbd>
       </button>
       }
       <button class="btn-action-outline" (click)="openMovementModal()" title="Registrar movimiento (Alt+M)">
-        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
         </svg>
         <span>Movimiento</span>
         <kbd class="kbd-hint">Alt+M</kbd>
       </button>
       <button class="btn-action-outline" (click)="openTransferModal()" title="Transferir entre cuentas (Alt+T)">
-        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="17 1 21 5 17 9"/>
-          <path d="M3 5h18"/>
-          <polyline points="7 23 3 19 7 15"/>
-          <path d="M21 19H3"/>
+        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="17 1 21 5 17 9" />
+          <path d="M3 5h18" />
+          <polyline points="7 23 3 19 7 15" />
+          <path d="M21 19H3" />
         </svg>
         <span>Transferir</span>
         <kbd class="kbd-hint">Alt+T</kbd>
       </button>
       <button class="btn-primary-create" (click)="openCreateAccountModal()" title="Crear nueva cuenta (Alt+K)">
-        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
+        <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         <span>Nueva Cuenta</span>
         <kbd class="kbd-hint gold">Alt+K</kbd>
@@ -103,8 +110,9 @@
       </div>
       <div class="lhc-meta">
         <span class="lhc-badge">
-          <svg class="meta-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <svg class="meta-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
           100% Liquidez Disponible
         </span>
@@ -117,10 +125,11 @@
       <div class="breakdown-capsule cash">
         <div class="bc-top">
           <div class="bc-icon-wrap cash">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="2" y="6" width="20" height="12" rx="2"/>
-              <circle cx="12" cy="12" r="2"/>
-              <path d="M6 12h.01M18 12h.01"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <circle cx="12" cy="12" r="2" />
+              <path d="M6 12h.01M18 12h.01" />
             </svg>
           </div>
           <span class="bc-label">Efectivo Físico</span>
@@ -129,7 +138,8 @@
         <div class="bc-sub">
           @if (activeShift()) {
           <span class="bc-live-dot"></span>
-          <span>Gaveta: <strong>{{ barberService.currencySymbol() }}{{ activeShift()?.expectedCash?.toFixed(2) }}</strong></span>
+          <span>Gaveta: <strong>{{ barberService.currencySymbol() }}{{ activeShift()?.expectedCash?.toFixed(2)
+              }}</strong></span>
           } @else {
           <span class="text-muted">Sin turno en gaveta</span>
           }
@@ -140,8 +150,9 @@
       <div class="breakdown-capsule bank">
         <div class="bc-top">
           <div class="bc-icon-wrap bank">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M8 10v11M12 10v11M16 10v11M20 10v11"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M8 10v11M12 10v11M16 10v11M20 10v11" />
             </svg>
           </div>
           <span class="bc-label">Bancos &amp; POS</span>
@@ -154,9 +165,10 @@
       <div class="breakdown-capsule wallet">
         <div class="bc-top">
           <div class="bc-icon-wrap wallet">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-              <line x1="12" y1="18" x2="12.01" y2="18"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+              <line x1="12" y1="18" x2="12.01" y2="18" />
             </svg>
           </div>
           <span class="bc-label">Billeteras Digitales</span>
@@ -183,9 +195,11 @@
         <div class="slb-metrics-row">
           <span>Apertura: <strong>{{ barberService.currencySymbol() }}{{ shift.initialCash.toFixed(2) }}</strong></span>
           <span class="divider">•</span>
-          <span>Ventas Efectivo: <strong class="text-green">+{{ barberService.currencySymbol() }}{{ shift.cashSales.toFixed(2) }}</strong></span>
+          <span>Ventas Efectivo: <strong class="text-green">+{{ barberService.currencySymbol() }}{{
+              shift.cashSales.toFixed(2) }}</strong></span>
           <span class="divider">•</span>
-          <span>Egresos Efectivo: <strong class="text-red">-{{ barberService.currencySymbol() }}{{ shift.cashExpenses.toFixed(2) }}</strong></span>
+          <span>Egresos Efectivo: <strong class="text-red">-{{ barberService.currencySymbol() }}{{
+              shift.cashExpenses.toFixed(2) }}</strong></span>
         </div>
       </div>
     </div>
@@ -196,8 +210,9 @@
         <strong class="slb-cash-amount">{{ barberService.currencySymbol() }}{{ shift.expectedCash.toFixed(2) }}</strong>
       </div>
       <button class="btn-shift-action" (click)="openShiftModal('close')">
-        <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 3v18M3 12h18M6 8l-3 4 3 4M18 8l3 4-3 4"/>
+        <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v18M3 12h18M6 8l-3 4 3 4M18 8l3 4-3 4" />
         </svg>
         <span>Arqueo &amp; Cierre</span>
         <kbd class="kbd-hint">Alt+Q</kbd>
@@ -208,21 +223,24 @@
   <div class="shift-closed-alert" role="region" aria-label="Aviso de turno cerrado">
     <div class="sca-left">
       <div class="sca-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       </div>
       <div>
         <strong class="sca-title">La gaveta de efectivo no tiene un turno abierto</strong>
-        <p class="sca-desc">Abre un turno para registrar fondos iniciales y conciliar ventas en efectivo de la jornada.</p>
+        <p class="sca-desc">Abre un turno para registrar fondos iniciales y conciliar ventas en efectivo de la jornada.
+        </p>
       </div>
     </div>
     <button class="btn-open-shift-primary" (click)="openShiftModal('open')">
-      <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"/>
-        <polygon points="10 8 16 12 10 16 10 8"/>
+      <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <polygon points="10 8 16 12 10 16 10 8" />
       </svg>
       <span>Abrir Turno de Caja</span>
       <kbd class="kbd-hint">Alt+Q</kbd>
@@ -238,9 +256,10 @@
         <p class="section-subtitle">Gestión de fuentes de ingreso y saldos disponibles</p>
       </div>
       <button class="btn-link-action" (click)="openCreateAccountModal()">
-        <svg class="btn-svg-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
+        <svg class="btn-svg-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         <span>Añadir Cuenta</span>
         <kbd class="kbd-hint">Alt+K</kbd>
@@ -254,18 +273,21 @@
           <div class="fac-type-wrapper">
             <span class="fac-icon" [ngClass]="acc.type">
               @if (acc.type === 'cash') {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="2" y="6" width="20" height="12" rx="2"/>
-                <circle cx="12" cy="12" r="2"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <circle cx="12" cy="12" r="2" />
               </svg>
               } @else if (acc.type === 'bank') {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M8 10v11M12 10v11M16 10v11M20 10v11"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M8 10v11M12 10v11M16 10v11M20 10v11" />
               </svg>
               } @else {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                <line x1="12" y1="18" x2="12.01" y2="18"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                <line x1="12" y1="18" x2="12.01" y2="18" />
               </svg>
               }
             </span>
@@ -297,23 +319,29 @@
           </span>
 
           <div class="fac-quick-actions">
-            <button class="btn-fac-action" (click)="openTransferModal(acc.id)" title="Transferir desde esta cuenta" aria-label="Transferir">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="17 1 21 5 17 9"/>
-                <path d="M3 5h18"/>
-                <polyline points="7 23 3 19 7 15"/>
-                <path d="M21 19H3"/>
+            <button class="btn-fac-action" (click)="openTransferModal(acc.id)" title="Transferir desde esta cuenta"
+              aria-label="Transferir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <polyline points="17 1 21 5 17 9" />
+                <path d="M3 5h18" />
+                <polyline points="7 23 3 19 7 15" />
+                <path d="M21 19H3" />
               </svg>
             </button>
-            <button class="btn-fac-action" (click)="openMovementModal(acc.id)" title="Registrar movimiento" aria-label="Registrar movimiento">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            <button class="btn-fac-action" (click)="openMovementModal(acc.id)" title="Registrar movimiento"
+              aria-label="Registrar movimiento">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
             </button>
-            <button class="btn-fac-action" (click)="openEditAccountModal(acc)" title="Editar configuración de cuenta" aria-label="Editar cuenta">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 20h9"/>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            <button class="btn-fac-action" (click)="openEditAccountModal(acc)" title="Editar configuración de cuenta"
+              aria-label="Editar cuenta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
             </button>
           </div>
@@ -339,53 +367,36 @@
     <div class="movements-toolbar">
       <!-- Segmented Control Tabs -->
       <div class="segmented-control" role="tablist" aria-label="Filtrar tipo de movimiento">
-        <button
-          type="button"
-          role="tab"
-          class="seg-btn"
-          [class.active]="selectedTypeFilter() === 'all'"
-          [attr.aria-selected]="selectedTypeFilter() === 'all'"
-          (click)="setTypeFilter('all')">
+        <button type="button" role="tab" class="seg-btn" [class.active]="selectedTypeFilter() === 'all'"
+          [attr.aria-selected]="selectedTypeFilter() === 'all'" (click)="setTypeFilter('all')">
           Todos ({{ movementsCounts().all }})
         </button>
-        <button
-          type="button"
-          role="tab"
-          class="seg-btn income"
-          [class.active]="selectedTypeFilter() === 'income'"
-          [attr.aria-selected]="selectedTypeFilter() === 'income'"
-          (click)="setTypeFilter('income')">
-          <svg class="seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
+        <button type="button" role="tab" class="seg-btn income" [class.active]="selectedTypeFilter() === 'income'"
+          [attr.aria-selected]="selectedTypeFilter() === 'income'" (click)="setTypeFilter('income')">
+          <svg class="seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           Ingresos ({{ movementsCounts().income }})
         </button>
-        <button
-          type="button"
-          role="tab"
-          class="seg-btn expense"
-          [class.active]="selectedTypeFilter() === 'expense'"
-          [attr.aria-selected]="selectedTypeFilter() === 'expense'"
-          (click)="setTypeFilter('expense')">
-          <svg class="seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="17 14 12 9 7 14"/>
-            <line x1="12" y1="9" x2="12" y2="21"/>
+        <button type="button" role="tab" class="seg-btn expense" [class.active]="selectedTypeFilter() === 'expense'"
+          [attr.aria-selected]="selectedTypeFilter() === 'expense'" (click)="setTypeFilter('expense')">
+          <svg class="seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 14 12 9 7 14" />
+            <line x1="12" y1="9" x2="12" y2="21" />
           </svg>
           Egresos ({{ movementsCounts().expense }})
         </button>
-        <button
-          type="button"
-          role="tab"
-          class="seg-btn transfer"
-          [class.active]="selectedTypeFilter() === 'transfer'"
-          [attr.aria-selected]="selectedTypeFilter() === 'transfer'"
-          (click)="setTypeFilter('transfer')">
-          <svg class="seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="17 1 21 5 17 9"/>
-            <path d="M3 5h18"/>
-            <polyline points="7 23 3 19 7 15"/>
-            <path d="M21 19H3"/>
+        <button type="button" role="tab" class="seg-btn transfer" [class.active]="selectedTypeFilter() === 'transfer'"
+          [attr.aria-selected]="selectedTypeFilter() === 'transfer'" (click)="setTypeFilter('transfer')">
+          <svg class="seg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 1 21 5 17 9" />
+            <path d="M3 5h18" />
+            <polyline points="7 23 3 19 7 15" />
+            <path d="M21 19H3" />
           </svg>
           Transferencias ({{ movementsCounts().transfer }})
         </button>
@@ -394,38 +405,38 @@
       <!-- Controles Secundarios: Selector de Cuenta & Buscador -->
       <div class="toolbar-controls">
         <div class="select-wrapper">
-          <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="2" y="5" width="20" height="14" rx="2"/>
-            <line x1="2" y1="10" x2="22" y2="10"/>
+          <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
           </svg>
-          <select class="toolbar-select" (change)="setAccountFilter($event)" [value]="selectedAccountFilter()" aria-label="Filtrar por cuenta">
+          <select class="toolbar-select" (change)="setAccountFilter($event)" [value]="selectedAccountFilter()"
+            aria-label="Filtrar por cuenta">
             <option value="all">Todas las cuentas</option>
             @for (acc of barberService.financialAccounts(); track acc.id) {
             <option [value]="acc.id">{{ acc.name }}</option>
             }
           </select>
-          <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9"/>
+          <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>
 
         <div class="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Buscar por concepto o monto..."
-            [value]="searchQuery()"
-            (input)="onSearchInput($event)"
-            aria-label="Buscar movimientos" />
+          <input type="text" class="search-input" placeholder="Buscar por concepto o monto..." [value]="searchQuery()"
+            (input)="onSearchInput($event)" aria-label="Buscar movimientos" />
           @if (searchQuery()) {
           <button type="button" class="btn-clear-search" (click)="clearSearch()" aria-label="Limpiar búsqueda">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
           }
@@ -437,10 +448,11 @@
     @if (filteredMovements().length === 0) {
     <div class="empty-state-box">
       <div class="empty-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="12" y1="20" x2="12" y2="10"/>
-          <line x1="18" y1="20" x2="18" y2="4"/>
-          <line x1="6" y1="20" x2="6" y2="16"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="20" x2="12" y2="10" />
+          <line x1="18" y1="20" x2="18" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="16" />
         </svg>
       </div>
       <h3 class="empty-title">Sin movimientos registrados</h3>
@@ -452,9 +464,10 @@
         }
       </p>
       <button class="btn-empty-action" (click)="openMovementModal()">
-        <svg class="btn-svg-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
+        <svg class="btn-svg-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
         <span>Registrar Primer Movimiento</span>
         <kbd class="kbd-hint">Alt+M</kbd>
@@ -465,24 +478,29 @@
     <!-- VISTA 1: FEED DE MOVIMIENTOS EN MÓVIL (< 768px) -->
     <div class="mobile-movements-feed" role="feed" aria-label="Lista de transacciones en móvil">
       @for (mov of paginatedMovements(); track mov.id) {
-      <article class="mobile-movement-card" [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'" [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
+      <article class="mobile-movement-card"
+        [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'"
+        [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
         <div class="mmc-icon-badge" [ngClass]="mov.movementType">
           @if (mov.movementType === 'income' || mov.movementType === 'transfer_in') {
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           } @else if (mov.movementType === 'expense' || mov.movementType === 'transfer_out') {
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="17 14 12 9 7 14"/>
-            <line x1="12" y1="9" x2="12" y2="21"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 14 12 9 7 14" />
+            <line x1="12" y1="9" x2="12" y2="21" />
           </svg>
           } @else {
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="17 1 21 5 17 9"/>
-            <path d="M3 5h18"/>
-            <polyline points="7 23 3 19 7 15"/>
-            <path d="M21 19H3"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 1 21 5 17 9" />
+            <path d="M3 5h18" />
+            <polyline points="7 23 3 19 7 15" />
+            <path d="M21 19H3" />
           </svg>
           }
         </div>
@@ -490,8 +508,11 @@
         <div class="mmc-info">
           <div class="mmc-top-row">
             <span class="mmc-concept" [title]="mov.description">{{ mov.description }}</span>
-            <span class="mmc-amount" [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'" [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
-              {{ (mov.movementType === 'income' || mov.movementType === 'transfer_in') ? '+' : '-' }}{{ barberService.currencySymbol() }}{{ mov.amount.toFixed(2) }}
+            <span class="mmc-amount"
+              [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'"
+              [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
+              {{ (mov.movementType === 'income' || mov.movementType === 'transfer_in') ? '+' : '-' }}{{
+              barberService.currencySymbol() }}{{ mov.amount.toFixed(2) }}
             </span>
           </div>
 
@@ -549,27 +570,30 @@
             <td class="td-type">
               @if (mov.movementType === 'income' || mov.movementType === 'transfer_in') {
               <span class="status-badge income">
-                <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+                <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 Ingreso
               </span>
               } @else if (mov.movementType === 'expense' || mov.movementType === 'transfer_out') {
               <span class="status-badge expense">
-                <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="17 14 12 9 7 14"/>
-                  <line x1="12" y1="9" x2="12" y2="21"/>
+                <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="17 14 12 9 7 14" />
+                  <line x1="12" y1="9" x2="12" y2="21" />
                 </svg>
                 Egreso
               </span>
               } @else {
               <span class="status-badge transfer">
-                <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="17 1 21 5 17 9"/>
-                  <path d="M3 5h18"/>
-                  <polyline points="7 23 3 19 7 15"/>
-                  <path d="M21 19H3"/>
+                <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="17 1 21 5 17 9" />
+                  <path d="M3 5h18" />
+                  <polyline points="7 23 3 19 7 15" />
+                  <path d="M21 19H3" />
                 </svg>
                 Transferencia
               </span>
@@ -577,7 +601,9 @@
             </td>
 
             <!-- Monto -->
-            <td class="td-amount text-right" [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'" [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
+            <td class="td-amount text-right"
+              [class.income]="mov.movementType === 'income' || mov.movementType === 'transfer_in'"
+              [class.expense]="mov.movementType === 'expense' || mov.movementType === 'transfer_out'">
               <span class="amount-sign">
                 {{ (mov.movementType === 'income' || mov.movementType === 'transfer_in') ? '+' : '-' }}
               </span>
@@ -594,17 +620,21 @@
     <div class="table-pagination-bar">
       <span class="pagination-info">{{ paginationInfo() }}</span>
       <div class="pagination-actions">
-        <button type="button" class="btn-page" [disabled]="currentPage() === 1" (click)="prevPage()" aria-label="Página anterior">
-          <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="15 18 9 12 15 6"/>
+        <button type="button" class="btn-page" [disabled]="currentPage() === 1" (click)="prevPage()"
+          aria-label="Página anterior">
+          <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6" />
           </svg>
           <span>Anterior</span>
         </button>
         <span class="page-badge">{{ currentPage() }} / {{ totalPages() }}</span>
-        <button type="button" class="btn-page" [disabled]="currentPage() >= totalPages()" (click)="nextPage()" aria-label="Página siguiente">
+        <button type="button" class="btn-page" [disabled]="currentPage() >= totalPages()" (click)="nextPage()"
+          aria-label="Página siguiente">
           <span>Siguiente</span>
-          <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="9 18 15 12 9 6"/>
+          <svg class="page-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
       </div>
@@ -619,34 +649,22 @@
   <!-- ============================================================================== -->
 
   <!-- 1. MODAL DE TURNO: APERTURA O ARQUEO & CIERRE -->
-  <app-cash-shift-modal
-    [isOpen]="isShiftModalOpen()"
-    [mode]="shiftMode()"
-    (closed)="closeShiftModal()"
+  <app-cash-shift-modal [isOpen]="isShiftModalOpen()" [mode]="shiftMode()" (closed)="closeShiftModal()"
     (shiftSuccess)="showToast($event)">
   </app-cash-shift-modal>
 
   <!-- 2. MODAL DE NUEVA O EDICIÓN DE CUENTA -->
-  <app-financial-account-modal
-    [isOpen]="isAccountModalOpen()"
-    [accountToEdit]="editingAccount()"
-    (closed)="closeAccountModal()"
-    (saved)="showToast($event)">
+  <app-financial-account-modal [isOpen]="isAccountModalOpen()" [accountToEdit]="editingAccount()"
+    (closed)="closeAccountModal()" (saved)="showToast($event)">
   </app-financial-account-modal>
 
   <!-- 3. MODAL DE REGISTRAR MOVIMIENTO -->
-  <app-cash-movement-modal
-    [isOpen]="isMovementModalOpen()"
-    [presetAccountId]="presetMovementAccountId()"
-    (closed)="closeMovementModal()"
-    (saved)="showToast($event)">
+  <app-cash-movement-modal [isOpen]="isMovementModalOpen()" [presetAccountId]="presetMovementAccountId()"
+    (closed)="closeMovementModal()" (saved)="showToast($event)">
   </app-cash-movement-modal>
 
   <!-- 4. MODAL DE TRANSFERENCIA ENTRE CUENTAS -->
-  <app-cash-transfer-modal
-    [isOpen]="isTransferModalOpen()"
-    [presetFromAccountId]="presetTransferFromAccountId()"
-    (closed)="closeTransferModal()"
-    (saved)="showToast($event)">
+  <app-cash-transfer-modal [isOpen]="isTransferModalOpen()" [presetFromAccountId]="presetTransferFromAccountId()"
+    (closed)="closeTransferModal()" (saved)="showToast($event)">
   </app-cash-transfer-modal>
 </div>

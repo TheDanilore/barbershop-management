@@ -55,6 +55,8 @@ const STORAGE_KEYS = {
   ACCOUNT_MOVEMENTS: 'barbertrack_account_movements',
   BUSINESS_SETTINGS: 'barbertrack_business_settings',
   APP_SETTINGS: 'barbertrack_app_settings',
+  LOYALTY_REWARDS: 'barbertrack_loyalty_rewards',
+  PENDING_REWARD_CLAIMS: 'barbertrack_pending_reward_claims',
 };
 
 /** Mapeo bidireccional estricto entre Enums de TypeScript y PostgreSQL (public.appointment_status) */
@@ -198,9 +200,14 @@ export class BarberService {
     this.debtPaymentModalClient.set(null);
   }
 
-  // Loyalty Rewards System (0..N premios configurables)
-  readonly loyaltyRewards = signal<LoyaltyReward[]>([]);
-  readonly pendingRewardClaims = signal<LoyaltyRewardClaim[]>([]);
+  // Loyalty Rewards System (0..N premios configurables con soporte SWR)
+  readonly loyaltyRewards = signal<LoyaltyReward[]>(
+    this.loadFromStorage(STORAGE_KEYS.LOYALTY_REWARDS, [])
+  );
+  readonly pendingRewardClaims = signal<LoyaltyRewardClaim[]>(
+    this.loadFromStorage(STORAGE_KEYS.PENDING_REWARD_CLAIMS, [])
+  );
+  readonly isLoyaltyLoaded = signal<boolean>(false);
 
   // Próximo hito de fidelización que el cliente actual aún no ha alcanzado
   readonly nextLoyaltyMilestone = computed<LoyaltyReward | null>(() => {
@@ -1109,19 +1116,19 @@ export class BarberService {
         if (rewardsErr) {
           this.logger.error('BarberService', 'Error al cargar loyalty_rewards', rewardsErr);
         } else if (rewardsData) {
-          this.loyaltyRewards.set(
-            rewardsData.map((r: any) => ({
-              id: r.id,
-              name: r.name,
-              description: r.description ?? undefined,
-              rewardType: r.reward_type,
-              stampsRequired: r.stamps_required,
-              rewardValue: r.reward_value != null ? Number(r.reward_value) : null,
-              isActive: r.is_active,
-              sortOrder: r.sort_order,
-              createdAt: r.created_at,
-            }))
-          );
+          const mappedRewards = rewardsData.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            description: r.description ?? undefined,
+            rewardType: r.reward_type,
+            stampsRequired: r.stamps_required,
+            rewardValue: r.reward_value != null ? Number(r.reward_value) : null,
+            isActive: r.is_active,
+            sortOrder: r.sort_order,
+            createdAt: r.created_at,
+          }));
+          this.loyaltyRewards.set(mappedRewards);
+          this.saveToStorage(STORAGE_KEYS.LOYALTY_REWARDS, mappedRewards);
         }
       } catch (err) {
         this.logger.warn('BarberService', 'Aviso cargando loyalty_rewards', err);
@@ -1143,26 +1150,28 @@ export class BarberService {
         if (claimsErr) {
           this.logger.error('BarberService', 'Error al cargar loyalty_reward_claims', claimsErr);
         } else if (claimsData) {
-          this.pendingRewardClaims.set(
-            claimsData.map((c: any) => ({
-              id: c.id,
-              customerId: c.customer_id,
-              customerName: c.customer?.full_name ?? 'Cliente',
-              rewardId: c.reward_id,
-              rewardName: c.reward?.name ?? 'Premio',
-              rewardType: c.reward?.reward_type ?? 'gift',
-              rewardValue: c.reward?.reward_value != null ? Number(c.reward.reward_value) : null,
-              saleId: c.sale_id ?? null,
-              claimedAt: c.claimed_at,
-              redeemedAt: c.redeemed_at ?? null,
-              redeemedBy: c.redeemed_by ?? null,
-              notes: c.notes ?? null,
-              stampsAtClaim: c.stamps_at_claim,
-            }))
-          );
+          const mappedClaims = claimsData.map((c: any) => ({
+            id: c.id,
+            customerId: c.customer_id,
+            customerName: c.customer?.full_name ?? 'Cliente',
+            rewardId: c.reward_id,
+            rewardName: c.reward?.name ?? 'Premio',
+            rewardType: c.reward?.reward_type ?? 'gift',
+            rewardValue: c.reward?.reward_value != null ? Number(c.reward.reward_value) : null,
+            saleId: c.sale_id ?? null,
+            claimedAt: c.claimed_at,
+            redeemedAt: c.redeemed_at ?? null,
+            redeemedBy: c.redeemed_by ?? null,
+            notes: c.notes ?? null,
+            stampsAtClaim: c.stamps_at_claim,
+          }));
+          this.pendingRewardClaims.set(mappedClaims);
+          this.saveToStorage(STORAGE_KEYS.PENDING_REWARD_CLAIMS, mappedClaims);
         }
       } catch (err) {
         this.logger.warn('BarberService', 'Aviso cargando loyalty_reward_claims', err);
+      } finally {
+        this.isLoyaltyLoaded.set(true);
       }
 
       this.logger.info('BarberService', 'Sincronización completada con éxito');
@@ -2685,9 +2694,11 @@ export class BarberService {
         .update({ is_active: isActive })
         .eq('id', id);
       if (error) throw error;
-      this.loyaltyRewards.update((list) =>
-        list.map((r) => (r.id === id ? { ...r, isActive } : r))
-      );
+      this.loyaltyRewards.update((list) => {
+        const updated = list.map((r) => (r.id === id ? { ...r, isActive } : r));
+        this.saveToStorage(STORAGE_KEYS.LOYALTY_REWARDS, updated);
+        return updated;
+      });
     } catch (err) {
       this.logger.error('BarberService', 'Error al cambiar estado de loyalty_reward', err);
       throw err;
@@ -2715,7 +2726,11 @@ export class BarberService {
           if (softErr) throw softErr;
         }
       }
-      this.loyaltyRewards.update((list) => list.filter((r) => r.id !== id));
+      this.loyaltyRewards.update((list) => {
+        const updated = list.filter((r) => r.id !== id);
+        this.saveToStorage(STORAGE_KEYS.LOYALTY_REWARDS, updated);
+        return updated;
+      });
     } catch (err) {
       this.logger.error('BarberService', 'Error al eliminar/desactivar loyalty_reward', err);
       throw err;
@@ -2731,7 +2746,11 @@ export class BarberService {
         .rpc('redeem_loyalty_claim', { p_claim_id: claimId, p_notes: notes ?? null });
       if (error) throw error;
       // Remove from pending list locally (optimistic)
-      this.pendingRewardClaims.update((list) => list.filter((c) => c.id !== claimId));
+      this.pendingRewardClaims.update((list) => {
+        const updated = list.filter((c) => c.id !== claimId);
+        this.saveToStorage(STORAGE_KEYS.PENDING_REWARD_CLAIMS, updated);
+        return updated;
+      });
     } catch (err) {
       this.logger.error('BarberService', 'Error al canjear loyalty_reward_claim', err);
       throw err;

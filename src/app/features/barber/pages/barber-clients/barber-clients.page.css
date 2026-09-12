@@ -30,7 +30,7 @@
   gap: 18px;
   max-width: 1440px;
   margin: 0 auto;
-  padding-bottom: calc(var(--safe-bottom, 16px) + 12px);
+  padding-bottom: 24px;
 }
 
 /* ==============================================================================
@@ -309,6 +309,10 @@
 }
 
 @media (max-width: 768px) {
+  .clients-page {
+    padding-bottom: 0;
+  }
+
   .kbd-pill {
     display: none !important;
   }

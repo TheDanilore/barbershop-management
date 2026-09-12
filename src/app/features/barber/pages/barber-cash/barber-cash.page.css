@@ -10,7 +10,7 @@
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding-bottom: 32px;
+  padding-bottom: 24px;
 }
 
 /* ==============================================================================
@@ -88,6 +88,7 @@
   transition: all 0.2s ease;
   user-select: none;
 }
+
 .badge-shift-online:hover {
   background: rgba(16, 185, 129, 0.2);
   border-color: #10b981;
@@ -118,6 +119,7 @@
   transition: all 0.2s ease;
   user-select: none;
 }
+
 .badge-shift-offline:hover {
   background: rgba(239, 68, 68, 0.18);
   border-color: #ef4444;
@@ -170,6 +172,7 @@
   transition: all 0.2s ease;
   white-space: nowrap;
 }
+
 .btn-action-outline:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-active);
@@ -182,6 +185,7 @@
   border-color: rgba(239, 68, 68, 0.25);
   color: #fca5a5;
 }
+
 .btn-action-outline.red:hover {
   background: rgba(239, 68, 68, 0.18);
   border-color: #ef4444;
@@ -193,6 +197,7 @@
   border-color: rgba(16, 185, 129, 0.25);
   color: #34d399;
 }
+
 .btn-action-outline.green:hover {
   background: rgba(16, 185, 129, 0.18);
   border-color: #10b981;
@@ -216,6 +221,7 @@
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
+
 .btn-primary-create:hover {
   transform: translateY(-1px);
   filter: brightness(1.08);
@@ -287,7 +293,7 @@
 .shimmer-hero {
   height: 160px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0.03) 75%);
   background-size: 200% 100%;
   animation: shimmerAnim 1.6s infinite;
 }
@@ -301,7 +307,7 @@
 .shimmer-card {
   height: 140px;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0.03) 75%);
   background-size: 200% 100%;
   animation: shimmerAnim 1.6s infinite;
 }
@@ -309,14 +315,19 @@
 .shimmer-ledger {
   height: 280px;
   border-radius: var(--radius-md);
-  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.07) 50%, rgba(255, 255, 255, 0.03) 75%);
   background-size: 200% 100%;
   animation: shimmerAnim 1.6s infinite;
 }
 
 @keyframes shimmerAnim {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 /* ==============================================================================
@@ -593,8 +604,15 @@
   color: var(--text-dim);
 }
 
-.text-green { color: #34d399 !important; font-weight: 700; }
-.text-red { color: #f87171 !important; font-weight: 700; }
+.text-green {
+  color: #34d399 !important;
+  font-weight: 700;
+}
+
+.text-red {
+  color: #f87171 !important;
+  font-weight: 700;
+}
 
 .slb-right {
   display: flex;
@@ -639,6 +657,7 @@
   transition: all 0.2s ease;
   white-space: nowrap;
 }
+
 .btn-shift-action:hover {
   background: rgba(239, 68, 68, 0.25);
   border-color: #ef4444;
@@ -676,6 +695,7 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
 .sca-icon-wrap svg {
   width: 22px;
   height: 22px;
@@ -712,6 +732,7 @@
   transition: all 0.2s ease;
   white-space: nowrap;
 }
+
 .btn-open-shift-primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.08);
@@ -732,7 +753,8 @@
 /* ==============================================================================
    5. SECCIÓN CUENTAS FINANCIERAS
    ============================================================================== */
-.accounts-section, .movements-section {
+.accounts-section,
+.movements-section {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -779,6 +801,7 @@
   gap: 6px;
   transition: all 0.15s ease;
 }
+
 .btn-link-action:hover {
   background: rgba(229, 169, 60, 0.1);
   border-color: var(--gold-primary);
@@ -801,6 +824,7 @@
   position: relative;
   transition: all 0.2s ease;
 }
+
 .fin-account-card:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-active);
@@ -833,6 +857,7 @@
   align-items: center;
   justify-content: center;
 }
+
 .fac-icon svg {
   width: 16px;
   height: 16px;
@@ -842,10 +867,12 @@
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
 }
+
 .fac-icon.bank {
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
 }
+
 .fac-icon.digital_wallet {
   background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
@@ -933,6 +960,7 @@
   gap: 5px;
   color: var(--text-muted);
 }
+
 .fac-status-pill.active {
   color: #34d399;
 }
@@ -963,10 +991,12 @@
   justify-content: center;
   transition: all 0.15s ease;
 }
+
 .btn-fac-action svg {
   width: 14px;
   height: 14px;
 }
+
 .btn-fac-action:hover {
   background: var(--bg-card-hover);
   color: var(--text-main);
@@ -1094,6 +1124,7 @@
   outline: none;
   transition: border-color 0.15s ease;
 }
+
 .toolbar-select:focus {
   border-color: var(--gold-primary);
 }
@@ -1125,6 +1156,7 @@
   outline: none;
   transition: all 0.2s ease;
 }
+
 .search-input:focus {
   border-color: var(--gold-primary);
   width: 300px;
@@ -1143,10 +1175,12 @@
   justify-content: center;
   padding: 2px;
 }
+
 .btn-clear-search svg {
   width: 14px;
   height: 14px;
 }
+
 .btn-clear-search:hover {
   color: #ffffff;
 }
@@ -1175,6 +1209,7 @@
   align-items: center;
   justify-content: center;
 }
+
 .empty-icon-wrap svg {
   width: 28px;
   height: 28px;
@@ -1210,6 +1245,7 @@
   gap: 6px;
   transition: all 0.15s ease;
 }
+
 .btn-empty-action:hover {
   filter: brightness(1.08);
 }
@@ -1218,7 +1254,8 @@
    7. VISTA MÓVIL: FEED DE MOVIMIENTOS (< 768px)
    ============================================================================== */
 .mobile-movements-feed {
-  display: none; /* Se muestra en mobile via media query */
+  display: none;
+  /* Se muestra en mobile via media query */
   flex-direction: column;
   gap: 10px;
 }
@@ -1247,17 +1284,20 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
 .mmc-icon-badge svg {
   width: 18px;
   height: 18px;
 }
 
-.mmc-icon-badge.income, .mmc-icon-badge.transfer_in {
+.mmc-icon-badge.income,
+.mmc-icon-badge.transfer_in {
   background: rgba(16, 185, 129, 0.12);
   color: #34d399;
 }
 
-.mmc-icon-badge.expense, .mmc-icon-badge.transfer_out {
+.mmc-icon-badge.expense,
+.mmc-icon-badge.transfer_out {
   background: rgba(239, 68, 68, 0.12);
   color: #f87171;
 }
@@ -1297,8 +1337,14 @@
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
-.mmc-amount.income { color: #34d399; }
-.mmc-amount.expense { color: #f87171; }
+
+.mmc-amount.income {
+  color: #34d399;
+}
+
+.mmc-amount.expense {
+  color: #f87171;
+}
 
 .mmc-meta-row {
   display: flex;
@@ -1521,10 +1567,12 @@
   gap: 6px;
   transition: all 0.15s ease;
 }
+
 .btn-page:hover:not(:disabled) {
   background: var(--bg-card-hover);
   color: #ffffff;
 }
+
 .btn-page:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1580,6 +1628,7 @@
 @media (max-width: 768px) {
   .cash-page {
     gap: 18px;
+    padding-bottom: 0;
   }
 
   .page-header {
@@ -1598,8 +1647,10 @@
     gap: 8px;
   }
 
-  .btn-action-outline, .btn-primary-create {
-    height: 46px; /* Touch target optimizado */
+  .btn-action-outline,
+  .btn-primary-create {
+    height: 46px;
+    /* Touch target optimizado */
     justify-content: center;
     font-size: 0.82rem;
   }
@@ -1676,6 +1727,7 @@
     width: 100%;
     scrollbar-width: none;
   }
+
   .segmented-control::-webkit-scrollbar {
     display: none;
   }
@@ -1696,6 +1748,7 @@
   .search-input {
     width: 100%;
   }
+
   .search-input:focus {
     width: 100%;
   }
@@ -1731,12 +1784,14 @@
   .liquidity-hero-card {
     grid-template-columns: 1fr;
   }
+
   .lhc-main {
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
     padding-bottom: 18px;
     padding-right: 0;
   }
+
   .accounts-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1744,21 +1799,49 @@
 
 /* ANIMACIONES */
 @keyframes pulseAnim {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.25); opacity: 0.65; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.25);
+    opacity: 0.65;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInRight {
-  from { transform: translateX(50px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(50px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }

@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  HostListener,
   computed,
   inject,
   signal,
@@ -32,6 +34,16 @@ export class BarberDashboardPage {
   private readonly logger = inject(LoggerService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor() {
+    this.destroyRef.onDestroy(() => {
+      if (this.toastTimeout) {
+        clearTimeout(this.toastTimeout);
+        this.toastTimeout = null;
+      }
+    });
+  }
 
   // Modales de Acción Rápida In-situ
   readonly isShiftModalOpen = signal(false);
@@ -43,9 +55,23 @@ export class BarberDashboardPage {
   readonly toastMessage = signal<string | null>(null);
   private toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  // Estado de Shimmer condicional: solo en carga en frío sin datos en memoria
+  readonly shouldShowSkeleton = computed(() => {
+    return (
+      this.barberService.isLoading() &&
+      this.barberService.cuts().length === 0 &&
+      this.barberService.clients().length === 0
+    );
+  });
+
   // Clientes con deuda pendiente
   readonly clientsWithDebt = computed(() => {
     return this.barberService.clients().filter((c) => (c.currentDebt || 0) > 0);
+  });
+
+  // Monto total acumulado en fiados
+  readonly totalDebtAmount = computed(() => {
+    return this.clientsWithDebt().reduce((sum, c) => sum + (c.currentDebt || 0), 0);
   });
 
   // Top clientes para el widget de fidelización
@@ -59,6 +85,39 @@ export class BarberDashboardPage {
   readonly recentCuts = computed(() => {
     return this.barberService.cuts().slice(0, 7);
   });
+
+  // ---------------------------------------------------------------------------
+  // POWER USER KEYBOARD SHORTCUTS (ESTÁNDAR BARBERTRACK PRO: ALT + TECLA)
+  // ---------------------------------------------------------------------------
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    if (event.defaultPrevented) return;
+
+    // Ignorar si el usuario está interactuando con formularios o inputs
+    const target = event.target as HTMLElement | null;
+    if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+
+    // Alt + N -> Registrar Nuevo Corte POS
+    if (event.altKey && event.key.toLowerCase() === 'n') {
+      event.preventDefault();
+      this.openRegisterCutModal();
+      return;
+    }
+
+    // Alt + A -> Ver Agenda
+    if (event.altKey && event.key.toLowerCase() === 'a') {
+      event.preventDefault();
+      this.navigateTo('appointments');
+      return;
+    }
+
+    // Alt + C -> Arqueo / Caja
+    if (event.altKey && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      this.openShiftModal(this.activeShift() ? 'close' : 'open');
+      return;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // NAVEGACIÓN
@@ -112,6 +171,67 @@ export class BarberDashboardPage {
     } catch {
       return isoDate;
     }
+  }
+
+  formatTime(isoDate: string): string {
+    try {
+      const date = new Date(isoDate);
+      return date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return isoDate;
+    }
+  }
+
+  formatRelativeDate(isoDate: string): string {
+    try {
+      const date = new Date(isoDate);
+      const now = new Date();
+      const isToday =
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear();
+
+      const timeStr = date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      if (isToday) {
+        return `Hoy, ${timeStr}`;
+      }
+
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday =
+        date.getDate() === yesterday.getDate() &&
+        date.getMonth() === yesterday.getMonth() &&
+        date.getFullYear() === yesterday.getFullYear();
+
+      if (isYesterday) {
+        return `Ayer, ${timeStr}`;
+      }
+
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return isoDate;
+    }
+  }
+
+  getInitials(name: string): string {
+    if (!name) return 'C';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
   }
 
   getPaymentLabel(method: string): string {

@@ -1,68 +1,146 @@
 <!-- ========================================================================= -->
-<!-- BARBERTRACK PRO — DASHBOARD EJECUTIVO PRINCIPAL                             -->
+<!-- BARBERTRACK PRO — DASHBOARD EJECUTIVO PRINCIPAL (CHAMELEON ARCHITECTURE)    -->
 <!-- ========================================================================= -->
-<div class="dashboard-container fade-in">
-  <!-- Toast Notification Local -->
+<main class="dashboard-container fade-in" id="barber-main-dashboard">
+  <!-- Toast Notification Local Accesible -->
   @if (toastMessage()) {
-  <div class="toast-banner">
-    <span class="toast-icon">✨</span>
+  <aside class="toast-banner" role="status" aria-live="polite">
+    <span class="toast-icon" aria-hidden="true">✨</span>
     <span class="toast-text">{{ toastMessage() }}</span>
-  </div>
+  </aside>
   }
 
-  <!-- Grid de Métricas Principales (KPIs) -->
-  <app-barber-metrics></app-barber-metrics>
+  <!-- ======================================================================= -->
+  <!-- ESTADO DE CARGA: SKELETON SHIMMER (SOLO COLD START SIN DATOS EN MEMORIA) -->
+  <!-- ======================================================================= -->
+  @if (shouldShowSkeleton()) {
+  <section class="dashboard-skeleton-wrap" aria-busy="true" aria-label="Cargando panel de control...">
+    <div class="skeleton-metrics-bar shimmer"></div>
+    <div class="skeleton-grid">
+      <div class="skeleton-main-col">
+        <div class="skeleton-card large shimmer"></div>
+        <div class="skeleton-card tall shimmer"></div>
+      </div>
+      <div class="skeleton-side-col">
+        <div class="skeleton-card shimmer"></div>
+        <div class="skeleton-card shimmer"></div>
+        <div class="skeleton-card shimmer"></div>
+      </div>
+    </div>
+  </section>
+  } @else {
 
-  <!-- Contenido en 2 Columnas Asimétricas (65% Principal / 35% Lateral) -->
+  <!-- Grid de Métricas Principales (KPIs reactivos al período) -->
+  <app-barber-metrics (viewStats)="navigateTo('stats')"></app-barber-metrics>
+
+  <!-- Contenido en Grilla Camaleónica (Mobile: 1 Col | Tablet: 2 Col | Desktop: 65% / 35%) -->
   <div class="dashboard-grid">
     <!-- ===================================================================== -->
-    <!-- COLUMNA PRINCIPAL: AGENDA DEL DÍA & ÚLTIMOS SERVICIOS COBRADOS        -->
+    <!-- COLUMNA PRINCIPAL: AGENDA DEL DÍA & FEED / TABLA DE SERVICIOS COBRADOS -->
     <!-- ===================================================================== -->
     <div class="dashboard-main-col">
       <!-- 1. Agenda del Día -->
-      <section class="section-container surface-card agenda-card">
-        <div class="section-header-flex">
+      <section class="surface-card agenda-card" aria-labelledby="agenda-heading">
+        <header class="section-header-flex">
           <div class="section-title-wrap">
-            <h2 class="section-title">Agenda de hoy</h2>
+            <h2 id="agenda-heading" class="section-title">Agenda de hoy</h2>
             <span class="badge-count">{{ barberService.todayAppointments().length }} turnos</span>
           </div>
-          <button class="link-btn" (click)="navigateTo('appointments')">
-            Ver agenda completa →
+          <button type="button" class="link-btn" (click)="navigateTo('appointments')" title="Ver agenda completa (Alt+A)">
+            <span>Ver agenda completa</span>
+            <span class="link-arrow" aria-hidden="true">→</span>
           </button>
+        </header>
+
+        <div class="agenda-content-body">
+          <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
         </div>
-        <app-barber-schedule (actionFeedback)="showToast($event)"></app-barber-schedule>
       </section>
 
-      <!-- 2. Historial de Últimos Servicios Cobrados -->
-      <section class="section-container surface-card cuts-section-card">
-        <div class="section-header-flex">
+      <!-- 2. Historial de Últimos Servicios Cobrados (Camaleónico: Feed Móvil vs Tabla Desktop) -->
+      <section class="surface-card cuts-section-card" aria-labelledby="cuts-heading">
+        <header class="section-header-flex">
           <div class="section-title-wrap">
-            <h2 class="section-title">Últimos Servicios Cobrados</h2>
+            <h2 id="cuts-heading" class="section-title">Últimos Servicios Cobrados</h2>
             <span class="badge-count">{{ barberService.cuts().length }} total</span>
           </div>
-          <button class="btn-primary-small" (click)="openRegisterCutModal()">
-            + Registrar Corte
+          <button type="button" class="btn-primary-small" (click)="openRegisterCutModal()" title="Registrar nuevo corte (Alt+N)">
+            <svg viewBox="0 0 24 24" class="btn-action-icon" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span class="btn-label">Registrar Corte</span>
+            <kbd class="shortcut-pill" aria-hidden="true">Alt+N</kbd>
           </button>
+        </header>
+
+        <!-- A. FEED MÓVIL (< 768px): Filosofía Apple Wallet / Stripe Mobile -->
+        <div class="cuts-mobile-feed" role="list">
+          @for (cut of recentCuts(); track cut.id) {
+          <article
+            class="mobile-cut-card"
+            role="listitem">
+            <div class="mcc-avatar" aria-hidden="true">
+              {{ getInitials(cut.clientName) }}
+            </div>
+            <div class="mcc-content">
+              <div class="mcc-row-top">
+                <span class="mcc-name">{{ cut.clientName }}</span>
+                <span class="mcc-amount" [class.credit-text]="cut.paymentMethod === 'credit'">
+                  + {{ barberService.currencySymbol() }}{{ cut.price.toFixed(2) }}
+                </span>
+              </div>
+              <div class="mcc-row-bottom">
+                <div class="mcc-tags">
+                  <span class="tag-service">{{ cut.serviceName }}</span>
+                  <span class="tag-payment" [class]="cut.paymentMethod">
+                    {{ getPaymentLabel(cut.paymentMethod) }}
+                  </span>
+                </div>
+                <time class="mcc-time" [attr.datetime]="cut.date">{{ formatRelativeDate(cut.date) }}</time>
+              </div>
+            </div>
+          </article>
+          } @empty {
+          <div class="cuts-empty-state">
+            <div class="ces-icon" aria-hidden="true">✂️</div>
+            <h3 class="ces-title">Sin cobros registrados hoy</h3>
+            <p class="ces-desc">Registra el primer servicio del turno para comenzar a alimentar las métricas en tiempo real.</p>
+            <button type="button" class="btn-empty-cta" (click)="openRegisterCutModal()">
+              + Registrar Primer Corte
+            </button>
+          </div>
+          }
         </div>
 
+        <!-- B. TABLA DE ALTA DENSIDAD (≥ 768px): Filosofía Linear / Desktop Power User -->
         <div class="cuts-table-responsive">
-          <table class="data-table">
+          <table class="data-table" aria-label="Historial de servicios recientes">
             <thead>
               <tr>
-                <th>Hora</th>
-                <th>Cliente</th>
-                <th>Servicio</th>
-                <th>Barbero</th>
-                <th>Método</th>
-                <th class="text-right">Precio</th>
+                <th scope="col">Hora</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Servicio</th>
+                <th scope="col">Barbero</th>
+                <th scope="col">Método</th>
+                <th scope="col" class="text-right">Precio</th>
               </tr>
             </thead>
             <tbody>
               @for (cut of recentCuts(); track cut.id) {
-              <tr>
-                <td class="cell-time">{{ formatDate(cut.date) }}</td>
-                <td class="cell-client font-medium">{{ cut.clientName }}</td>
-                <td><span class="tag-service">{{ cut.serviceName }}</span></td>
+              <tr class="data-row">
+                <td class="cell-time">
+                  <time [attr.datetime]="cut.date">{{ formatDate(cut.date) }}</time>
+                </td>
+                <td class="cell-client">
+                  <div class="client-cell-wrap">
+                    <span class="cell-avatar-micro" aria-hidden="true">{{ getInitials(cut.clientName) }}</span>
+                    <span class="client-name-text">{{ cut.clientName }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="tag-service">{{ cut.serviceName }}</span>
+                </td>
                 <td class="cell-subtle">{{ cut.barberName }}</td>
                 <td>
                   <span class="tag-payment" [class]="cut.paymentMethod">
@@ -77,10 +155,10 @@
               <tr>
                 <td colspan="6" class="table-empty-row">
                   <div class="table-empty-box">
-                    <div class="teb-icon">✂</div>
-                    <div class="teb-title">Sin cobros registrados hoy</div>
-                    <div class="teb-sub">Registra el primer servicio para alimentar las métricas en tiempo real.</div>
-                    <button class="btn-empty-action" (click)="openRegisterCutModal()">
+                    <div class="teb-icon" aria-hidden="true">✂</div>
+                    <h3 class="teb-title">Sin cobros registrados hoy</h3>
+                    <p class="teb-sub">Registra el primer servicio para alimentar las métricas en tiempo real.</p>
+                    <button type="button" class="btn-empty-action" (click)="openRegisterCutModal()">
                       + Registrar Primer Corte (Alt+N)
                     </button>
                   </div>
@@ -94,53 +172,72 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- COLUMNA LATERAL: WIDGETS DE OPERACIÓN RÁPIDA                           -->
+    <!-- COLUMNA LATERAL: WIDGETS DE OPERACIÓN RÁPIDA & CONCILIACIÓN           -->
     <!-- ===================================================================== -->
-    <div class="dashboard-side-col">
-      <!-- 1. Alerta de Fiados / Cuentas por Cobrar (si existen) -->
+    <aside class="dashboard-side-col" aria-label="Widgets de Operación y Caja">
+      <!-- 1. Alerta de Fiados / Cuentas por Cobrar (Riesgo Financiero Fintech) -->
       @if (clientsWithDebt().length > 0) {
-      <div class="action-card debt-alert-card">
-        <div class="acc-header">
-          <span class="acc-title">⚠️ Cuentas por Cobrar (Fiados)</span>
-          <span class="acc-pill-warn">{{ clientsWithDebt().length }} clientes</span>
-        </div>
-        <div class="debt-client-list">
-          @for (debtCli of clientsWithDebt().slice(0, 3); track debtCli.id) {
-          <div class="debt-row">
-            <div class="debt-info">
-              <span class="debt-name">{{ debtCli.name }}</span>
-              <span class="debt-amount">Debe: {{ barberService.currencySymbol() }}{{ (debtCli.currentDebt || 0).toFixed(2) }}</span>
+      <article class="surface-card action-card debt-alert-card" aria-labelledby="debt-heading">
+        <header class="acc-header">
+          <div class="acc-title-group">
+            <div class="acc-title-with-pill">
+              <span class="acc-risk-icon" aria-hidden="true">⚠️</span>
+              <h3 id="debt-heading" class="acc-title">Cuentas por Cobrar (Fiados)</h3>
             </div>
-            <button class="btn-pay-debt-sm" (click)="openDebtPaymentModal(debtCli)">
+            <span class="acc-pill-warn" [title]="'Total adeudado: ' + barberService.currencySymbol() + totalDebtAmount().toFixed(2)">
+              {{ clientsWithDebt().length }} clientes • {{ barberService.currencySymbol() }}{{ totalDebtAmount().toFixed(2) }}
+            </span>
+          </div>
+        </header>
+
+        <div class="debt-client-list" role="list">
+          @for (debtCli of clientsWithDebt().slice(0, 3); track debtCli.id) {
+          <div class="debt-row" role="listitem">
+            <div class="debt-info">
+              <div class="debt-avatar-mini" aria-hidden="true">{{ getInitials(debtCli.name) }}</div>
+              <div class="debt-texts">
+                <span class="debt-name">{{ debtCli.name }}</span>
+                <span class="debt-amount">Debe: <strong>{{ barberService.currencySymbol() }}{{ (debtCli.currentDebt || 0).toFixed(2) }}</strong></span>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="btn-pay-debt-sm"
+              (click)="openDebtPaymentModal(debtCli)"
+              [title]="'Registrar abono de ' + debtCli.name">
               Abonar
             </button>
           </div>
           }
         </div>
-        <button class="btn-view-all-debts" (click)="navigateTo('clients')">
-          Ver todos los créditos en Clientes →
-        </button>
-      </div>
+
+        <footer class="acc-footer">
+          <button type="button" class="btn-view-all-debts" (click)="navigateTo('clients')">
+            <span>Ver todos los créditos en Clientes</span>
+            <span class="link-arrow" aria-hidden="true">→</span>
+          </button>
+        </footer>
+      </article>
       }
 
-      <!-- 2. Estado de Caja & Turno -->
-      <div class="action-card">
-        <div class="acc-header">
+      <!-- 2. Estado de Caja & Turno (Panel de Conciliación) -->
+      <article class="surface-card action-card shift-control-card" aria-labelledby="shift-heading">
+        <header class="acc-header">
           <div class="acc-title-group">
-            <span class="acc-title">Estado de Caja &amp; Turno</span>
+            <h3 id="shift-heading" class="acc-title">Estado de Caja &amp; Turno</h3>
           </div>
           @if (barberService.activeCashShift()) {
-          <span class="status-badge-open">
-            <span class="status-dot"></span>
-            Abierto
+          <span class="status-badge-open" role="status">
+            <span class="status-dot live-pulse" aria-hidden="true"></span>
+            <span>Abierto</span>
           </span>
           } @else {
-          <span class="status-badge-closed">
-            <span class="status-dot"></span>
-            Cerrado
+          <span class="status-badge-closed" role="status">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>Cerrado</span>
           </span>
           }
-        </div>
+        </header>
 
         <div class="acc-body">
           @if (barberService.activeCashShift(); as shift) {
@@ -148,46 +245,71 @@
             <span class="slr-label">Fondo Inicial:</span>
             <strong class="slr-val">{{ barberService.currencySymbol() }}{{ shift.initialCash.toFixed(2) }}</strong>
           </div>
-          <div class="shift-live-row">
+          <div class="shift-live-row highlight">
             <span class="slr-label">Efectivo Esperado:</span>
             <strong class="slr-val gold">{{ barberService.currencySymbol() }}{{ shift.expectedCash.toFixed(2) }}</strong>
           </div>
           <div class="acc-actions-row">
-            <button class="btn-outline-danger" (click)="openShiftModal('close')">
-              Arqueo &amp; Cerrar Turno
+            <button
+              type="button"
+              class="btn-close-shift-action"
+              (click)="openShiftModal('close')"
+              title="Realizar arqueo y cierre de turno (Alt+C)">
+              <svg viewBox="0 0 24 24" class="btn-icon-sm" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Arqueo &amp; Cerrar Turno</span>
             </button>
           </div>
           } @else {
-          <p class="shift-closed-hint">Abre un turno para habilitar cobros en efectivo con arqueo diario.</p>
-          <button class="btn-primary-action full-width" (click)="openShiftModal('open')">
-            🟢 Abrir Turno de Caja
+          <p class="shift-closed-hint">
+            Abre un turno diario para registrar cobros en efectivo con arqueo asistido y control de faltantes/sobrantes.
+          </p>
+          <button type="button" class="btn-primary-action full-width" (click)="openShiftModal('open')" title="Abrir turno (Alt+C)">
+            <span class="btn-icon-pulse" aria-hidden="true">🟢</span>
+            <span>Abrir Turno de Caja</span>
           </button>
           }
         </div>
-      </div>
+      </article>
 
       <!-- 3. Fidelización de Clientes con Progreso de Sellos -->
-      <div class="action-card">
-        <div class="acc-header cursor-pointer" (click)="navigateTo('loyalty')" title="Gestionar programa de fidelización">
+      <article class="surface-card action-card loyalty-widget-card" aria-labelledby="loyalty-heading">
+        <header class="acc-header cursor-pointer" (click)="navigateTo('loyalty')" title="Gestionar programa de fidelización">
           <div class="acc-title-group">
-            <span class="acc-title">Fidelización de Clientes</span>
+            <h3 id="loyalty-heading" class="acc-title">Fidelización de Clientes</h3>
           </div>
           <span class="acc-pill-gold">
             Meta: {{ barberService.stampsRequired() }} sellos
           </span>
-        </div>
+        </header>
 
-        <div class="top-loyalty-list">
-          @for (cli of topLoyaltyClients(); track cli.id) {
-          <div class="tl-item cursor-pointer" (click)="openRegisterCutModal(cli.id)" title="Registrar corte para {{ cli.name }}">
-            <div class="tl-avatar">{{ cli.name.charAt(0) }}</div>
+        <div class="top-loyalty-list" role="list">
+          @for (cli of topLoyaltyClients(); track cli.id; let idx = $index) {
+          <div
+            class="tl-item cursor-pointer"
+            role="listitem"
+            (click)="openRegisterCutModal(cli.id)"
+            tabindex="0"
+            (keydown.enter)="openRegisterCutModal(cli.id)"
+            [title]="'Registrar corte para ' + cli.name">
+            <div class="tl-avatar" [class.top-one]="idx === 0" aria-hidden="true">
+              {{ cli.name.charAt(0).toUpperCase() }}
+              @if (idx === 0) {
+              <span class="crown-badge" title="Cliente líder">👑</span>
+              }
+            </div>
             <div class="tl-details">
               <div class="tl-name-row">
                 <span class="tl-name">{{ cli.name }}</span>
-                <span class="tl-count">{{ cli.loyaltyStamps }}/{{ barberService.stampsRequired() }}</span>
+                <span class="tl-count">
+                  <strong>{{ cli.loyaltyStamps }}</strong> / {{ barberService.stampsRequired() }}
+                </span>
               </div>
-              <div class="tl-progress-bar">
-                <div class="tl-progress-fill"
+              <div class="tl-progress-bar" role="progressbar" [attr.aria-valuenow]="cli.loyaltyStamps" [attr.aria-valuemin]="0" [attr.aria-valuemax]="barberService.stampsRequired()">
+                <div
+                  class="tl-progress-fill"
                   [style.width.%]="(cli.loyaltyStamps / barberService.stampsRequired()) * 100">
                 </div>
               </div>
@@ -198,18 +320,16 @@
           }
         </div>
 
-        <button class="btn-link-action" (click)="navigateTo('loyalty')">
-          Ver Catálogo de Recompensas &amp; Canjes →
-        </button>
-      </div>
-    </div>
+        <footer class="acc-footer">
+          <button type="button" class="btn-link-action" (click)="navigateTo('loyalty')">
+            <span>Ver Catálogo de Recompensas &amp; Canjes</span>
+            <span class="link-arrow" aria-hidden="true">→</span>
+          </button>
+        </footer>
+      </article>
+    </aside>
   </div>
-
-  <!-- ======================================================================= -->
-  <!-- MODALES DE ACCIÓN RÁPIDA IN-SITU                                         -->
-  <!-- ======================================================================= -->
-
-
+  }
 
   <!-- MODAL REUTILIZABLE: APERTURA / CIERRE DE TURNO DE CAJA (ARQUEO ASISTIDO) -->
   <app-cash-shift-modal
@@ -218,4 +338,4 @@
     (closed)="closeShiftModal()"
     (shiftSuccess)="showToast($event)">
   </app-cash-shift-modal>
-</div>
+</main>

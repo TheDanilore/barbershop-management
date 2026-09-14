@@ -52,7 +52,7 @@ export class DebtPaymentModalComponent implements OnChanges {
     notes: [''],
   });
 
-  // Saldo restante simulado en tiempo real
+  // Saldo restante simulado
   readonly remainingDebtSimulated = computed(() => {
     if (!this.client) return 0;
     const current = Number(this.client.currentDebt) || 0;

@@ -57,7 +57,7 @@ export class CashShiftModalComponent implements OnChanges {
   // Símbolo oficial de moneda configurado en el negocio
   readonly currencySymbol = this.barberService.currencySymbol;
 
-  // Turno activo en tiempo real
+  // Turno activo
   readonly activeShift = computed(() => this.barberService.activeCashShift());
 
   // Formulario de Apertura de Gaveta

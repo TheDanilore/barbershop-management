@@ -1,12 +1,47 @@
 @if (isOpen && cutRecord) {
-  <div class="modal-backdrop" (click)="onClose()" role="dialog" aria-modal="true" aria-labelledby="ticket-title">
-    <div class="modal-sheet" (click)="$event.stopPropagation()">
-      <div class="sheet-drag-handle" aria-hidden="true"></div>
+<div class="nc-backdrop" (click)="onClose()" role="presentation">
+  <div
+    class="nc-dialog-sheet"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="ticketModalTitle"
+    appBottomSheet
+    (dismiss)="onClose()"
+  >
+    <!-- Drag handle para Bottom Sheet en móvil -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
+      <div class="sheet-drag-handle"></div>
+    </div>
 
+    <header class="sheet-header">
+      <div class="sheet-title-group">
+        <div class="sheet-badge-row">
+          <span class="sheet-badge gold">Comprobante Digital</span>
+          <span class="sheet-shortcut-badge" title="Cerrar con tecla Escape">Esc</span>
+        </div>
+        <h2 id="ticketModalTitle" class="sheet-title">Boleta de Servicio</h2>
+        <p class="sheet-desc">Comprobante electrónico oficial de tu atención en BarberTrack</p>
+      </div>
+      <button
+        type="button"
+        class="sheet-close-btn"
+        (click)="onClose()"
+        aria-label="Cerrar boleta"
+        title="Cerrar (Esc)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <div class="sheet-body-scrollable">
       <!-- Recibo Digital Estilo BarberTrack VIP -->
-      <article class="digital-receipt">
+      <article class="digital-receipt" id="printableTicket">
         <header class="receipt-header">
-          <div class="receipt-brand-logo">
+          <div class="receipt-brand-logo" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <circle cx="6" cy="6" r="3"></circle>
               <circle cx="6" cy="18" r="3"></circle>
@@ -16,14 +51,13 @@
             </svg>
           </div>
           <div class="receipt-brand-text">
-            <h2 id="ticket-title" class="receipt-company">BARBERTRACK PRO</h2>
+            <h3 class="receipt-company">BARBERTRACK PRO</h3>
             <span class="receipt-sub">Comprobante de Servicio Digital</span>
           </div>
-          <button type="button" class="btn-close-ticket" (click)="onClose()" aria-label="Cerrar ticket">✕</button>
         </header>
 
         <div class="receipt-badge-status">
-          <span class="paid-stamp">PAGADO</span>
+          <span class="paid-stamp">CANCELADO</span>
         </div>
 
         <div class="receipt-meta-grid">
@@ -31,27 +65,27 @@
             <span class="rm-label">Ticket Nº</span>
             <span class="rm-value">#{{ cutRecord.orderNumber || cutRecord.id.slice(0, 8).toUpperCase() }}</span>
           </div>
-          <div class="rm-item">
+          <div class="rm-item text-right">
             <span class="rm-label">Fecha</span>
-            <span class="rm-value text-right">{{ formatDate(cutRecord.date) }}</span>
+            <span class="rm-value">{{ formatDate(cutRecord.date) }}</span>
           </div>
           <div class="rm-item">
             <span class="rm-label">Cliente</span>
             <span class="rm-value">{{ cutRecord.clientName }}</span>
           </div>
-          <div class="rm-item">
-            <span class="rm-label">Barbero</span>
-            <span class="rm-value text-right">{{ cutRecord.barberName }}</span>
+          <div class="rm-item text-right">
+            <span class="rm-label">Profesional</span>
+            <span class="rm-value">{{ cutRecord.barberName }}</span>
           </div>
         </div>
 
-        <div class="receipt-divider-dash"></div>
+        <div class="receipt-divider-dash" aria-hidden="true"></div>
 
         <!-- Detalle de Ítems / Servicios -->
-        <section class="receipt-items-section">
+        <section class="receipt-items-section" aria-label="Detalle de servicios">
           <div class="ris-header">
-            <span>Descripción</span>
-            <span class="text-right">Total</span>
+            <span>Descripción del Servicio</span>
+            <span class="text-right">Monto</span>
           </div>
 
           <div class="ris-list">
@@ -76,16 +110,16 @@
           </div>
         </section>
 
-        <div class="receipt-divider-dash"></div>
+        <div class="receipt-divider-dash" aria-hidden="true"></div>
 
         <!-- Resumen de Totales -->
         <div class="receipt-totals">
           <div class="rt-row">
-            <span>Método de Pago</span>
+            <span>Forma de Pago:</span>
             <span class="rt-method">{{ getPaymentLabel(cutRecord.paymentMethod) }}</span>
           </div>
           <div class="rt-row rt-grand-total">
-            <span>Total Cancelado</span>
+            <span>Importe Total:</span>
             <span class="rt-total-amount">{{ barberService.currencySymbol() }}{{ cutRecord.price.toFixed(2) }}</span>
           </div>
         </div>
@@ -97,27 +131,34 @@
           </div>
         }
 
-        <!-- Pie de Recibo con Código de Barras Decorativo -->
-        <footer class="receipt-footer">
-          <div class="barcode-graphic" aria-hidden="true">
-            <div class="bar b1"></div><div class="bar b2"></div><div class="bar b3"></div>
-            <div class="bar b1"></div><div class="bar b4"></div><div class="bar b2"></div>
-            <div class="bar b3"></div><div class="bar b1"></div><div class="bar b2"></div>
-            <div class="bar b4"></div><div class="bar b1"></div><div class="bar b3"></div>
+        <!-- Código de Barras Decorativo -->
+        <div class="receipt-barcode-zone" aria-hidden="true">
+          <div class="barcode-lines">
+            <span class="b-line w1"></span><span class="b-line w3"></span><span class="b-line w2"></span>
+            <span class="b-line w1"></span><span class="b-line w4"></span><span class="b-line w2"></span>
+            <span class="b-line w3"></span><span class="b-line w1"></span><span class="b-line w2"></span>
+            <span class="b-line w4"></span><span class="b-line w1"></span><span class="b-line w3"></span>
+            <span class="b-line w2"></span><span class="b-line w1"></span><span class="b-line w4"></span>
           </div>
-          <p class="receipt-thankyou">¡Gracias por confiar en BarberTrack!</p>
-          <span class="receipt-notice">Válido como comprobante de atención al cliente</span>
-        </footer>
-
-        <div class="receipt-actions no-print">
-          <button type="button" class="btn-print" (click)="printReceipt()">
-            🖨️ Imprimir / Guardar PDF
-          </button>
-          <button type="button" class="btn-close-bottom" (click)="onClose()">
-            Cerrar
-          </button>
+          <span class="barcode-code">BTK-{{ cutRecord.id.slice(0, 12).toUpperCase() }}</span>
         </div>
       </article>
     </div>
+
+    <!-- Footer Unificado -->
+    <div class="sheet-footer">
+      <button type="button" class="btn-secondary" (click)="onClose()">
+        Cerrar
+      </button>
+      <button type="button" class="btn-primary-action" (click)="printReceipt()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-action-icon" aria-hidden="true">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        <span>Imprimir / Guardar PDF</span>
+      </button>
+    </div>
   </div>
+</div>
 }

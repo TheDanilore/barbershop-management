@@ -11,11 +11,12 @@ import {
 import { CutRecord } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
+import { BottomSheetDirective } from '../../../../shared/directives/bottom-sheet.directive';
 
 @Component({
   selector: 'app-ticket-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BottomSheetDirective],
   templateUrl: './ticket-modal.component.html',
   styleUrl: './ticket-modal.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,7 +43,9 @@ export class TicketModalComponent {
 
   printReceipt(): void {
     this.haptics.selection();
-    window.print();
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
   }
 
   formatDate(dateStr?: string): string {
@@ -50,9 +53,9 @@ export class TicketModalComponent {
     try {
       const d = new Date(dateStr);
       return d.toLocaleDateString('es-ES', {
-        weekday: 'long',
+        weekday: 'short',
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
@@ -64,11 +67,16 @@ export class TicketModalComponent {
 
   getPaymentLabel(method?: string): string {
     switch (method) {
-      case 'cash': return 'Efectivo';
-      case 'card': return 'Tarjeta de Débito/Crédito';
-      case 'transfer': return 'Billetera Digital / Transferencia';
-      case 'credit': return 'Crédito / Cuenta Corriente';
-      default: return method || 'Pagado';
+      case 'cash':
+        return 'Efectivo';
+      case 'card':
+        return 'Tarjeta Débito/Crédito';
+      case 'transfer':
+        return 'Billetera Digital (Yape / Plin)';
+      case 'credit':
+        return 'Cuenta Corriente / Crédito';
+      default:
+        return method || 'Cancelado';
     }
   }
 }

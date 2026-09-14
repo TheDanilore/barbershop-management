@@ -78,7 +78,7 @@ export class BarberServicesPage {
     return Math.round(list.reduce((sum, s) => sum + (Number(s.durationMinutes) || 0), 0) / list.length);
   });
 
-  // Lista filtrada en tiempo real
+  // Lista filtrada
   readonly filteredServices = computed(() => {
     let list = this.allServices();
 

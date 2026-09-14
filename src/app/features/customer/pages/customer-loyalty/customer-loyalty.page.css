@@ -1,0 +1,259 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.loyalty-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.loyalty-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lh-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold-light, #f5cf7c);
+}
+
+.lh-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.lh-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 0;
+  max-width: 680px;
+}
+
+/* Split View Layout en Desktop */
+.loyalty-split-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .loyalty-split-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+
+.lsl-card-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lsl-details-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Sección de Cupones Ganados */
+.claims-section {
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.12) 0%, rgba(26, 26, 34, 0.95) 100%);
+  border: 1px solid rgba(229, 169, 60, 0.4);
+  border-radius: var(--radius-lg, 20px);
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+.section-badge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pulsing-gift {
+  font-size: 1.3rem;
+  animation: bounceGift 1.8s infinite ease-in-out;
+}
+
+@keyframes bounceGift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.section-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 4px 0 14px 0;
+}
+
+.claims-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.claim-voucher-card {
+  background: #15151c;
+  border: 1.5px dashed rgba(229, 169, 60, 0.5);
+  border-radius: var(--radius-md, 14px);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.cvc-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cvc-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #10b981;
+  letter-spacing: 0.08em;
+}
+
+.cvc-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.cvc-date {
+  font-size: 0.74rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.cvc-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.cvc-code {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gold-light, #f5cf7c);
+  background: rgba(229, 169, 60, 0.15);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.cvc-instruction {
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Catálogo de Hitos */
+.rewards-catalog-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.milestones-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.default-milestone-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-md, 14px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.default-milestone-card.unlocked {
+  border-color: rgba(229, 169, 60, 0.35);
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.08) 0%, rgba(23, 23, 28, 0.95) 100%);
+}
+
+.dmc-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid var(--border-subtle, #282833);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-secondary, #d1d5db);
+  flex-shrink: 0;
+}
+
+.default-milestone-card.unlocked .dmc-circle {
+  background: var(--gold-gradient);
+  border-color: var(--gold-light, #f5cf7c);
+  color: #111114;
+}
+
+.dmc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dmc-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.dmc-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-muted, #9ca3af);
+  display: block;
+}
+
+.dmc-status {
+  flex-shrink: 0;
+}
+
+.badge-unlocked {
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.badge-progress {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 9px;
+  border-radius: 9999px;
+}

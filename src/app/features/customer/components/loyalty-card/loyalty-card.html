@@ -1,8 +1,11 @@
-<!-- Tarjeta Física Virtual Dorada -->
+<!-- Tarjeta Virtual de Lujo "Apple Wallet / Black Card" -->
 <div class="virtual-loyalty-card">
-  <div class="vlc-header">
+  <!-- Efecto de Brillo Holográfico / Foil -->
+  <div class="card-shimmer-foil" aria-hidden="true"></div>
+
+  <header class="vlc-header">
     <div class="vlc-brand">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vlc-scissors-icon">
         <circle cx="6" cy="6" r="3"></circle>
         <circle cx="6" cy="18" r="3"></circle>
         <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
@@ -11,54 +14,92 @@
       </svg>
       <span>BARBERTRACK LOYALTY</span>
     </div>
-    <span class="vlc-tier-pill">{{ barberService.currentClient().membershipLevel }}</span>
+    <span class="vlc-tier-pill" [class]="barberService.currentClient().membershipLevel.toLowerCase()">
+      {{ barberService.currentClient().membershipLevel }}
+    </span>
+  </header>
+
+  <!-- Chip EMV Virtual y Red de Pago -->
+  <div class="card-chip-row" aria-hidden="true">
+    <div class="emv-chip">
+      <div class="chip-line c1"></div>
+      <div class="chip-line c2"></div>
+    </div>
+    <div class="nfc-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+        <path d="M12 6a6 6 0 0 1 6 6"></path>
+        <path d="M12 10a2 2 0 0 1 2 2"></path>
+      </svg>
+    </div>
   </div>
 
-  <div class="vlc-client-name">{{ barberService.currentClient().name }}</div>
-  <div class="vlc-card-number">•••• •••• •••• 2026</div>
-
-  <!-- Grid Dinámico de Sellos de Fidelización -->
-  <div class="stamps-grid-10">
-    @for (slot of stampSlots(); track slot) {
-      <div
-        class="stamp-slot"
-        [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
-        [class.reward-slot]="isRewardSlot(slot)"
-      >
-        @if (slot <= barberService.currentClient().loyaltyStamps) {
-          <span class="stamp-icon">✂</span>
-        } @else if (isRewardSlot(slot)) {
-          <span class="stamp-icon reward">🎁</span>
-        } @else {
-          <span class="stamp-number">{{ slot }}</span>
-        }
-      </div>
-    }
+  <div class="vlc-card-body">
+    <div class="vlc-client-name">{{ barberService.currentClient().name }}</div>
+    <div class="vlc-card-number">•••• •••• •••• 2026</div>
   </div>
 
-  <div class="vlc-footer">
+  <!-- Grid Compacto y Elegante de Sellos (Máximo 5 por fila) -->
+  <div class="stamps-grid-wrap">
+    <div class="stamps-grid">
+      @for (slot of stampSlots(); track slot) {
+        <div
+          class="stamp-slot"
+          [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
+          [class.reward-slot]="isRewardSlot(slot)"
+          [title]="isRewardSlot(slot) ? '¡Sello con Recompensa!' : 'Sello Nº ' + slot"
+        >
+          @if (slot <= barberService.currentClient().loyaltyStamps) {
+            <span class="stamp-icon stamped">✂</span>
+          } @else if (isRewardSlot(slot)) {
+            <span class="stamp-icon reward">🎁</span>
+          } @else {
+            <span class="stamp-number">{{ slot }}</span>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <footer class="vlc-footer">
     <div class="vlc-progress-text">
-      <span>Progreso: {{ barberService.currentClient().loyaltyStamps }} de {{ targetStamps() }} cortes</span>
-      <strong>{{ progressPercentage() }}%</strong>
+      <span>{{ barberService.currentClient().loyaltyStamps }} de {{ targetStamps() }} cortes</span>
+      <strong class="percentage-accent">{{ progressPercentage() }}%</strong>
     </div>
     <div class="stamps-progress-bar light">
       <div class="stamps-fill" [style.width.%]="progressPercentage()"></div>
     </div>
-  </div>
+  </footer>
 </div>
 
-<!-- Reglas y Condiciones -->
-<div class="loyalty-rules-card">
-  <h3 class="rules-title">¿Cómo funciona tu tarjeta?</h3>
+<!-- Reglas y Beneficios del Club -->
+<section class="loyalty-rules-card">
+  <div class="rules-header">
+    <span class="rules-badge">VIP CLUB</span>
+    <h3 class="rules-title">Tus Beneficios & Reglas</h3>
+  </div>
+
   <ul class="rules-list">
-    <li><span class="bullet">✓</span> Recibes 1 sello por cada corte registrado en BarberTrack.</li>
+    <li>
+      <span class="bullet">✓</span>
+      <span>Recibes sellos por cada servicio de corte o barba registrado.</span>
+    </li>
     @if (barberService.loyaltyRewards().length > 0) {
       @for (reward of barberService.loyaltyRewards(); track reward.id) {
-        <li><span class="bullet">★</span> Al alcanzar <strong>{{ reward.stampsRequired }} cortes</strong>: {{ reward.name }}</li>
+        <li class="reward-milestone-item">
+          <span class="bullet-star">★</span>
+          <span>A los <strong>{{ reward.stampsRequired }} cortes</strong>: {{ reward.name }}</span>
+        </li>
       }
     } @else {
-      <li><span class="bullet">✓</span> Al completar los {{ targetStamps() }} sellos, tu siguiente corte es <strong>100% GRATIS</strong>.</li>
+      <li>
+        <span class="bullet">✓</span>
+        <span>Al alcanzar los <strong>{{ targetStamps() }} sellos</strong>, tu próximo corte es <strong>100% GRATIS</strong>.</span>
+      </li>
     }
-    <li><span class="bullet">✓</span> Tus sellos no vencen y son válidos con cualquier barbero del staff.</li>
+    <li>
+      <span class="bullet">✓</span>
+      <span>Tus sellos no caducan y son válidos con cualquier barbero del staff.</span>
+    </li>
   </ul>
-</div>
+</section>

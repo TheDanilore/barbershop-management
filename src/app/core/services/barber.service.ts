@@ -573,8 +573,21 @@ export class BarberService {
   });
 
   readonly clientCutsHistory = computed(() => {
-    const cliId = this.currentClient().id;
-    return this.cuts().filter((c) => c.clientId === cliId);
+    const profile = this.supabaseService.userProfile();
+    const cliId = profile?.id || this.currentClient().id;
+    const authId = profile?.auth_user_id || this.supabaseService.currentUser()?.id;
+    return this.cuts().filter(
+      (c) => c.clientId === cliId || (authId && c.clientId === authId) || c.clientId === this.currentClient().id
+    );
+  });
+
+  readonly clientLoyaltyClaims = computed<LoyaltyRewardClaim[]>(() => {
+    const profile = this.supabaseService.userProfile();
+    const cliId = profile?.id || this.currentClient().id;
+    const authId = profile?.auth_user_id || this.supabaseService.currentUser()?.id;
+    return this.pendingRewardClaims().filter(
+      (claim) => claim.customerId === cliId || (authId && claim.customerId === authId)
+    );
   });
 
   /**
@@ -2470,11 +2483,17 @@ export class BarberService {
     }
   }
 
-  addReview(rating: number, comment: string): void {
+  async addOrderReview(params: {
+    orderId?: string;
+    rating: number;
+    comment: string;
+    barberName?: string;
+  }): Promise<void> {
+    const { orderId, rating, comment, barberName } = params;
     const newRev: Review = {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '',
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `rev-${Date.now()}`,
       clientName: this.currentClient().name,
-      barberName: 'Carlos "Fade" Mendez',
+      barberName: barberName || 'Carlos "Fade" Mendez',
       rating,
       comment,
       date: 'Hoy',
@@ -2482,6 +2501,27 @@ export class BarberService {
     const updated = [newRev, ...this.reviews()];
     this.reviews.set(updated);
     this.saveToStorage(STORAGE_KEYS.REVIEWS, updated);
+
+    if (this.supabaseService.isConfigured() && orderId) {
+      try {
+        const { error } = await this.supabaseService.supabase
+          .from('reviews')
+          .insert({
+            order_id: orderId,
+            rating,
+            comment,
+          });
+        if (error) {
+          this.logger.error('BarberService', 'Error al registrar review en Supabase', error);
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Excepción al guardar review en Supabase', err);
+      }
+    }
+  }
+
+  addReview(rating: number, comment: string): void {
+    this.addOrderReview({ rating, comment });
   }
 
   /**

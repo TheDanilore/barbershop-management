@@ -1,0 +1,123 @@
+@if (isOpen && cutRecord) {
+  <div class="modal-backdrop" (click)="onClose()" role="dialog" aria-modal="true" aria-labelledby="ticket-title">
+    <div class="modal-sheet" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle" aria-hidden="true"></div>
+
+      <!-- Recibo Digital Estilo BarberTrack VIP -->
+      <article class="digital-receipt">
+        <header class="receipt-header">
+          <div class="receipt-brand-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="6" cy="6" r="3"></circle>
+              <circle cx="6" cy="18" r="3"></circle>
+              <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+              <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+              <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+            </svg>
+          </div>
+          <div class="receipt-brand-text">
+            <h2 id="ticket-title" class="receipt-company">BARBERTRACK PRO</h2>
+            <span class="receipt-sub">Comprobante de Servicio Digital</span>
+          </div>
+          <button type="button" class="btn-close-ticket" (click)="onClose()" aria-label="Cerrar ticket">✕</button>
+        </header>
+
+        <div class="receipt-badge-status">
+          <span class="paid-stamp">PAGADO</span>
+        </div>
+
+        <div class="receipt-meta-grid">
+          <div class="rm-item">
+            <span class="rm-label">Ticket Nº</span>
+            <span class="rm-value">#{{ cutRecord.orderNumber || cutRecord.id.slice(0, 8).toUpperCase() }}</span>
+          </div>
+          <div class="rm-item">
+            <span class="rm-label">Fecha</span>
+            <span class="rm-value text-right">{{ formatDate(cutRecord.date) }}</span>
+          </div>
+          <div class="rm-item">
+            <span class="rm-label">Cliente</span>
+            <span class="rm-value">{{ cutRecord.clientName }}</span>
+          </div>
+          <div class="rm-item">
+            <span class="rm-label">Barbero</span>
+            <span class="rm-value text-right">{{ cutRecord.barberName }}</span>
+          </div>
+        </div>
+
+        <div class="receipt-divider-dash"></div>
+
+        <!-- Detalle de Ítems / Servicios -->
+        <section class="receipt-items-section">
+          <div class="ris-header">
+            <span>Descripción</span>
+            <span class="text-right">Total</span>
+          </div>
+
+          <div class="ris-list">
+            @if (cutRecord.items && cutRecord.items.length > 0) {
+              @for (item of cutRecord.items; track item.id || item.itemName) {
+                <div class="ris-row">
+                  <div class="ris-item-info">
+                    <span class="ris-name">{{ item.itemName }}</span>
+                    @if (item.quantity > 1) {
+                      <span class="ris-qty">x{{ item.quantity }}</span>
+                    }
+                  </div>
+                  <span class="ris-price">{{ barberService.currencySymbol() }}{{ item.subtotal.toFixed(2) }}</span>
+                </div>
+              }
+            } @else {
+              <div class="ris-row">
+                <span class="ris-name">{{ cutRecord.serviceName }}</span>
+                <span class="ris-price">{{ barberService.currencySymbol() }}{{ cutRecord.price.toFixed(2) }}</span>
+              </div>
+            }
+          </div>
+        </section>
+
+        <div class="receipt-divider-dash"></div>
+
+        <!-- Resumen de Totales -->
+        <div class="receipt-totals">
+          <div class="rt-row">
+            <span>Método de Pago</span>
+            <span class="rt-method">{{ getPaymentLabel(cutRecord.paymentMethod) }}</span>
+          </div>
+          <div class="rt-row rt-grand-total">
+            <span>Total Cancelado</span>
+            <span class="rt-total-amount">{{ barberService.currencySymbol() }}{{ cutRecord.price.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        @if (cutRecord.notes) {
+          <div class="receipt-notes">
+            <span class="rn-title">Observaciones:</span>
+            <p class="rn-text">{{ cutRecord.notes }}</p>
+          </div>
+        }
+
+        <!-- Pie de Recibo con Código de Barras Decorativo -->
+        <footer class="receipt-footer">
+          <div class="barcode-graphic" aria-hidden="true">
+            <div class="bar b1"></div><div class="bar b2"></div><div class="bar b3"></div>
+            <div class="bar b1"></div><div class="bar b4"></div><div class="bar b2"></div>
+            <div class="bar b3"></div><div class="bar b1"></div><div class="bar b2"></div>
+            <div class="bar b4"></div><div class="bar b1"></div><div class="bar b3"></div>
+          </div>
+          <p class="receipt-thankyou">¡Gracias por confiar en BarberTrack!</p>
+          <span class="receipt-notice">Válido como comprobante de atención al cliente</span>
+        </footer>
+
+        <div class="receipt-actions no-print">
+          <button type="button" class="btn-print" (click)="printReceipt()">
+            🖨️ Imprimir / Guardar PDF
+          </button>
+          <button type="button" class="btn-close-bottom" (click)="onClose()">
+            Cerrar
+          </button>
+        </div>
+      </article>
+    </div>
+  </div>
+}

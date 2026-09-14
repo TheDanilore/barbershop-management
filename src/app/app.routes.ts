@@ -121,18 +121,61 @@ export const routes: Routes = [
     canActivate: [authGuard(['customer'])],
     loadComponent: () =>
       import(
-        './features/customer/customer-dashboard/customer-dashboard.page'
-      ).then((m) => m.CustomerDashboardPage),
-    title: 'BarberTrack - Experiencia Cliente',
+        './features/customer/customer-layout/customer-layout.page'
+      ).then((m) => m.CustomerLayoutPage),
+    children: [
+      { path: '', redirectTo: 'home', pathMatch: 'full' },
+      {
+        path: 'home',
+        loadComponent: () =>
+          import(
+            './features/customer/pages/customer-home/customer-home.page'
+          ).then((m) => m.CustomerHomePage),
+        title: 'BarberTrack - Mi Portal',
+      },
+      {
+        path: 'appointments',
+        loadComponent: () =>
+          import(
+            './features/customer/pages/customer-appointments/customer-appointments.page'
+          ).then((m) => m.CustomerAppointmentsPage),
+        title: 'BarberTrack - Mis Citas',
+      },
+      {
+        path: 'loyalty',
+        loadComponent: () =>
+          import(
+            './features/customer/pages/customer-loyalty/customer-loyalty.page'
+          ).then((m) => m.CustomerLoyaltyPage),
+        title: 'BarberTrack - Tarjeta & Fidelidad',
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import(
+            './features/customer/pages/customer-history/customer-history.page'
+          ).then((m) => m.CustomerHistoryPage),
+        title: 'BarberTrack - Historial de Cortes',
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import(
+            './features/customer/pages/customer-profile/customer-profile.page'
+          ).then((m) => m.CustomerProfilePage),
+        title: 'BarberTrack - Mi Perfil',
+      },
+      // Aliases para compatibilidad hacia atrás
+      { path: 'inicio', redirectTo: 'home', pathMatch: 'full' },
+      { path: 'fidelidad', redirectTo: 'loyalty', pathMatch: 'full' },
+      { path: 'historial', redirectTo: 'history', pathMatch: 'full' },
+      { path: 'perfil', redirectTo: 'profile', pathMatch: 'full' },
+    ],
   },
   {
     path: 'customer/:tab',
-    canActivate: [authGuard(['customer'])],
-    loadComponent: () =>
-      import(
-        './features/customer/customer-dashboard/customer-dashboard.page'
-      ).then((m) => m.CustomerDashboardPage),
-    title: 'BarberTrack - Experiencia Cliente',
+    redirectTo: 'customer/home',
+    pathMatch: 'full',
   },
   {
     path: '**',

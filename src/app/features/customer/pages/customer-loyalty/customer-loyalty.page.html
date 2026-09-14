@@ -1,0 +1,94 @@
+<div class="loyalty-page-container">
+  <!-- Cabecera -->
+  <header class="loyalty-header">
+    <span class="lh-badge">PROGRAMA DE LEALTAD</span>
+    <h1 class="lh-title">Tarjeta & Sellos VIP</h1>
+    <p class="lh-subtitle">Cada corte te acerca a servicios gratuitos, descuentos exclusivos y beneficios premium.</p>
+  </header>
+
+  <!-- Split View en Desktop (2 Columnas Fluidas) -->
+  <div class="loyalty-split-layout">
+    <!-- Columna Izquierda: Tarjeta Virtual de Lujo -->
+    <div class="lsl-card-column">
+      <app-loyalty-card></app-loyalty-card>
+    </div>
+
+    <!-- Columna Derecha: Cupones Ganados & Catálogo de Hitos -->
+    <div class="lsl-details-column">
+      <!-- 1. Cupones / Recompensas Listas para Canjear -->
+      @if (activeClaims().length > 0) {
+        <section class="claims-section">
+          <div class="section-badge-header">
+            <span class="pulsing-gift">🎁</span>
+            <h2 class="section-title">¡Premios Listos para Canjear!</h2>
+          </div>
+          <p class="section-desc">Muestra este cupón digital a tu barbero antes de que empiece tu atención.</p>
+
+          <div class="claims-grid">
+            @for (claim of activeClaims(); track claim.id) {
+              <article class="claim-voucher-card">
+                <div class="cvc-left">
+                  <span class="cvc-tag">CUPÓN GANADO</span>
+                  <h3 class="cvc-title">{{ claim.rewardName || 'Premio de Lealtad' }}</h3>
+                  <span class="cvc-date">Alcanzado el {{ formatClaimDate(claim.claimedAt) }}</span>
+                </div>
+                <div class="cvc-right">
+                  <span class="cvc-code">#{{ claim.id.slice(0, 6).toUpperCase() }}</span>
+                  <span class="cvc-instruction">Válido en sillón</span>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- 2. Catálogo de Hitos y Recompensas del Negocio -->
+      <section class="rewards-catalog-section">
+        <h2 class="section-title">Hitos Desbloqueables</h2>
+        <p class="section-desc">Conoce los premios que ganarás a medida que acumules visitas en BarberTrack.</p>
+
+        <div class="milestones-timeline">
+          @if (sortedRewards().length === 0) {
+            <div class="default-milestone-card" [class.unlocked]="currentStamps() >= 10">
+              <div class="dmc-circle">
+                <span>10</span>
+              </div>
+              <div class="dmc-info">
+                <h3 class="dmc-title">Corte de Cabello 100% Gratis</h3>
+                <span class="dmc-subtitle">Al completar los 10 sellos de tu tarjeta</span>
+              </div>
+              <div class="dmc-status">
+                @if (currentStamps() >= 10) {
+                  <span class="badge-unlocked">¡Alcanzado!</span>
+                } @else {
+                  <span class="badge-progress">Faltan {{ 10 - currentStamps() }} cortes</span>
+                }
+              </div>
+            </div>
+          } @else {
+            @for (reward of sortedRewards(); track reward.id) {
+              <div class="default-milestone-card" [class.unlocked]="currentStamps() >= reward.stampsRequired">
+                <div class="dmc-circle">
+                  <span>{{ reward.stampsRequired }}</span>
+                </div>
+                <div class="dmc-info">
+                  <h3 class="dmc-title">{{ reward.name }}</h3>
+                  @if (reward.description) {
+                    <span class="dmc-subtitle">{{ reward.description }}</span>
+                  }
+                </div>
+                <div class="dmc-status">
+                  @if (currentStamps() >= reward.stampsRequired) {
+                    <span class="badge-unlocked">¡Desbloqueado!</span>
+                  } @else {
+                    <span class="badge-progress">Faltan {{ reward.stampsRequired - currentStamps() }}</span>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

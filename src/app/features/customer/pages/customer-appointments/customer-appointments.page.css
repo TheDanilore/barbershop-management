@@ -1,0 +1,407 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.appointments-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.page-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.page-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 3px 0 0 0;
+}
+
+.btn-primary-action {
+  padding: 11px 22px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--gold-gradient);
+  color: #111114;
+  font-size: 0.92rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  box-shadow: 0 4px 16px rgba(229, 169, 60, 0.35);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-primary-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(229, 169, 60, 0.45);
+}
+
+/* Filtro Segmentado */
+.segment-filter {
+  display: flex;
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-full, 9999px);
+  padding: 4px;
+  width: fit-content;
+  gap: 4px;
+}
+
+.segment-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #d1d5db);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segment-btn:hover {
+  color: var(--text-main, #f9fafb);
+}
+
+.segment-btn.active {
+  background: var(--gold-gradient);
+  color: #111114;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(229, 169, 60, 0.25);
+}
+
+.count-bubble {
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1px 7px;
+  border-radius: 9999px;
+}
+
+.segment-btn.active .count-bubble {
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+}
+
+/* Lista de Citas - Grid en Desktop */
+.appointments-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .appointments-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.appointment-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-lg, 20px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.appointment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  border-color: rgba(229, 169, 60, 0.3);
+}
+
+.appointment-card.active {
+  border-color: rgba(229, 169, 60, 0.35);
+}
+
+.appointment-card.cancelled {
+  opacity: 0.65;
+}
+
+.apt-card-glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(229, 169, 60, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.apt-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.apt-time-badge {
+  display: flex;
+  flex-direction: column;
+}
+
+.apt-time {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--gold-light, #f5cf7c);
+  line-height: 1.1;
+}
+
+.apt-date {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #d1d5db);
+  text-transform: capitalize;
+}
+
+.status-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.status-pill.confirmed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-pill.in-progress {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.status-pill.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-pill.completed {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #d1d5db);
+}
+
+.status-pill.cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.apt-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.apt-service {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.apt-barber-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apt-barber-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(229, 169, 60, 0.15);
+  color: var(--gold-primary, #e5a93c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.apt-barber-info {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.apt-barber-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.apt-barber-name {
+  font-size: 0.88rem;
+  color: var(--text-main, #f9fafb);
+}
+
+.apt-combo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.combo-tag {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle, #282833);
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: var(--text-secondary, #d1d5db);
+}
+
+.apt-notes {
+  font-size: 0.78rem;
+  color: var(--text-muted, #9ca3af);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 0;
+}
+
+.apt-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 4px;
+  font-size: 0.85rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.apt-price-val {
+  font-size: 1.1rem;
+  color: var(--gold-light, #f5cf7c);
+  font-weight: 800;
+}
+
+.apt-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-cancel-apt {
+  padding: 9px 12px;
+  border-radius: var(--radius-md, 14px);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.btn-cancel-apt:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.btn-cal-apt {
+  padding: 9px 12px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-card, #202026);
+  border: 1px solid var(--border-subtle, #292934);
+  color: var(--text-secondary, #d1d5db);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.btn-cal-apt:hover {
+  background: #2a2a36;
+  color: var(--text-main, #f9fafb);
+}
+
+.btn-reschedule-apt {
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--gold-gradient);
+  color: #111114;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.btn-reschedule-apt:hover {
+  box-shadow: 0 4px 14px rgba(229, 169, 60, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Empty State */
+.empty-state-card {
+  background: var(--bg-surface, #17171c);
+  border: 1.5px dashed var(--border-subtle, #282833);
+  border-radius: var(--radius-lg, 20px);
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: rgba(229, 169, 60, 0.1);
+  color: var(--gold-primary, #e5a93c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.empty-icon-wrap svg {
+  width: 28px;
+  height: 28px;
+}
+
+.empty-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.empty-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted, #9ca3af);
+  max-width: 360px;
+  margin: 0;
+  line-height: 1.4;
+}

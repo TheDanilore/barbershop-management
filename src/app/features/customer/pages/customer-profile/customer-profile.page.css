@@ -1,0 +1,402 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.profile-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ph-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold-light, #f5cf7c);
+}
+
+.page-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 0;
+}
+
+/* Grid Layout en Desktop (2 Columnas Fluidas) */
+.profile-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .profile-layout-grid {
+    grid-template-columns: 360px 1fr;
+  }
+}
+
+.plg-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.plg-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Tarjeta Resumen Personal */
+.profile-summary-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-lg, 20px);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gold-gradient);
+}
+
+.psc-avatar-ring {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  padding: 3px;
+  background: var(--gold-gradient);
+  margin-bottom: 14px;
+}
+
+.psc-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #15151c;
+  color: var(--gold-light, #f5cf7c);
+  font-size: 2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.psc-name {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0 0 2px 0;
+}
+
+.psc-role {
+  font-size: 0.78rem;
+  color: var(--text-muted, #9ca3af);
+  margin-bottom: 12px;
+}
+
+.psc-tier-badge {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--gold-gradient);
+  color: #111114;
+  margin-bottom: 20px;
+}
+
+.psc-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.psc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+}
+
+.stat-lbl {
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
+}
+
+.psc-stat-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Tarjeta de Crédito y Estado Financiero */
+.credit-summary-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-md, 14px);
+  padding: 18px 20px;
+}
+
+.csc-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.csc-icon {
+  font-size: 1.4rem;
+}
+
+.csc-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.csc-sub {
+  font-size: 0.74rem;
+  color: var(--text-muted, #9ca3af);
+  display: block;
+}
+
+.csc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.csc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.86rem;
+}
+
+.csc-lbl {
+  color: var(--text-muted, #9ca3af);
+}
+
+.csc-val {
+  color: var(--text-main, #f9fafb);
+  font-weight: 700;
+}
+
+.csc-val.ok {
+  color: #10b981;
+}
+
+.csc-val.debt {
+  color: #f59e0b;
+}
+
+/* Tarjeta Formulario */
+.profile-form-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-lg, 20px);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.pfc-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0 0 4px 0;
+}
+
+.pfc-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 0 0 20px 0;
+}
+
+.success-alert {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  border-radius: var(--radius-md, 14px);
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.pfc-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-secondary, #d1d5db);
+}
+
+.form-hint {
+  font-size: 0.74rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.35;
+}
+
+.btn-save-profile {
+  margin-top: 8px;
+  padding: 13px 24px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--gold-gradient);
+  color: #111114;
+  font-weight: 800;
+  font-size: 0.95rem;
+  min-height: 48px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(229, 169, 60, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-save-profile:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(229, 169, 60, 0.45);
+}
+
+.btn-save-profile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Tarjeta Acciones de Cuenta */
+.account-actions-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-lg, 20px);
+  padding: 20px 24px;
+}
+
+.aac-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0 0 14px 0;
+}
+
+.aac-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .aac-buttons {
+    flex-direction: row;
+  }
+}
+
+.btn-switch-role {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: var(--radius-md, 14px);
+  background: var(--bg-card, #202026);
+  border: 1px solid var(--border-subtle, #292934);
+  color: var(--text-secondary, #d1d5db);
+  font-weight: 600;
+  font-size: 0.88rem;
+  min-height: 46px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-switch-role:hover {
+  background: #282834;
+  color: var(--gold-light, #f5cf7c);
+  border-color: rgba(229, 169, 60, 0.3);
+}
+
+.btn-logout {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: var(--radius-md, 14px);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  font-weight: 700;
+  font-size: 0.88rem;
+  min-height: 46px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.2);
+}

@@ -1,0 +1,94 @@
+<div class="history-page-container">
+  <!-- Cabecera de Página -->
+  <header class="page-header-flex">
+    <div>
+      <h1 class="page-title">Historial de Cortes & Recibos</h1>
+      <p class="page-subtitle">Consulta tus servicios finalizados, boletas digitales y deja tu reseña</p>
+    </div>
+  </header>
+
+  <!-- Barra de Resumen Rápido -->
+  <section class="summary-stats-bar">
+    <div class="ss-item">
+      <span class="ss-label">Servicios Totales</span>
+      <strong class="ss-value">{{ history().length }} cortes</strong>
+    </div>
+    <div class="ss-item">
+      <span class="ss-label">Inversión en Estilo</span>
+      <strong class="ss-value gold">{{ barberService.currencySymbol() }}{{ totalSpent().toFixed(2) }}</strong>
+    </div>
+    <div class="ss-item">
+      <span class="ss-label">Estado de Cuenta</span>
+      <strong class="ss-value green">Al día</strong>
+    </div>
+  </section>
+
+  <!-- Lista de Cortes -->
+  @if (history().length === 0) {
+    <div class="empty-state-card">
+      <div class="empty-icon-wrap">
+        <span>✂️</span>
+      </div>
+      <h3 class="empty-title">Aún no tienes historial de cortes</h3>
+      <p class="empty-desc">Tus servicios y compras completadas aparecerán aquí con sus respectivos recibos y opciones de calificación.</p>
+    </div>
+  } @else {
+    <div class="history-cards-grid">
+      @for (cut of history(); track cut.id) {
+        <article class="history-cut-card">
+          <div class="hcc-top-row">
+            <div class="hcc-service-badge">
+              <div class="hcc-icon">✂</div>
+              <div>
+                <h3 class="hcc-service-name">{{ cut.serviceName }}</h3>
+                <span class="hcc-date">{{ formatDate(cut.date) }}</span>
+              </div>
+            </div>
+            <div class="hcc-price-col">
+              <span class="hcc-price">{{ barberService.currencySymbol() }}{{ cut.price.toFixed(2) }}</span>
+              <span class="hcc-paid-badge">Pagado</span>
+            </div>
+          </div>
+
+          <div class="hcc-details-row">
+            <div class="hcc-detail">
+              <span class="hcc-d-label">Barbero:</span>
+              <span class="hcc-d-val">{{ cut.barberName }}</span>
+            </div>
+            <div class="hcc-detail">
+              <span class="hcc-d-label">Pago:</span>
+              <span class="hcc-d-val">{{ getPaymentLabel(cut.paymentMethod) }}</span>
+            </div>
+          </div>
+
+          <footer class="hcc-actions">
+            <button type="button" class="btn-receipt-action" (click)="openTicketModal(cut)">
+              🧾 Ver Boleta Digital
+            </button>
+            <button type="button" class="btn-review-action" (click)="openReviewForCut(cut)">
+              ⭐ Calificar Corte
+            </button>
+          </footer>
+        </article>
+      }
+    </div>
+  }
+
+  <!-- Modal de Calificación -->
+  <app-review-modal
+    [isOpen]="isReviewModalOpen()"
+    [orderId]="selectedCutForReview()?.id"
+    [barberName]="selectedCutForReview()?.barberName"
+    [serviceName]="selectedCutForReview()?.serviceName"
+    [date]="selectedCutForReview() ? formatDate(selectedCutForReview()!.date) : undefined"
+    (close)="closeReviewModal()"
+    (reviewed)="onReviewSubmitted($event)"
+  ></app-review-modal>
+
+  <!-- Modal de Boleta Digital -->
+  <app-ticket-modal
+    [isOpen]="isTicketModalOpen()"
+    [cutRecord]="selectedCutForTicket()"
+    (close)="closeTicketModal()"
+  ></app-ticket-modal>
+</div>

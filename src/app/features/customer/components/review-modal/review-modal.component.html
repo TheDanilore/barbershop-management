@@ -1,0 +1,74 @@
+@if (isOpen) {
+  <div class="modal-backdrop" (click)="onClose()" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+    <div class="modal-sheet" (click)="$event.stopPropagation()">
+      <div class="sheet-drag-handle" aria-hidden="true"></div>
+
+      <header class="sheet-header">
+        <div class="header-text-group">
+          <span class="sheet-eyebrow">Tu Experiencia</span>
+          <h2 id="review-modal-title" class="sheet-title">Calificar Servicio</h2>
+        </div>
+        <button type="button" class="btn-close-sheet" (click)="onClose()" aria-label="Cerrar modal">✕</button>
+      </header>
+
+      @if (serviceName || barberName) {
+        <div class="service-context-banner">
+          <div class="scb-icon">✂</div>
+          <div class="scb-details">
+            <span class="scb-service">{{ serviceName || 'Servicio BarberTrack' }}</span>
+            <span class="scb-meta">
+              @if (barberName) { <strong>{{ barberName }}</strong> }
+              @if (date) { • {{ date }} }
+            </span>
+          </div>
+        </div>
+      }
+
+      <form [formGroup]="reviewForm" (ngSubmit)="submitReview()" class="sheet-body">
+        <div class="form-group text-center stars-section">
+          <label class="form-label stars-label">¿Cómo valorarías tu atención?</label>
+          <div class="stars-picker" role="radiogroup" aria-label="Puntuación en estrellas">
+            @for (star of [1,2,3,4,5]; track star) {
+              <button
+                type="button"
+                class="star-picker-btn"
+                [class.active]="star <= (hoveredStar() ?? reviewForm.get('rating')?.value ?? 5)"
+                [class.hovered]="hoveredStar() !== null && star <= hoveredStar()!"
+                (mouseenter)="setHoverStar(star)"
+                (mouseleave)="setHoverStar(null)"
+                (click)="setRating(star)"
+                [attr.aria-label]="star + ' estrellas'"
+              >
+                ★
+              </button>
+            }
+          </div>
+          <span class="rating-feedback-hint">
+            {{ getStarDescription(hoveredStar() ?? reviewForm.get('rating')?.value ?? 5) }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="review-comment" class="form-label">Tu Comentario u Opinión *</label>
+          <textarea
+            id="review-comment"
+            rows="3"
+            placeholder="Comparte tu experiencia con el corte, puntualidad y trato recibido..."
+            formControlName="comment"
+          ></textarea>
+        </div>
+
+        <div class="sheet-actions">
+          <button type="button" class="btn-cancel" (click)="onClose()">Cancelar</button>
+          <button type="submit" class="btn-confirm-primary" [disabled]="reviewForm.invalid || isSubmitting()">
+            @if (isSubmitting()) {
+              <span>Enviando reseña...</span>
+            } @else {
+              <span>Publicar Valoración</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

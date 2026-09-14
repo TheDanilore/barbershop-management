@@ -1,0 +1,139 @@
+<div class="profile-page-container">
+  <!-- Cabecera de Página -->
+  <header class="page-header">
+    <span class="ph-badge">MI CUENTA</span>
+    <h1 class="page-title">Perfil & Preferencias</h1>
+    <p class="page-subtitle">Gestiona tus datos personales, preferencias de estilo y estado de cuenta.</p>
+  </header>
+
+  <!-- Grid de 2 Columnas en Desktop -->
+  <div class="profile-layout-grid">
+    <!-- Columna Izquierda: Tarjeta Resumen Personal & Membresía -->
+    <div class="plg-left-col">
+      <article class="profile-summary-card">
+        <div class="psc-avatar-ring">
+          <div class="psc-avatar">
+            {{ currentClient().name.charAt(0).toUpperCase() }}
+          </div>
+        </div>
+
+        <h2 class="psc-name">{{ currentClient().name }}</h2>
+        <span class="psc-role">Cliente BarberTrack</span>
+
+        <div class="psc-tier-badge" [class]="currentClient().membershipLevel.toLowerCase()">
+          <span>👑 {{ currentClient().membershipLevel }} Member</span>
+        </div>
+
+        <div class="psc-stats-row">
+          <div class="psc-stat">
+            <span class="stat-num">{{ currentClient().cutsCount }}</span>
+            <span class="stat-lbl">Cortes</span>
+          </div>
+          <div class="psc-stat-divider"></div>
+          <div class="psc-stat">
+            <span class="stat-num">{{ currentClient().loyaltyStamps }}</span>
+            <span class="stat-lbl">Sellos</span>
+          </div>
+          <div class="psc-stat-divider"></div>
+          <div class="psc-stat">
+            <span class="stat-num">{{ barberService.stampsRequired() - currentClient().loyaltyStamps }}</span>
+            <span class="stat-lbl">Para Gratis</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Estado Financiero & Línea de Crédito -->
+      <section class="credit-summary-card">
+        <div class="csc-header">
+          <span class="csc-icon">💳</span>
+          <div>
+            <h3 class="csc-title">Cuenta Corriente & Crédito</h3>
+            <span class="csc-sub">Transparencia de consumo</span>
+          </div>
+        </div>
+
+        <div class="csc-body">
+          <div class="csc-row">
+            <span class="csc-lbl">Deuda Actual:</span>
+            @if ((currentClient().currentDebt || 0) > 0) {
+              <strong class="csc-val debt">{{ barberService.currencySymbol() }}{{ (currentClient().currentDebt || 0).toFixed(2) }}</strong>
+            } @else {
+              <strong class="csc-val ok">Al día ($0.00)</strong>
+            }
+          </div>
+
+          <div class="csc-row">
+            <span class="csc-lbl">Límite Autorizado:</span>
+            <span class="csc-val">{{ barberService.currencySymbol() }}{{ (currentClient().creditLimit || 0).toFixed(2) }}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Columna Derecha: Formulario de Edición & Acciones de Cuenta -->
+    <div class="plg-right-col">
+      <section class="profile-form-card">
+        <h3 class="pfc-title">Datos Personales & Estilo</h3>
+        <p class="pfc-desc">Mantén tus datos actualizados para recibir confirmaciones de tus turnos.</p>
+
+        @if (saveSuccess()) {
+          <div class="success-alert" role="alert">
+            <span>✓</span> ¡Tus datos han sido actualizados con éxito!
+          </div>
+        }
+
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="pfc-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fullName" class="form-label">Nombre Completo *</label>
+              <input id="fullName" type="text" formControlName="fullName" placeholder="Tu nombre" />
+            </div>
+
+            <div class="form-group">
+              <label for="phone" class="form-label">Teléfono de Contacto *</label>
+              <input id="phone" type="tel" formControlName="phone" placeholder="+51 987654321" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email" class="form-label">Correo Electrónico</label>
+            <input id="email" type="email" formControlName="email" placeholder="correo@ejemplo.com" />
+            <span class="form-hint">Vinculado a tu cuenta de acceso a BarberTrack.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="preferredStyle" class="form-label">Estilo Preferido & Notas de Barbero</label>
+            <textarea
+              id="preferredStyle"
+              rows="3"
+              formControlName="preferredStyle"
+              placeholder="Ej: Degradado medio al ras, tijera en la parte superior, perfilado de barba con toalla caliente..."
+            ></textarea>
+            <span class="form-hint">Tu barbero consultará estas notas antes de iniciar tu corte.</span>
+          </div>
+
+          <button type="submit" class="btn-save-profile" [disabled]="profileForm.invalid || isSaving()">
+            @if (isSaving()) {
+              <span>Guardando cambios...</span>
+            } @else {
+              <span>Guardar Información</span>
+            }
+          </button>
+        </form>
+      </section>
+
+      <!-- Zona de Acciones de Cuenta -->
+      <section class="account-actions-card">
+        <h3 class="aac-title">Seguridad & Sesión</h3>
+        <div class="aac-buttons">
+          <button type="button" class="btn-switch-role" (click)="switchToBarber()" title="Cambiar a Vista Barbero">
+            <span>✂️ Cambiar a Vista Barbero / Staff</span>
+          </button>
+          <button type="button" class="btn-logout" (click)="logout()" title="Cerrar sesión">
+            <span>🚪 Cerrar Sesión</span>
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

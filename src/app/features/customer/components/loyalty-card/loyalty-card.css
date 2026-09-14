@@ -1,50 +1,87 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
 }
 
+/* Tarjeta Virtual Física - Form Factor "Credit Card / Apple Wallet" */
 .virtual-loyalty-card {
-  background: linear-gradient(135deg, #2a261c 0%, #191815 50%, #111114 100%);
-  border: 1px solid rgba(229, 169, 60, 0.4);
-  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  aspect-ratio: 1.586 / 1;
+  background: linear-gradient(145deg, #1f1d17 0%, #161514 45%, #0f0f12 100%);
+  border: 1px solid rgba(229, 169, 60, 0.45);
+  border-radius: 20px;
   padding: 22px;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7), var(--gold-glow);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(229, 169, 60, 0.18);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
   position: relative;
   overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
-.virtual-loyalty-card::after {
+.virtual-loyalty-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.85), 0 0 32px rgba(229, 169, 60, 0.28);
+}
+
+/* Brillo Foil Holográfico */
+.card-shimmer-foil {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    rgba(229, 169, 60, 0.15),
+    transparent
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  animation: cardShimmer 6s infinite ease-in-out;
+}
+
+@keyframes cardShimmer {
+  0% { left: -100%; }
+  35% { left: 200%; }
+  100% { left: 200%; }
+}
+
+.virtual-loyalty-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--gold-gradient);
+  background: var(--gold-gradient, linear-gradient(135deg, #f7d488 0%, #e5a93c 50%, #c48620 100%));
 }
 
 .vlc-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  z-index: 1;
 }
 
 .vlc-brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--gold-primary);
-  font-size: 0.8rem;
+  color: var(--gold-primary, #e5a93c);
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
 
-.vlc-brand svg {
+.vlc-scissors-icon {
   width: 18px;
   height: 18px;
 }
@@ -53,36 +90,104 @@
   font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 9999px;
   background: var(--gold-gradient);
-  color: #121215;
+  color: #111114;
+}
+
+.vlc-tier-pill.vip {
+  background: linear-gradient(135deg, #e5a93c 0%, #ffffff 50%, #e5a93c 100%);
+  color: #000;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.card-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 2px;
+  z-index: 1;
+}
+
+.emv-chip {
+  width: 38px;
+  height: 28px;
+  background: linear-gradient(135deg, #d4af37, #aa820a);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.chip-line {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.chip-line.c1 {
+  width: 100%;
+  height: 1px;
+  top: 14px;
+  left: 0;
+}
+
+.chip-line.c2 {
+  width: 1px;
+  height: 100%;
+  top: 0;
+  left: 19px;
+}
+
+.nfc-icon svg {
+  width: 20px;
+  height: 20px;
+  color: rgba(229, 169, 60, 0.6);
+}
+
+.vlc-card-body {
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
 }
 
 .vlc-client-name {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: var(--text-main);
+  color: var(--text-main, #f9fafb);
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vlc-card-number {
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  color: var(--text-muted, #9ca3af);
 }
 
-/* Grid de 10 Sellos */
-.stamps-grid-10 {
+/* Grid de Sellos Ordenado y Proporcional */
+.stamps-grid-wrap {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 8px 10px;
+  z-index: 1;
+}
+
+.stamps-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
-  margin: 6px 0;
 }
 
 .stamp-slot {
   aspect-ratio: 1 / 1;
+  max-width: 44px;
+  margin: 0 auto;
+  width: 100%;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.04);
   border: 1.5px dashed rgba(229, 169, 60, 0.3);
@@ -90,93 +195,147 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: all 0.3s;
+  transition: all 0.25s ease;
 }
 
 .stamp-slot.stamped {
   background: var(--gold-gradient);
-  border: 1.5px solid var(--gold-light);
-  box-shadow: 0 0 12px rgba(229, 169, 60, 0.4);
+  border: 1.5px solid var(--gold-light, #f5cf7c);
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.45);
 }
 
 .stamp-slot.reward-slot {
-  border: 1.5px solid var(--gold-primary);
-  background: rgba(229, 169, 60, 0.12);
+  border: 1.5px solid var(--gold-primary, #e5a93c);
+  background: rgba(229, 169, 60, 0.14);
 }
 
 .stamp-icon {
-  font-size: 1.1rem;
-  color: #121215;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.stamp-icon.stamped {
+  color: #111114;
   font-weight: 800;
 }
 
 .stamp-icon.reward {
-  color: var(--gold-primary);
+  font-size: 1rem;
+  animation: rewardPulse 2s infinite ease-in-out;
+}
+
+@keyframes rewardPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
 }
 
 .stamp-number {
-  font-size: 0.75rem;
-  color: var(--text-dim);
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
   font-weight: 600;
 }
 
 .vlc-footer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  z-index: 1;
 }
 
 .vlc-progress-text {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.74rem;
+  color: var(--text-secondary, #d1d5db);
+}
+
+.percentage-accent {
+  color: var(--gold-light, #f5cf7c);
+  font-weight: 700;
 }
 
 .stamps-progress-bar {
   width: 100%;
   height: 5px;
-  background: #2a2a36;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stamps-progress-bar.light {
   background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
 }
 
 .stamps-fill {
   height: 100%;
   background: var(--gold-gradient);
-  border-radius: 3px;
+  border-radius: 9999px;
   transition: width 0.4s ease;
 }
 
+/* Reglas y Términos */
 .loyalty-rules-card {
-  background: #18181f;
-  border: 1px solid #282833;
-  border-radius: var(--radius-md);
-  padding: 16px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: var(--radius-md, 14px);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.rules-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rules-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: rgba(229, 169, 60, 0.15);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+  color: var(--gold-light, #f5cf7c);
+  padding: 2px 7px;
+  border-radius: 4px;
 }
 
 .rules-title {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 10px;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
 }
 
 .rules-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  gap: 9px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #d1d5db);
 }
 
-.rules-list .bullet {
-  color: var(--gold-primary);
-  font-weight: 700;
-  margin-right: 6px;
+.rules-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.bullet {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.bullet-star {
+  color: var(--gold-primary, #e5a93c);
+  font-weight: 800;
+}
+
+.reward-milestone-item {
+  color: var(--text-main, #f9fafb);
+}
+
+.reward-milestone-item strong {
+  color: var(--gold-light, #f5cf7c);
 }

@@ -7,9 +7,12 @@ import { SupabaseService } from '../services/supabase.service';
  * Guardián de ruta reactivo para proteger vistas según autenticación y rol de Supabase
  */
 export const authGuard = (allowedRoles?: UserRole[]): CanActivateFn => {
-  return () => {
+  return async () => {
     const supabase = inject(SupabaseService);
     const router = inject(Router);
+
+    // Garantizar que la sesión persistida en Supabase esté lista antes de verificar
+    await supabase.ensureSessionReady();
 
     // Si no está autenticado en Supabase ni tiene rol activo, va a /login
     if (!supabase.isAuthenticated) {

@@ -211,7 +211,7 @@ export class BarberLayoutPage implements OnInit {
   switchToCustomer(): void {
     this.haptics.lightTap();
     this.isMobileMoreMenuOpen.set(false);
-    this.barberService.setRole('client');
+    this.barberService.setRole('customer');
     this.router.navigate(['/customer']);
   }
 

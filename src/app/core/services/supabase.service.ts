@@ -38,6 +38,7 @@ export class SupabaseService {
   private lastHealthCheck = 0;
   private isCheckingHealth = false;
   private readonly HEALTH_COOLDOWN_MS = 30000; // 30s de enfriamiento para proteger cuota de Data Egress
+  private sessionReadyPromise: Promise<void> | null = null;
 
   constructor() {
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey, {
@@ -79,6 +80,31 @@ export class SupabaseService {
 
     // Comprobar salud inicial
     this.checkHealth(true);
+  }
+
+  /**
+   * Garantiza que la sesión de Supabase almacenada localmente (localStorage)
+   * se haya resuelto y cargado en memoria antes de evaluar guardianes de rutas en arranques en frío (F5).
+   */
+  async ensureSessionReady(): Promise<void> {
+    if (this.sessionReadyPromise) {
+      return this.sessionReadyPromise;
+    }
+
+    this.sessionReadyPromise = (async () => {
+      try {
+        const { data, error } = await this.supabase.auth.getSession();
+        if (!error && data?.session?.user) {
+          const user = data.session.user;
+          this.currentUser.set(user);
+          await this.loadUserProfile(user.id);
+        }
+      } catch (err) {
+        this.logger.warn('SupabaseService', 'Error al verificar sesión persistente inicial', err);
+      }
+    })();
+
+    return this.sessionReadyPromise;
   }
 
   /**
@@ -296,6 +322,7 @@ export class SupabaseService {
   }
 
   private clearSessionState(): void {
+    this.sessionReadyPromise = null;
     this.currentUser.set(null);
     this.userProfile.set(null);
     this.currentRole.set(null);

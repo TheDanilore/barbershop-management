@@ -104,7 +104,7 @@ export class BarberService {
   private readonly logger = inject(LoggerService);
 
   // Estados reactivos gobernados por Signals
-  readonly currentRole = signal<'landing' | 'barber' | 'client'>(this.loadRole());
+  readonly currentRole = signal<'landing' | 'barber' | 'customer' | 'admin' | 'client'>(this.loadRole());
   readonly isLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
 
@@ -692,7 +692,7 @@ export class BarberService {
     }
   }
 
-  setRole(role: 'landing' | 'barber' | 'client'): void {
+  setRole(role: 'landing' | 'barber' | 'customer' | 'admin' | 'client'): void {
     this.currentRole.set(role);
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.ROLE, role);
@@ -2797,10 +2797,12 @@ export class BarberService {
     }
   }
 
-  private loadRole(): 'landing' | 'barber' | 'client' {
+  private loadRole(): 'landing' | 'barber' | 'customer' | 'admin' | 'client' {
     if (typeof localStorage === 'undefined') return 'landing';
     const val = localStorage.getItem(STORAGE_KEYS.ROLE);
-    if (val === 'barber' || val === 'client' || val === 'landing') return val;
+    if (val === 'barber' || val === 'client' || val === 'customer' || val === 'admin' || val === 'landing') {
+      return val as any;
+    }
     return 'landing';
   }
 

@@ -48,6 +48,7 @@ export class LoginPage {
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+  private redirectTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Formulario reactivo de Login
   readonly loginForm: FormGroup = this.fb.group({
@@ -66,6 +67,7 @@ export class LoginPage {
   constructor() {
     this.destroyRef.onDestroy(() => {
       if (this.feedbackTimeout) clearTimeout(this.feedbackTimeout);
+      if (this.redirectTimeout) clearTimeout(this.redirectTimeout);
     });
   }
 
@@ -101,6 +103,7 @@ export class LoginPage {
     }
 
     this.isLoading.set(true);
+    this.loginForm.disable({ emitEvent: false });
     this.errorMessage.set(null);
     const rawEmail = this.loginForm.value.email || '';
     const cleanEmail = rawEmail.trim().toLowerCase();
@@ -134,10 +137,15 @@ export class LoginPage {
         // Redirección inteligente basada en el rol resuelto en Supabase
         const isStaff = res.role === 'barber' || res.role === 'admin';
         const targetRoute = isStaff ? '/barber' : '/customer';
-        this.barberService.setRole(isStaff ? 'barber' : 'client');
-        this.barberService.syncFromSupabase();
+        this.barberService.setRole(isStaff ? 'barber' : 'customer');
 
-        setTimeout(() => {
+        // Optimización Data Egress: clientes cargan sus datos específicos en su portal
+        if (isStaff) {
+          this.barberService.syncFromSupabase();
+        }
+
+        if (this.redirectTimeout) clearTimeout(this.redirectTimeout);
+        this.redirectTimeout = setTimeout(() => {
           this.router.navigate([targetRoute]);
         }, 300);
       }
@@ -147,6 +155,7 @@ export class LoginPage {
       this.logger.error('LoginPage', `Excepción en submitLogin: ${message}`, err);
       this.showError(message);
     } finally {
+      this.loginForm.enable({ emitEvent: false });
       this.isLoading.set(false);
     }
   }
@@ -163,6 +172,7 @@ export class LoginPage {
     }
 
     this.isLoading.set(true);
+    this.registerForm.disable({ emitEvent: false });
     this.errorMessage.set(null);
     const { email, password, fullName, phone } = this.registerForm.value;
     const cleanEmail = (email || '').trim().toLowerCase();
@@ -187,9 +197,10 @@ export class LoginPage {
         this.haptics.success();
         this.logger.info('LoginPage', `Cliente registrado exitosamente en Supabase`);
         this.showSuccess('Cuenta de cliente creada exitosamente.');
-        this.barberService.setRole('client');
+        this.barberService.setRole('customer');
 
-        setTimeout(() => {
+        if (this.redirectTimeout) clearTimeout(this.redirectTimeout);
+        this.redirectTimeout = setTimeout(() => {
           this.router.navigate(['/customer']);
         }, 700);
       }
@@ -199,6 +210,7 @@ export class LoginPage {
       this.logger.error('LoginPage', `Excepción registrando cliente: ${message}`, err);
       this.showError(message);
     } finally {
+      this.registerForm.enable({ emitEvent: false });
       this.isLoading.set(false);
     }
   }

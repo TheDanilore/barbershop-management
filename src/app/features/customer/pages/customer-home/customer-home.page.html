@@ -60,8 +60,8 @@
       <div class="kpi-body">
         <span class="kpi-label">Nivel de Cliente</span>
         <div class="kpi-value-row">
-          <span class="tier-pill" [class]="barberService.currentClient().membershipLevel.toLowerCase()">
-            {{ barberService.currentClient().membershipLevel }}
+          <span class="tier-pill" [class]="(barberService.currentClient().membershipLevel || 'Bronze').toLowerCase()">
+            {{ barberService.currentClient().membershipLevel || 'Bronze' }}
           </span>
         </div>
         <span class="kpi-hint accent">Ver todos los niveles →</span>
@@ -244,8 +244,8 @@
           title="Ver requisitos para subir a VIP">
           <span class="teaser-icon">🔒</span>
           <div class="teaser-text">
-            <strong>Descuento del 15% en Productos</strong>
-            <p>Privilegio exclusivo para socios <strong>VIP Élite</strong> (50+ {{ barberService.loyaltyUnitLabel() }}). <span class="teaser-cta">Ver
+            <strong>Descuento del {{ vipDiscountPct() }}% en Productos</strong>
+            <p>Privilegio exclusivo para socios <strong>VIP Élite</strong> ({{ vipMinCuts() }}+ {{ barberService.loyaltyUnitLabel() }}). <span class="teaser-cta">Ver
                 comparativa →</span></p>
           </div>
         </div>

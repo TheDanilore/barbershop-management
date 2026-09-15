@@ -147,6 +147,17 @@ export class CustomerLayoutPage implements OnInit {
           this.barberService.syncCustomerPortalData(clientId);
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'membership_tiers',
+        },
+        () => {
+          this.barberService.syncCustomerPortalData(clientId);
+        }
+      )
       .subscribe();
 
     this.destroyRef.onDestroy(() => {

@@ -84,9 +84,15 @@ export class MembershipTierModalComponent implements OnChanges {
   addPerk(): void {
     const raw = this.newPerkInput().trim();
     if (!raw) return;
-
-    this.currentPerks.update((perks) => [...perks, raw]);
+    if (this.currentPerks().length >= 8) {
+      this.errorMessage.set('Máximo 8 beneficios por nivel para optimizar la visualización');
+      this.haptics.warning();
+      return;
+    }
+    const clean = raw.slice(0, 80);
+    this.currentPerks.update((perks) => [...perks, clean]);
     this.newPerkInput.set('');
+    this.errorMessage.set(null);
     this.haptics.lightTap();
   }
 

@@ -287,6 +287,7 @@ export class BarberService {
   readonly membershipTiers = signal<MembershipTierConfig[]>(
     this.loadFromStorage(STORAGE_KEYS.MEMBERSHIP_TIERS, DEFAULT_MEMBERSHIP_TIERS)
   );
+  private isRecalculatingTiers = false;
 
   // Porcentaje de descuento en productos aplicable al cliente actual según su membresía
   readonly currentClientProductDiscountPct = computed<number>(() => {
@@ -1723,11 +1724,11 @@ export class BarberService {
           saleId = orderData.id;
           orderNumber = orderData.order_number;
 
-          // Insertar líneas de detalle en order_items
+          // Insertar líneas de detalle en order_items respetando el tipo (service vs product)
           const itemsToInsert = lineItems.map((it) => ({
             order_id: saleId,
             service_id: it.serviceId || null,
-            item_type: 'service',
+            item_type: it.itemType || 'service',
             item_name: it.itemName,
             unit_price: it.unitPrice,
             quantity: it.quantity || 1,
@@ -3298,12 +3299,15 @@ export class BarberService {
           throw error;
         }
 
-        // Si cambiaron los cortes mínimos requeridos, disparar recálculo masivo en BD
-        if (minCutsChanged) {
+        // Si cambiaron los cortes mínimos requeridos, disparar recálculo masivo en BD con mutex
+        if (minCutsChanged && !this.isRecalculatingTiers) {
+          this.isRecalculatingTiers = true;
           try {
             await this.supabaseService.supabase.rpc('recalculate_all_membership_tiers');
           } catch (rpcErr) {
             this.logger.warn('BarberService', 'Aviso al ejecutar recalculate_all_membership_tiers', rpcErr);
+          } finally {
+            this.isRecalculatingTiers = false;
           }
           await this.syncFromSupabase();
         }

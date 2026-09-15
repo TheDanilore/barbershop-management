@@ -46,6 +46,19 @@ export class CustomerHomePage {
 
   readonly isVip = computed<boolean>(() => this.clientTier() === 'VIP');
 
+  // Configuración VIP dinámica desde Supabase (Radar de antipatrones: cero valores fijos quemados)
+  readonly vipTier = computed(() => {
+    return this.barberService.membershipTiers().find((t) => t.id === 'VIP');
+  });
+
+  readonly vipDiscountPct = computed(() => {
+    return this.vipTier()?.discountPercentage ?? 15;
+  });
+
+  readonly vipMinCuts = computed(() => {
+    return this.vipTier()?.minCutsRequired ?? 50;
+  });
+
   // Beneficios contextuales según el nivel real de membresía (dinámico desde Supabase)
   readonly tierPerks = computed(() => {
     const tier = this.clientTier();
@@ -62,7 +75,7 @@ export class CustomerHomePage {
 
     if (tier === 'VIP') {
       return [
-        { icon: '🏷️', title: '15% Dto. en Productos', desc: 'Descuento VIP exclusivo en todas las ceras, pomadas y aceites de barba.' },
+        { icon: '🏷️', title: `${this.vipDiscountPct()}% Dto. en Productos`, desc: 'Descuento VIP exclusivo en todas las ceras, pomadas y aceites de barba.' },
         { icon: '👑', title: 'Atención VIP y Master Barber', desc: 'Bebidas premium ilimitadas y atención preferencial del equipo senior.' },
         { icon: '⚡', title: 'Reserva Prioritaria Élite', desc: 'Acceso garantizado en horarios estelares de fin de semana y festivos.' },
       ];

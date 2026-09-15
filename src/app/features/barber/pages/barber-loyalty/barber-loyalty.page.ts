@@ -82,6 +82,15 @@ export class BarberLoyaltyPage {
     return this.barberService.loyaltyRewards().filter((r) => r.isActive).length;
   });
 
+  // Nivel VIP dinámico desde Supabase (Radar de antipatrones: cero strings quemados)
+  readonly vipTier = computed(() => {
+    return this.barberService.membershipTiers().find((t) => t.id === 'VIP');
+  });
+
+  readonly vipDiscountPct = computed(() => {
+    return this.vipTier()?.discountPercentage ?? 15;
+  });
+
   // Recompensas ordenadas por sellos requeridos
   readonly sortedRewards = computed(() => {
     return [...this.barberService.loyaltyRewards()].sort(

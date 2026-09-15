@@ -162,6 +162,46 @@
   color: #ef4444;
 }
 
+.nc-warning-banner {
+  margin: 12px 24px 0;
+  padding: 12px 14px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 10px;
+  color: #fde68a;
+  font-size: 0.84rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: ncFadeIn 0.2s ease;
+}
+
+.nc-warning-banner .wb-icon-box {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.nc-warning-banner .wb-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nc-warning-banner .wb-title {
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.nc-warning-banner .wb-text {
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .sheet-form {
   display: flex;
   flex-direction: column;

@@ -6,9 +6,19 @@
       <p class="page-subtitle">Revisa tus próximas visitas o consulta tu historial de turnos</p>
     </div>
 
-    <button type="button" class="btn-primary-action" (click)="openBookingModal()">
-      <span>✨ Agendar Nueva Cita</span>
-    </button>
+    @if (!hasActiveAppointment()) {
+      <button type="button" class="btn-primary-action" (click)="openBookingModal()">
+        <span>✨ Agendar Nueva Cita</span>
+      </button>
+    } @else {
+      <div class="active-limit-badge" title="Solo se permite 1 cita activa por cliente">
+        <span class="alb-icon">🛡️</span>
+        <div class="alb-info">
+          <span class="alb-status">1 Cita Activa Permitida</span>
+          <span class="alb-sub">Reprograma abajo para modificar</span>
+        </div>
+      </div>
+    }
   </header>
 
   <!-- Filtro de Citas Segmentado -->
@@ -103,7 +113,7 @@
               <button type="button" class="btn-cal-apt" (click)="addToGoogleCalendar(apt)" title="Añadir a Google Calendar">
                 📅 Calendario
               </button>
-              <button type="button" class="btn-reschedule-apt" (click)="openBookingModal()">
+              <button type="button" class="btn-reschedule-apt" (click)="openBookingModal(apt)">
                 Reprogramar
               </button>
             </footer>
@@ -159,6 +169,7 @@
   <!-- Modal de Agendamiento -->
   <app-booking-modal
     [isOpen]="isBookingModalOpen()"
+    [appointmentToEdit]="appointmentToReschedule()"
     (close)="closeBookingModal()"
   ></app-booking-modal>
 </div>

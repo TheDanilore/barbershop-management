@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Appointment } from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoggerService } from '../../../../core/services/logger.service';
@@ -37,12 +38,24 @@ export class BookingModalComponent implements OnChanges {
   private readonly destroyRef = inject(DestroyRef);
 
   @Input() isOpen = false;
+  @Input() appointmentToEdit: Appointment | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() booked = new EventEmitter<string>();
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly todayDateStr = computed(() => getLocalDateString());
+
+  // Modo edición / reprogramación
+  readonly isEditMode = computed<boolean>(() => !!this.appointmentToEdit);
+
+  // Verificación estricta: ¿Tiene cita activa y no está en modo edición?
+  readonly hasActiveAppointment = computed<boolean>(() => {
+    if (this.isEditMode()) return false;
+    return this.barberService
+      .clientAppointments()
+      .some((a) => a.status === 'confirmed' || a.status === 'in-progress');
+  });
 
   // Nivel de membresía del cliente para adaptar textos y badges
   readonly clientTier = computed<string>(() => {
@@ -90,9 +103,19 @@ export class BookingModalComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isOpen'] && this.isOpen) {
+    if ((changes['isOpen'] && this.isOpen) || (changes['appointmentToEdit'] && this.isOpen)) {
       this.errorMessage.set(null);
-      this.syncDynamicDefaults();
+      if (this.appointmentToEdit) {
+        this.bookingForm.patchValue({
+          serviceId: this.appointmentToEdit.serviceId,
+          barberId: this.appointmentToEdit.barberId,
+          date: this.appointmentToEdit.date,
+          time: this.appointmentToEdit.time,
+          notes: this.appointmentToEdit.notes || '',
+        });
+      } else {
+        this.syncDynamicDefaults();
+      }
     }
   }
 
@@ -144,6 +167,14 @@ export class BookingModalComponent implements OnChanges {
   }
 
   async submitBooking(): Promise<void> {
+    if (this.hasActiveAppointment()) {
+      this.haptics.warning();
+      this.errorMessage.set(
+        'Ya cuentas con una cita activa programada. Para evitar duplicados, solo se permite 1 cita por cliente. Puedes reprogramar tu cita existente.'
+      );
+      return;
+    }
+
     if (this.bookingForm.invalid || this.isSubmitting()) {
       this.bookingForm.markAllAsTouched();
       this.haptics.warning();
@@ -158,18 +189,32 @@ export class BookingModalComponent implements OnChanges {
     const { serviceId, barberId, date, time, notes } = this.bookingForm.value;
 
     try {
-      const apt = await this.barberService.bookAppointment({
-        clientId: this.barberService.currentClient().id,
-        barberId,
-        serviceId,
-        date,
-        time,
-        notes: notes ? notes.trim() : undefined,
-      });
+      if (this.appointmentToEdit) {
+        const updated = await this.barberService.updateAppointment(this.appointmentToEdit.id, {
+          serviceId,
+          barberId,
+          date,
+          time,
+          notes: notes ? notes.trim() : undefined,
+        });
 
-      this.haptics.success();
-      this.booked.emit(`¡Cita agendada para el ${apt.date} a las ${apt.time}!`);
-      this.close.emit();
+        this.haptics.success();
+        this.booked.emit(`¡Cita reprogramada para el ${updated.date} a las ${updated.time}!`);
+        this.close.emit();
+      } else {
+        const apt = await this.barberService.bookAppointment({
+          clientId: this.barberService.currentClient().id,
+          barberId,
+          serviceId,
+          date,
+          time,
+          notes: notes ? notes.trim() : undefined,
+        });
+
+        this.haptics.success();
+        this.booked.emit(`¡Cita agendada para el ${apt.date} a las ${apt.time}!`);
+        this.close.emit();
+      }
     } catch (err: unknown) {
       this.haptics.warning();
       const message =

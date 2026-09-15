@@ -1153,6 +1153,14 @@ CREATE UNIQUE INDEX "idx_single_open_cash_shift" ON "public"."cash_shifts" USING
 
 
 
+CREATE UNIQUE INDEX "idx_unique_active_appointment_per_customer" ON "public"."appointments" USING "btree" ("customer_id") WHERE ("status" = ANY (ARRAY['confirmed'::"public"."appointment_status", 'in_progress'::"public"."appointment_status"]));
+
+
+
+COMMENT ON INDEX "public"."idx_unique_active_appointment_per_customer" IS 'Garantiza integridad atómica: un cliente solo puede tener como máximo 1 cita activa (confirmed o in_progress) en la barbería.';
+
+
+
 CREATE UNIQUE INDEX "reviews_order_id_key" ON "public"."reviews" USING "btree" ("order_id") WHERE ("order_id" IS NOT NULL);
 
 

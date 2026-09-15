@@ -25,6 +25,7 @@ export class CustomerAppointmentsPage {
 
   readonly filterTab = signal<'active' | 'past'>('active');
   readonly isBookingModalOpen = signal(false);
+  readonly appointmentToReschedule = signal<Appointment | null>(null);
 
   // Citas del cliente
   readonly allAppointments = computed(() => this.barberService.clientAppointments());
@@ -34,6 +35,9 @@ export class CustomerAppointmentsPage {
       (a) => a.status === 'confirmed' || a.status === 'pending' || a.status === 'in-progress'
     );
   });
+
+  // Flag reactivo: ¿Tiene actualmente una cita activa? (Máximo 1 por cliente)
+  readonly hasActiveAppointment = computed<boolean>(() => this.activeAppointments().length > 0);
 
   readonly pastAppointments = computed(() => {
     return this.allAppointments().filter(
@@ -46,13 +50,15 @@ export class CustomerAppointmentsPage {
     this.filterTab.set(tab);
   }
 
-  openBookingModal(): void {
+  openBookingModal(appointmentToEdit?: Appointment): void {
     this.haptics.lightTap();
+    this.appointmentToReschedule.set(appointmentToEdit || null);
     this.isBookingModalOpen.set(true);
   }
 
   closeBookingModal(): void {
     this.isBookingModalOpen.set(false);
+    this.appointmentToReschedule.set(null);
   }
 
   cancelAppointment(apt: Appointment): void {

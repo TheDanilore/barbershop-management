@@ -81,6 +81,32 @@
   box-shadow: 0 8px 25px rgba(229, 169, 60, 0.5);
 }
 
+.hero-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--gold-primary, #e5a93c);
+  font-size: 0.85rem;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  animation: ncFadeIn 0.25s ease;
+}
+
+.hero-active-badge .hab-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.hero-active-badge .hab-text {
+  letter-spacing: 0.01em;
+}
+
 @media (max-width: 640px) {
   .home-hero-header {
     flex-direction: column;

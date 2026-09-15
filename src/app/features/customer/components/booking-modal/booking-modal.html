@@ -12,12 +12,16 @@
         <div class="sheet-badge-row">
           <span class="sheet-badge" [class.gold]="isVip()" [class.bronze]="clientTier() === 'Bronze'"
             [class.silver]="clientTier() === 'Silver'">
-            {{ isVip() ? 'Reserva VIP' : 'Agendar Turno' }}
+            {{ isEditMode() ? 'Reprogramación' : (isVip() ? 'Reserva VIP' : 'Agendar Turno') }}
           </span>
           <span class="sheet-shortcut-badge" title="Cerrar con tecla Escape">Esc</span>
         </div>
-        <h2 id="bookingModalTitle" class="sheet-title">Agendar Mi Turno</h2>
-        <p class="sheet-desc">Selecciona tu servicio, profesional y horario ideal para tu próximo corte</p>
+        <h2 id="bookingModalTitle" class="sheet-title">
+          {{ isEditMode() ? 'Reprogramar Mi Turno' : 'Agendar Mi Turno' }}
+        </h2>
+        <p class="sheet-desc">
+          {{ isEditMode() ? 'Ajusta la fecha, horario, profesional o servicio de tu cita activa' : 'Selecciona tu servicio, profesional y horario ideal para tu próximo corte' }}
+        </p>
       </div>
       <button type="button" class="sheet-close-btn" (click)="onClose()" aria-label="Cerrar modal" title="Cerrar (Esc)"
         [disabled]="isSubmitting()">
@@ -27,6 +31,18 @@
         </svg>
       </button>
     </header>
+
+    @if (hasActiveAppointment()) {
+    <div class="nc-warning-banner" role="alert">
+      <div class="wb-icon-box">🛡️</div>
+      <div class="wb-content">
+        <strong class="wb-title">Límite de citas activas alcanzado</strong>
+        <p class="wb-text">
+          Ya cuentas con una cita confirmada en la barbería. Para evitar reservas duplicadas y garantizar turnos justos, solo se permite 1 cita activa por cliente. Puedes reprogramarla o cancelarla desde Mis Citas.
+        </p>
+      </div>
+    </div>
+    }
 
     @if (errorMessage()) {
     <div class="nc-error-banner" role="alert">
@@ -105,12 +121,13 @@
         <button type="button" class="btn-secondary" (click)="onClose()" [disabled]="isSubmitting()">
           Cancelar
         </button>
-        <button type="submit" class="btn-primary-action" [disabled]="bookingForm.invalid || isSubmitting()">
+        <button type="submit" class="btn-primary-action"
+          [disabled]="bookingForm.invalid || isSubmitting() || hasActiveAppointment()">
           @if (isSubmitting()) {
           <span class="btn-spinner" aria-hidden="true"></span>
-          <span>Confirmando Reserva...</span>
+          <span>{{ isEditMode() ? 'Guardando Cambios...' : 'Confirmando Reserva...' }}</span>
           } @else {
-          <span>{{ isVip() ? 'Confirmar Cita VIP' : 'Confirmar Cita' }}</span>
+          <span>{{ isEditMode() ? 'Confirmar Reprogramación' : (isVip() ? 'Confirmar Cita VIP' : 'Confirmar Cita') }}</span>
           }
         </button>
       </div>

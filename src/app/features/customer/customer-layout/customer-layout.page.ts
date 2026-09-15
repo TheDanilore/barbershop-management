@@ -180,10 +180,23 @@ export class CustomerLayoutPage implements OnInit {
     }
   }
 
+  // Flag: ¿Tiene al menos una cita activa programada? (Regla: 1 cita a la vez)
+  readonly hasActiveAppointment = computed<boolean>(() => this.activeAppointmentsCount() > 0);
+
   navigateTo(tab: CustomerTab): void {
     this.haptics.lightTap();
     this.currentTab.set(tab);
     this.router.navigate([`/customer/${tab}`]);
+  }
+
+  handleQuickBookClick(): void {
+    if (this.hasActiveAppointment()) {
+      this.haptics.warning();
+      this.showToast('🛡️ Ya cuentas con una cita activa programada. Puedes reprogramarla desde Mis Citas.');
+      this.navigateTo('appointments');
+      return;
+    }
+    this.openBookingModal();
   }
 
   openBookingModal(): void {
@@ -225,7 +238,7 @@ export class CustomerLayoutPage implements OnInit {
     // Alt+B: Agendar nueva cita
     if (event.altKey && (event.key === 'b' || event.key === 'B')) {
       event.preventDefault();
-      this.openBookingModal();
+      this.handleQuickBookClick();
     }
   }
 }

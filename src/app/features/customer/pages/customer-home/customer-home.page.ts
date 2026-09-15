@@ -102,19 +102,26 @@ export class CustomerHomePage {
   // Próximo turno en vivo
   readonly nextApt = computed(() => this.barberService.nextClientAppointment());
 
+  // Flag: ¿Tiene una cita activa? (Regla: 1 cita a la vez)
+  readonly hasActiveAppointment = computed<boolean>(() => !!this.nextApt());
+
+  readonly appointmentToReschedule = signal<Appointment | null>(null);
+
   // Servicios populares
   readonly popularServices = computed(() => {
     const list = this.barberService.services().filter((s) => s.isActive !== false);
     return list.slice(0, 4);
   });
 
-  openBookingModal(): void {
+  openBookingModal(appointmentToEdit?: Appointment): void {
     this.haptics.lightTap();
+    this.appointmentToReschedule.set(appointmentToEdit || null);
     this.isBookingModalOpen.set(true);
   }
 
   closeBookingModal(): void {
     this.isBookingModalOpen.set(false);
+    this.appointmentToReschedule.set(null);
   }
 
   openTierCatalogModal(): void {

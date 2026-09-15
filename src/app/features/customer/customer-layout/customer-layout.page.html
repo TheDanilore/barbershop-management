@@ -42,7 +42,7 @@
 
     <div class="mobile-topbar-actions">
       <!-- Botón Rápido Agendar -->
-      <button type="button" class="mobile-btn-book" (click)="openBookingModal()" aria-label="Agendar turno">
+      <button type="button" class="mobile-btn-book" (click)="handleQuickBookClick()" aria-label="Agendar turno">
         <span>+ Cita</span>
       </button>
 
@@ -121,7 +121,7 @@
 
     <!-- Acciones Rápidas Superior Derecha -->
     <div class="desktop-header-right">
-      <button type="button" class="btn-desktop-primary-book" (click)="openBookingModal()"
+      <button type="button" class="btn-desktop-primary-book" (click)="handleQuickBookClick()"
         title="Reservar un nuevo corte (Alt+B)">
         <span>✨ Reservar Cita</span>
         <kbd class="kbd-shortcut">Alt+B</kbd>
@@ -188,7 +188,7 @@
 
     <!-- Botón Central Flotante de Reserva Rápida -->
     <div class="mbn-center-action">
-      <button type="button" class="mbn-fab" (click)="openBookingModal()" aria-label="Agendar Turno">
+      <button type="button" class="mbn-fab" (click)="handleQuickBookClick()" aria-label="Agendar Turno">
         <span>+</span>
       </button>
     </div>

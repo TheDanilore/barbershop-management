@@ -2699,6 +2699,16 @@ export class BarberService {
     const client = this.clients().find((c) => c.id === params.clientId) || this.currentClient();
     const barber = this.barbers().find((b) => b.id === params.barberId) || this.barbers()[0];
 
+    // Regla de Negocio Estricta (Anti-Bot / Anti-Duplicados): 1 sola cita activa a la vez por cliente
+    const hasActiveAppointment = this.appointments().some(
+      (a) => a.clientId === client.id && (a.status === 'confirmed' || a.status === 'in-progress')
+    );
+    if (hasActiveAppointment) {
+      throw new Error(
+        'Ya cuentas con una cita activa programada. Solo se permite 1 cita activa por cliente. Puedes reprogramarla o cancelarla.'
+      );
+    }
+
     // Resolver lista de servicios (multi-servicio / combos / o por definir)
     let servicesList: AppointmentServiceItem[] = [];
     let primaryServiceId = '';
@@ -2734,6 +2744,19 @@ export class BarberService {
 
     if (this.supabaseService.isConfigured()) {
       try {
+        // Verificación atómica preventiva en Supabase (anti race-conditions entre múltiples pestañas o bots)
+        const { count, error: countError } = await this.supabaseService.supabase
+          .from('appointments')
+          .select('id', { count: 'exact', head: true })
+          .eq('customer_id', client.id)
+          .in('status', ['confirmed', 'in_progress']);
+
+        if (!countError && typeof count === 'number' && count > 0) {
+          throw new Error(
+            'Ya cuentas con una cita activa registrada en el sistema. Puedes reprogramarla o cancelarla para agendar una nueva.'
+          );
+        }
+
         const scheduledAt = new Date(`${params.date}T${params.time}:00`).toISOString();
         const { data, error } = await this.supabaseService.supabase
           .from('appointments')
@@ -2751,6 +2774,14 @@ export class BarberService {
 
         if (error) {
           this.logger.error('BarberService', 'Error al agendar cita en Supabase', error);
+          if (
+            (error as { code?: string }).code === '23505' ||
+            error.message?.includes('idx_unique_active_appointment_per_customer')
+          ) {
+            throw new Error(
+              'Ya cuentas con una cita activa programada. Solo se permite 1 cita activa por cliente.'
+            );
+          }
           throw error;
         } else if (data) {
           appointmentId = data.id;

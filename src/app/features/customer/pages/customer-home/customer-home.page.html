@@ -8,10 +8,17 @@
     </div>
 
     <div class="hhh-cta-wrap">
+      @if (!hasActiveAppointment()) {
       <button type="button" class="btn-hero-book" (click)="openBookingModal()">
         <span class="btn-sparkle">✨</span>
         <span>Agendar Cita</span>
       </button>
+      } @else {
+      <div class="hero-active-badge" title="Solo se permite 1 cita activa por cliente">
+        <span class="hab-icon">🛡️</span>
+        <span class="hab-text">1 Cita Activa Programada</span>
+      </div>
+      }
     </div>
   </header>
 
@@ -143,7 +150,7 @@
             <button type="button" class="btn-nac-cancel" (click)="cancelAppointment(apt)">
               Cancelar Cita
             </button>
-            <button type="button" class="btn-nac-reschedule" (click)="openBookingModal()">
+            <button type="button" class="btn-nac-reschedule" (click)="openBookingModal(apt)">
               Reprogramar
             </button>
           </footer>
@@ -267,8 +274,8 @@
   </div>
 
   <!-- Modal de Reserva -->
-  <app-booking-modal [isOpen]="isBookingModalOpen()" (close)="closeBookingModal()"
-    (booked)="onBookingSuccess($event)"></app-booking-modal>
+  <app-booking-modal [isOpen]="isBookingModalOpen()" [appointmentToEdit]="appointmentToReschedule()"
+    (close)="closeBookingModal()" (booked)="onBookingSuccess($event)"></app-booking-modal>
 
   <!-- Modal Catálogo de Membresías & Niveles -->
   <app-tier-catalog-modal [isOpen]="isTierCatalogModalOpen()"

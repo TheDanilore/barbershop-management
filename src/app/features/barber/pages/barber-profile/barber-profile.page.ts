@@ -114,7 +114,10 @@ export class BarberProfilePage {
     }
   }
 
-  openEditProfile(): void {
+  readonly modalTab = signal<'info' | 'password'>('info');
+
+  openEditProfile(tab: 'info' | 'password' = 'info'): void {
+    this.modalTab.set(tab);
     this.haptics.lightTap();
     this.isEditingProfile.set(true);
   }

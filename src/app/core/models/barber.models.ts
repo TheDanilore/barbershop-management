@@ -74,6 +74,7 @@ export interface ProfileRow {
   avatar_url: string | null;
   role: UserRole;
   phone: string | null;
+  notes?: string | null;
   membership_tier: MembershipTier;
   created_at: string;
   is_active: boolean;

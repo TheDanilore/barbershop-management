@@ -2034,6 +2034,7 @@ export class BarberService {
         const payload: any = {};
         if (updates.name !== undefined) payload.full_name = updatedClient.name;
         if (updates.phone !== undefined) payload.phone = updatedClient.phone || null;
+        if (updates.notes !== undefined) payload.notes = updatedClient.notes || null;
         if (updates.membershipLevel !== undefined) payload.membership_tier = updatedClient.membershipLevel;
         if (updates.isActive !== undefined) payload.is_active = updatedClient.isActive;
 

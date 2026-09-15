@@ -21,7 +21,7 @@
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 20px;
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -45,7 +45,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 16px 22px;
+  padding: 18px 22px 14px;
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
 }
 
@@ -83,7 +83,7 @@
 
 .sheet-subtitle {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-secondary, #9e9ea7);
 }
 
@@ -108,7 +108,51 @@
   transform: rotate(90deg);
 }
 
-/* Error Banner */
+/* Tabs (Estilo Segmented Control Apple) */
+.sheet-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 12px 22px 0;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary, #9e9ea7);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.tab-btn:hover {
+  color: #ffffff;
+}
+
+.tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--gold-primary, #e5a93c);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.tab-svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+/* Banner de Error y Éxito */
 .modal-error-banner {
   display: flex;
   align-items: center;
@@ -128,6 +172,48 @@
   height: 16px;
   color: #ef4444;
   flex-shrink: 0;
+}
+
+.modal-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 22px 0;
+  padding: 10px 14px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  color: #6ee7b7;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.success-icon {
+  width: 16px;
+  height: 16px;
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.security-intro-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(229, 169, 60, 0.08);
+  border: 1px solid rgba(229, 169, 60, 0.22);
+  border-radius: 10px;
+  font-size: 0.76rem;
+  color: #fce7b2;
+  line-height: 1.4;
+}
+
+.sec-intro-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--gold-primary, #e5a93c);
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 /* Form Body */
@@ -151,10 +237,43 @@
   gap: 6px;
 }
 
+.label-with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .form-label {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-secondary, #cbd5e1);
+}
+
+.strength-chip {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.strength-chip.débil {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.strength-chip.media {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.strength-chip.fuerte {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .input-icon-wrap {
@@ -191,6 +310,10 @@
   padding-left: 38px;
 }
 
+.form-input.with-eye {
+  padding-right: 42px;
+}
+
 .form-input:hover {
   border-color: rgba(255, 255, 255, 0.16);
 }
@@ -199,6 +322,34 @@
   background: rgba(255, 255, 255, 0.06);
   border-color: var(--gold-primary, #e5a93c);
   box-shadow: 0 0 0 2px rgba(229, 169, 60, 0.25);
+}
+
+.btn-eye-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted, #8e8e9a);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-eye-toggle:hover {
+  color: var(--gold-primary, #e5a93c);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.eye-svg {
+  width: 16px;
+  height: 16px;
 }
 
 .form-error {
@@ -252,9 +403,14 @@
   transition: all 0.15s ease;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary, #ffffff);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-primary-action {
@@ -284,6 +440,7 @@
 .btn-primary-action:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
 .save-svg {

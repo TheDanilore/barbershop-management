@@ -259,7 +259,7 @@ export class SupabaseService {
     try {
       const { data, error } = await this.supabase
         .from('profiles')
-        .select('id, full_name, role, phone, membership_tier, is_active, created_at, avatar_url, auth_user_id')
+        .select('id, full_name, role, phone, notes, membership_tier, is_active, created_at, avatar_url, auth_user_id')
         .or(`auth_user_id.eq.${userId},id.eq.${userId}`)
         .maybeSingle();
 
@@ -291,6 +291,125 @@ export class SupabaseService {
     const user = this.currentUser();
     if (user) {
       await this.loadUserProfile(user.id);
+    }
+  }
+
+  /**
+   * Actualiza los datos del perfil del usuario autenticado (nombre, teléfono, notas de estilo).
+   * Implementa validación estricta y sincronización inmediata con Supabase.
+   */
+  async updateUserProfile(payload: {
+    fullName: string;
+    phone?: string | null;
+    notes?: string | null;
+  }): Promise<{ success: boolean; error?: string }> {
+    const profile = this.userProfile();
+    const user = this.currentUser();
+    const targetId = profile?.id || user?.id;
+
+    if (!targetId) {
+      return { success: false, error: 'No se identificó una sesión activa para actualizar el perfil.' };
+    }
+
+    if (!this.isConfigured()) {
+      // Modo local / fallback
+      if (profile) {
+        this.userProfile.set({
+          ...profile,
+          full_name: payload.fullName.trim(),
+          phone: payload.phone ? payload.phone.trim() : null,
+          notes: payload.notes !== undefined ? (payload.notes?.trim() || null) : profile.notes,
+        });
+      }
+      return { success: true };
+    }
+
+    try {
+      const updateData: Record<string, any> = {
+        full_name: payload.fullName.trim(),
+        phone: payload.phone !== undefined ? (payload.phone?.trim() || null) : undefined,
+      };
+
+      if (payload.notes !== undefined) {
+        updateData['notes'] = payload.notes?.trim() || null;
+      }
+
+      // Limpiar undefined
+      Object.keys(updateData).forEach(
+        (key) => updateData[key] === undefined && delete updateData[key]
+      );
+
+      const { error } = await this.supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', targetId);
+
+      if (error) {
+        this.logger.error('SupabaseService', 'Error al actualizar perfil en Supabase', error);
+        return { success: false, error: error.message || 'Error al actualizar perfil en la base de datos' };
+      }
+
+      await this.refreshUserProfile();
+      return { success: true };
+    } catch (err: any) {
+      this.logger.error('SupabaseService', 'Excepción al actualizar perfil', err);
+      return { success: false, error: err?.message || 'Error inesperado al guardar los datos del perfil' };
+    }
+  }
+
+  /**
+   * Modifica la contraseña del usuario con verificación obligatoria de contraseña previa (Zero-Trust).
+   * Previene secuestro de cuentas en terminales compartidas o sesiones abiertas.
+   */
+  async changePasswordWithVerification(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const user = this.currentUser();
+    if (!user?.email) {
+      return { success: false, error: 'No se encontró una sesión activa con correo electrónico.' };
+    }
+
+    if (!this.isConfigured()) {
+      return { success: true };
+    }
+
+    try {
+      // 1. Re-autenticación defensiva criptográfica con credencial actual
+      const verifyRes = await this.supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (verifyRes.error) {
+        this.logger.warn('SupabaseService', 'Fallo de re-autenticación para cambio de contraseña', verifyRes.error);
+        return {
+          success: false,
+          error: 'La contraseña actual no coincide. Por seguridad, no se modificaron tus credenciales.',
+        };
+      }
+
+      // 2. Actualización segura en Supabase Auth
+      const { error: updateError } = await this.supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        this.logger.error('SupabaseService', 'Error al actualizar contraseña en Auth', updateError);
+        return {
+          success: false,
+          error: updateError.message || 'No fue posible actualizar la contraseña.',
+        };
+      }
+
+      this.logger.info('SupabaseService', 'Contraseña actualizada exitosamente con re-autenticación');
+      return { success: true };
+    } catch (err: any) {
+      this.logger.error('SupabaseService', 'Excepción en changePasswordWithVerification', err);
+      return {
+        success: false,
+        error: err?.message || 'Error inesperado durante el cambio de contraseña.',
+      };
     }
   }
 

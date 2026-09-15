@@ -138,6 +138,13 @@
           </div>
         }
 
+        @if (saveError()) {
+          <div class="error-alert" role="alert">
+            <span class="alert-icon error">⚠</span>
+            <span>{{ saveError() }}</span>
+          </div>
+        }
+
         <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="pfc-form" novalidate>
           <div class="form-row">
             <div class="form-group">
@@ -210,6 +217,145 @@
               <span>Guardando cambios...</span>
             } @else {
               <span>✨ Guardar Información</span>
+            }
+          </button>
+        </form>
+      </section>
+
+      <!-- Tarjeta de Seguridad y Cambio de Contraseña (Zero-Trust) -->
+      <section class="profile-form-card security-card" aria-labelledby="pwd-section-title">
+        <div class="pfc-header">
+          <div class="pfc-header-icon-row">
+            <span class="sec-badge">SEGURIDAD</span>
+          </div>
+          <h3 id="pwd-section-title" class="pfc-title">Cambiar Contraseña</h3>
+          <p class="pfc-desc">Para tu seguridad, confirma tu clave actual antes de definir tu nueva contraseña.</p>
+        </div>
+
+        @if (passwordSuccess()) {
+          <div class="success-alert" role="alert">
+            <span class="alert-icon">🔒</span>
+            <span>¡Tu contraseña ha sido actualizada con éxito!</span>
+          </div>
+        }
+
+        @if (passwordError()) {
+          <div class="error-alert" role="alert">
+            <span class="alert-icon error">⚠</span>
+            <span>{{ passwordError() }}</span>
+          </div>
+        }
+
+        <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="pfc-form" novalidate>
+          <!-- Contraseña Actual -->
+          <div class="form-group">
+            <label for="cCurrentPass" class="form-label">Contraseña Actual <span class="req">*</span></label>
+            <div class="cust-input-wrap">
+              <input
+                id="cCurrentPass"
+                [type]="showCurrentPassword() ? 'text' : 'password'"
+                formControlName="currentPassword"
+                placeholder="Ingresa tu clave actual"
+                autocomplete="current-password"
+                [class.invalid]="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched"
+              />
+              <button
+                type="button"
+                class="btn-eye"
+                (click)="togglePasswordVisibility('current')"
+                aria-label="Ver u ocultar contraseña actual"
+              >
+                @if (showCurrentPassword()) {
+                  <span>👁️</span>
+                } @else {
+                  <span>🙈</span>
+                }
+              </button>
+            </div>
+            @if (passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched) {
+              <span class="form-error">Ingresa tu contraseña actual (mínimo 6 caracteres).</span>
+            }
+          </div>
+
+          <div class="form-row">
+            <!-- Nueva Contraseña -->
+            <div class="form-group">
+              <div class="label-with-badge">
+                <label for="cNewPass" class="form-label">Nueva Contraseña <span class="req">*</span></label>
+                @if (passwordStrength()) {
+                  <span class="strength-tag" [class]="passwordStrength()">
+                    {{ passwordStrength() | uppercase }}
+                  </span>
+                }
+              </div>
+              <div class="cust-input-wrap">
+                <input
+                  id="cNewPass"
+                  [type]="showNewPassword() ? 'text' : 'password'"
+                  formControlName="newPassword"
+                  placeholder="Mínimo 8 caracteres"
+                  autocomplete="new-password"
+                  [class.invalid]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"
+                />
+                <button
+                  type="button"
+                  class="btn-eye"
+                  (click)="togglePasswordVisibility('new')"
+                  aria-label="Ver u ocultar nueva contraseña"
+                >
+                  @if (showNewPassword()) {
+                    <span>👁️</span>
+                  } @else {
+                    <span>🙈</span>
+                  }
+                </button>
+              </div>
+              @if (passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched) {
+                <span class="form-error">Debe tener al menos 8 caracteres.</span>
+              }
+            </div>
+
+            <!-- Confirmar Contraseña -->
+            <div class="form-group">
+              <label for="cConfirmPass" class="form-label">Confirmar Contraseña <span class="req">*</span></label>
+              <div class="cust-input-wrap">
+                <input
+                  id="cConfirmPass"
+                  [type]="showConfirmPassword() ? 'text' : 'password'"
+                  formControlName="confirmPassword"
+                  placeholder="Repite la nueva clave"
+                  autocomplete="new-password"
+                  [class.invalid]="passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched"
+                />
+                <button
+                  type="button"
+                  class="btn-eye"
+                  (click)="togglePasswordVisibility('confirm')"
+                  aria-label="Ver u ocultar confirmación"
+                >
+                  @if (showConfirmPassword()) {
+                    <span>👁️</span>
+                  } @else {
+                    <span>🙈</span>
+                  }
+                </button>
+              </div>
+              @if (passwordForm.errors?.['passwordMismatch'] && passwordForm.get('confirmPassword')?.touched) {
+                <span class="form-error">Las contraseñas no coinciden.</span>
+              }
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="btn-change-pwd"
+            [disabled]="passwordForm.invalid || isChangingPassword()"
+          >
+            @if (isChangingPassword()) {
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span>Actualizando contraseña...</span>
+            } @else {
+              <span>🔒 Actualizar Contraseña</span>
             }
           </button>
         </form>

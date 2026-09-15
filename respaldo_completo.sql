@@ -626,6 +626,39 @@ $$;
 
 ALTER FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") OWNER TO "postgres";
 
+
+CREATE OR REPLACE FUNCTION "public"."tr_protect_profile_fields"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  -- Si el usuario que ejecuta la mutación no tiene rol de admin en la base de datos
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE (auth_user_id = auth.uid() OR id = auth.uid()) 
+      AND role = 'admin'::public.user_role
+  ) THEN
+    -- Impedir escalada no autorizada de roles
+    IF NEW.role IS DISTINCT FROM OLD.role THEN
+      RAISE EXCEPTION 'Acceso denegado: No tienes permisos para alterar el rol de tu cuenta.';
+    END IF;
+    -- Impedir alteración arbitraria de nivel de membresía
+    IF NEW.membership_tier IS DISTINCT FROM OLD.membership_tier THEN
+      RAISE EXCEPTION 'Acceso denegado: El nivel de membresía solo puede ser recalculado por el sistema.';
+    END IF;
+    -- Impedir desactivación o reactivación arbitraria
+    IF NEW.is_active IS DISTINCT FROM OLD.is_active THEN
+      RAISE EXCEPTION 'Acceso denegado: No puedes alterar el estado de activación de tu cuenta.';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."tr_protect_profile_fields"() OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -1806,6 +1839,12 @@ GRANT ALL ON FUNCTION "public"."recalculate_all_membership_tiers"() TO "service_
 GRANT ALL ON FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."tr_protect_profile_fields"() TO "anon";
+GRANT ALL ON FUNCTION "public"."tr_protect_profile_fields"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."tr_protect_profile_fields"() TO "service_role";
 
 
 

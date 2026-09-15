@@ -130,13 +130,16 @@
       <div class="action-divider"></div>
 
       @if (isAdmin()) {
-        <button type="button" class="btn-icon-top" (click)="switchToBarber()" title="Cambiar a Vista Barbero / Staff">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="6" cy="6" r="3"></circle>
-            <circle cx="6" cy="18" r="3"></circle>
-            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-          </svg>
-        </button>
+      <button type="button" class="btn-icon-top" (click)="switchToBarber()" title="Cambiar a Vista Barbero / Staff">
+        <svg _ngcontent-ng-c1268686590="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          class="brand-logo-icon">
+          <circle _ngcontent-ng-c1268686590="" cx="6" cy="6" r="3"></circle>
+          <circle _ngcontent-ng-c1268686590="" cx="6" cy="18" r="3"></circle>
+          <line _ngcontent-ng-c1268686590="" x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line _ngcontent-ng-c1268686590="" x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line _ngcontent-ng-c1268686590="" x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </button>
       }
 
       <button type="button" class="btn-icon-top" (click)="logout()" title="Cerrar sesión">

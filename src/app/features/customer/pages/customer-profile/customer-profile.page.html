@@ -1,136 +1,260 @@
 <div class="profile-page-container">
-  <!-- Cabecera de Página -->
+  <!-- Cabecera de Página Responsiva -->
   <header class="page-header">
-    <span class="ph-badge">MI CUENTA</span>
+    <div class="ph-badge-row">
+      <span class="ph-badge">MI CUENTA</span>
+      @if (isAdmin()) {
+        <span class="ph-admin-tag">MODO ADMINISTRADOR</span>
+      }
+    </div>
     <h1 class="page-title">Perfil & Preferencias</h1>
-    <p class="page-subtitle">Gestiona tus datos personales, preferencias de estilo y estado de cuenta.</p>
+    <p class="page-subtitle">Gestiona tus datos personales, preferencias de estilo y estado de tu cuenta.</p>
   </header>
 
-  <!-- Grid de 2 Columnas en Desktop -->
+  <!-- Grid de 2 Columnas (Desktop Power User / Mobile Stack) -->
   <div class="profile-layout-grid">
-    <!-- Columna Izquierda: Tarjeta Resumen Personal & Membresía -->
+    <!-- =================================================================== -->
+    <!-- COLUMNA IZQUIERDA: RESUMEN DE IDENTIDAD & ESTADO FINANCIERO         -->
+    <!-- =================================================================== -->
     <div class="plg-left-col">
-      <article class="profile-summary-card">
-        <div class="psc-avatar-ring">
-          <div class="psc-avatar">
-            {{ currentClient().name.charAt(0).toUpperCase() }}
+      <!-- Tarjeta Resumen Personal Glassmorphic de Lujo -->
+      <article class="profile-summary-card" [class]="currentClient().membershipLevel.toLowerCase()">
+        <div class="psc-shimmer-foil" aria-hidden="true"></div>
+
+        <div class="psc-avatar-wrapper">
+          <div class="psc-avatar-ring">
+            <div class="psc-avatar">
+              {{ currentClient().name.charAt(0).toUpperCase() }}
+            </div>
+          </div>
+          <span class="psc-tier-avatar-icon" [title]="'Nivel ' + currentClient().membershipLevel">
+            @switch (currentClient().membershipLevel) {
+              @case ('VIP') { 👑 }
+              @case ('Gold') { ⭐ }
+              @case ('Silver') { 🛡️ }
+              @default { ✂️ }
+            }
+          </span>
+        </div>
+
+        <div class="psc-info">
+          <h2 class="psc-name">{{ currentClient().name }}</h2>
+          <div class="psc-sub-row">
+            <span class="psc-role">Cliente BarberTrack</span>
+            <span class="psc-dot">•</span>
+            <span class="psc-code">#{{ currentClient().id.slice(0, 8).toUpperCase() }}</span>
           </div>
         </div>
 
-        <h2 class="psc-name">{{ currentClient().name }}</h2>
-        <span class="psc-role">Cliente BarberTrack</span>
-
         <div class="psc-tier-badge" [class]="currentClient().membershipLevel.toLowerCase()">
-          <span>👑 {{ currentClient().membershipLevel }} Member</span>
+          <span class="badge-crown">
+            @if (currentClient().membershipLevel === 'VIP') { 👑 }
+            @else if (currentClient().membershipLevel === 'Gold') { ⭐ }
+            @else { 🛡️ }
+          </span>
+          <span>SOCIO {{ currentClient().membershipLevel | uppercase }}</span>
         </div>
 
         <div class="psc-stats-row">
-          <div class="psc-stat">
+          <div class="psc-stat-card">
             <span class="stat-num">{{ currentClient().cutsCount }}</span>
             <span class="stat-lbl">Cortes</span>
           </div>
-          <div class="psc-stat-divider"></div>
-          <div class="psc-stat">
+          <div class="psc-stat-divider" aria-hidden="true"></div>
+          <div class="psc-stat-card">
             <span class="stat-num">{{ currentClient().loyaltyStamps }}</span>
             <span class="stat-lbl">Sellos</span>
           </div>
-          <div class="psc-stat-divider"></div>
-          <div class="psc-stat">
-            <span class="stat-num">{{ barberService.stampsRequired() - currentClient().loyaltyStamps }}</span>
-            <span class="stat-lbl">Para Gratis</span>
+          <div class="psc-stat-divider" aria-hidden="true"></div>
+          <div class="psc-stat-card">
+            <span class="stat-num highlight">
+              {{ barberService.stampsRequired() > currentClient().loyaltyStamps ? barberService.stampsRequired() - currentClient().loyaltyStamps : 0 }}
+            </span>
+            <span class="stat-lbl">Para Premio</span>
           </div>
         </div>
       </article>
 
-      <!-- Estado Financiero & Línea de Crédito -->
-      <section class="credit-summary-card">
-        <div class="csc-header">
-          <span class="csc-icon">💳</span>
-          <div>
-            <h3 class="csc-title">Cuenta Corriente & Crédito</h3>
-            <span class="csc-sub">Transparencia de consumo</span>
+      <!-- Estado Financiero & Línea de Crédito (Estilo Tarjeta de Crédito Negra) -->
+      <section class="credit-summary-card" aria-labelledby="credit-card-title">
+        <header class="csc-header">
+          <div class="csc-chip-icon" aria-hidden="true">
+            <div class="emv-mini-chip"></div>
+            <span class="contactless-icon">)))</span>
           </div>
-        </div>
-
-        <div class="csc-body">
-          <div class="csc-row">
-            <span class="csc-lbl">Deuda Actual:</span>
+          <div class="csc-status-badge" [class.ok]="(currentClient().currentDebt || 0) <= 0" [class.debt]="(currentClient().currentDebt || 0) > 0">
             @if ((currentClient().currentDebt || 0) > 0) {
-              <strong class="csc-val debt">{{ barberService.currencySymbol() }}{{ (currentClient().currentDebt || 0).toFixed(2) }}</strong>
+              <span class="status-dot debt"></span>
+              <span>Saldo Pendiente</span>
             } @else {
-              <strong class="csc-val ok">Al día ($0.00)</strong>
+              <span class="status-dot ok"></span>
+              <span>Al día</span>
             }
           </div>
+        </header>
 
-          <div class="csc-row">
-            <span class="csc-lbl">Límite Autorizado:</span>
-            <span class="csc-val">{{ barberService.currencySymbol() }}{{ (currentClient().creditLimit || 0).toFixed(2) }}</span>
+        <div class="csc-body">
+          <span class="csc-sub-label">CUENTA CORRIENTE</span>
+          <h3 id="credit-card-title" class="csc-title">Línea de Crédito BarberTrack</h3>
+
+          <div class="csc-metrics-grid">
+            <div class="csc-metric-item">
+              <span class="csc-lbl">Deuda Actual</span>
+              @if ((currentClient().currentDebt || 0) > 0) {
+                <strong class="csc-val debt">{{ barberService.currencySymbol() }}{{ (currentClient().currentDebt || 0).toFixed(2) }}</strong>
+              } @else {
+                <strong class="csc-val ok">{{ barberService.currencySymbol() }}0.00</strong>
+              }
+            </div>
+
+            <div class="csc-metric-item">
+              <span class="csc-lbl">Límite Autorizado</span>
+              <span class="csc-val limit">{{ barberService.currencySymbol() }}{{ (currentClient().creditLimit || 0).toFixed(2) }}</span>
+            </div>
           </div>
         </div>
+
+        <footer class="csc-footer">
+          <span class="csc-hint">Consumos en caja y cargos autorizados con tu barbero.</span>
+        </footer>
       </section>
     </div>
 
-    <!-- Columna Derecha: Formulario de Edición & Acciones de Cuenta -->
+    <!-- =================================================================== -->
+    <!-- COLUMNA DERECHA: FORMULARIO DE EDICIÓN & ACCIONES DE SEGURIDAD      -->
+    <!-- =================================================================== -->
     <div class="plg-right-col">
-      <section class="profile-form-card">
-        <h3 class="pfc-title">Datos Personales & Estilo</h3>
-        <p class="pfc-desc">Mantén tus datos actualizados para recibir confirmaciones de tus turnos.</p>
+      <!-- Tarjeta Formulario de Datos Personales -->
+      <section class="profile-form-card" aria-labelledby="form-section-title">
+        <div class="pfc-header">
+          <h3 id="form-section-title" class="pfc-title">Datos Personales & Estilo</h3>
+          <p class="pfc-desc">Mantén tus datos actualizados para agilizar tus reservas y atención en caja.</p>
+        </div>
 
         @if (saveSuccess()) {
           <div class="success-alert" role="alert">
-            <span>✓</span> ¡Tus datos han sido actualizados con éxito!
+            <span class="alert-icon">✓</span>
+            <span>¡Tus datos han sido actualizados con éxito!</span>
           </div>
         }
 
-        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="pfc-form">
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="pfc-form" novalidate>
           <div class="form-row">
             <div class="form-group">
-              <label for="fullName" class="form-label">Nombre Completo *</label>
-              <input id="fullName" type="text" formControlName="fullName" placeholder="Tu nombre" />
+              <label for="fullName" class="form-label">Nombre Completo <span class="req">*</span></label>
+              <input
+                id="fullName"
+                type="text"
+                formControlName="fullName"
+                placeholder="Tu nombre completo"
+                autocomplete="name"
+                [class.invalid]="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched"
+              />
+              @if (profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched) {
+                <span class="form-error">El nombre es obligatorio (mínimo 3 caracteres).</span>
+              }
             </div>
 
             <div class="form-group">
-              <label for="phone" class="form-label">Teléfono de Contacto *</label>
-              <input id="phone" type="tel" formControlName="phone" placeholder="+51 987654321" />
+              <label for="phone" class="form-label">Teléfono de Contacto <span class="req">*</span></label>
+              <input
+                id="phone"
+                type="tel"
+                formControlName="phone"
+                placeholder="+51 987654321"
+                autocomplete="tel"
+                [class.invalid]="profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched"
+              />
+              @if (profileForm.get('phone')?.invalid && profileForm.get('phone')?.touched) {
+                <span class="form-error">Ingresa un teléfono válido de 7 a 15 dígitos.</span>
+              }
             </div>
           </div>
 
           <div class="form-group">
-            <label for="email" class="form-label">Correo Electrónico</label>
-            <input id="email" type="email" formControlName="email" placeholder="correo@ejemplo.com" />
-            <span class="form-hint">Vinculado a tu cuenta de acceso a BarberTrack.</span>
+            <div class="label-with-badge">
+              <label for="email" class="form-label">Correo Electrónico</label>
+              <span class="verified-pill">
+                <span class="lock-icon">🔒</span>
+                <span>Cuenta Verificada</span>
+              </span>
+            </div>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="correo@ejemplo.com"
+              readonly
+            />
+            <span class="form-hint">Vinculado a tus credenciales de inicio de sesión en BarberTrack.</span>
           </div>
 
           <div class="form-group">
-            <label for="preferredStyle" class="form-label">Estilo Preferido & Notas de Barbero</label>
+            <label for="preferredStyle" class="form-label">Estilo Preferido & Notas para tu Barbero</label>
             <textarea
               id="preferredStyle"
               rows="3"
               formControlName="preferredStyle"
               placeholder="Ej: Degradado medio al ras, tijera en la parte superior, perfilado de barba con toalla caliente..."
             ></textarea>
-            <span class="form-hint">Tu barbero consultará estas notas antes de iniciar tu corte.</span>
+            <span class="form-hint">Tu barbero consultará estas notas antes de iniciar tu atención en el sillón.</span>
           </div>
 
-          <button type="submit" class="btn-save-profile" [disabled]="profileForm.invalid || isSaving()">
+          <button
+            type="submit"
+            class="btn-save-profile"
+            [disabled]="profileForm.invalid || isSaving()"
+          >
             @if (isSaving()) {
+              <span class="btn-spinner" aria-hidden="true"></span>
               <span>Guardando cambios...</span>
             } @else {
-              <span>Guardar Información</span>
+              <span>✨ Guardar Información</span>
             }
           </button>
         </form>
       </section>
 
-      <!-- Zona de Acciones de Cuenta -->
-      <section class="account-actions-card">
-        <h3 class="aac-title">Seguridad & Sesión</h3>
+      <!-- Zona de Acciones de Cuenta & Sesión -->
+      <section class="account-actions-card" aria-labelledby="security-section-title">
+        <header class="aac-header">
+          <span class="aac-icon" aria-hidden="true">🛡️</span>
+          <div>
+            <h3 id="security-section-title" class="aac-title">Seguridad & Sesión</h3>
+            <span class="aac-sub">Administra tus accesos y preferencias de entorno</span>
+          </div>
+        </header>
+
         <div class="aac-buttons">
-          <button type="button" class="btn-switch-role" (click)="switchToBarber()" title="Cambiar a Vista Barbero">
-            <span>✂️ Cambiar a Vista Barbero / Staff</span>
-          </button>
-          <button type="button" class="btn-logout" (click)="logout()" title="Cerrar sesión">
-            <span>🚪 Cerrar Sesión</span>
+          <!-- Botón Switch a Vista Barbero: EXCLUSIVO PARA ADMINISTRADORES -->
+          @if (isAdmin()) {
+            <button
+              type="button"
+              class="btn-switch-role"
+              (click)="switchToBarber()"
+              title="Regresar a la Vista de Administrador / Barbero"
+            >
+              <span class="btn-icon">✂️</span>
+              <div class="btn-text-col">
+                <span class="btn-main-txt">Cambiar a Vista Barbero / Staff</span>
+                <span class="btn-sub-txt">Panel de administración y gestión</span>
+              </div>
+              <span class="admin-pill">ADMIN</span>
+            </button>
+          }
+
+          <!-- Botón Cerrar Sesión Seguro -->
+          <button
+            type="button"
+            class="btn-logout"
+            (click)="logout()"
+            title="Cerrar sesión de forma segura y salir al inicio"
+          >
+            <span class="btn-icon">🚪</span>
+            <div class="btn-text-col">
+              <span class="btn-main-txt">Cerrar Sesión</span>
+              <span class="btn-sub-txt">Finalizar tu sesión en este dispositivo</span>
+            </div>
           </button>
         </div>
       </section>

@@ -53,6 +53,10 @@ export class CustomerProfilePage implements OnInit {
     });
   }
 
+  readonly isAdmin = computed<boolean>(() => {
+    return this.supabaseService.userProfile()?.role === 'admin';
+  });
+
   async saveProfile(): Promise<void> {
     if (this.profileForm.invalid || this.isSaving()) {
       this.profileForm.markAllAsTouched();
@@ -62,49 +66,48 @@ export class CustomerProfilePage implements OnInit {
 
     this.isSaving.set(true);
     const { fullName, phone, preferredStyle } = this.profileForm.getRawValue();
+    const cleanName = (fullName || '').trim();
+    const cleanPhone = (phone || '').trim();
+    const cleanStyle = (preferredStyle || '').trim();
 
     try {
-      // 1. Si Supabase está conectado, actualizar profiles en Supabase
-      if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
-        const userId = this.supabaseService.userProfile()?.id;
-        if (userId) {
-          const { error } = await this.supabaseService.supabase
-            .from('profiles')
-            .update({
-              full_name: fullName.trim(),
-              phone: phone.trim(),
-            })
-            .eq('id', userId);
-
-          if (!error) {
-            await this.supabaseService.refreshUserProfile();
-          }
-        }
+      const client = this.currentClient();
+      if (client?.id) {
+        await this.barberService.updateClient(client.id, {
+          name: cleanName,
+          phone: cleanPhone,
+          notes: cleanStyle,
+        });
       }
 
-      // 2. Actualizar estado local
-      const client = this.currentClient();
-      client.name = fullName.trim();
-      client.phone = phone.trim();
-      client.notes = preferredStyle?.trim();
+      if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
+        await this.supabaseService.refreshUserProfile();
+      }
 
       this.haptics.success();
       this.saveSuccess.set(true);
-      setTimeout(() => this.saveSuccess.set(false), 3000);
+      setTimeout(() => this.saveSuccess.set(false), 3500);
+    } catch {
+      this.haptics.warning();
     } finally {
       this.isSaving.set(false);
     }
   }
 
   switchToBarber(): void {
+    if (!this.isAdmin()) {
+      this.haptics.warning();
+      return;
+    }
     this.haptics.lightTap();
     this.barberService.setRole('barber');
     this.router.navigate(['/barber']);
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
     this.haptics.lightTap();
-    this.supabaseService.signOut();
-    this.router.navigate(['/login']);
+    this.barberService.setRole('landing');
+    await this.supabaseService.signOut();
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 }

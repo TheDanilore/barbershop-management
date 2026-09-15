@@ -220,16 +220,26 @@ export class CustomerLayoutPage implements OnInit {
     }, 3800);
   }
 
+  // Flag estricto: ¿Es usuario Administrador? (Para switcher y accesos de staff)
+  readonly isAdmin = computed<boolean>(() => {
+    return this.supabaseService.userProfile()?.role === 'admin';
+  });
+
   switchToBarber(): void {
+    if (!this.isAdmin()) {
+      this.haptics.warning();
+      return;
+    }
     this.haptics.lightTap();
     this.barberService.setRole('barber');
     this.router.navigate(['/barber']);
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
     this.haptics.lightTap();
-    this.supabaseService.signOut();
-    this.router.navigate(['/login']);
+    this.barberService.setRole('landing');
+    await this.supabaseService.signOut();
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   // Atajos de teclado en Desktop (Power User)

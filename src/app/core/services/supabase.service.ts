@@ -312,12 +312,12 @@ export class SupabaseService {
    * Cierre de sesión completo
    */
   async signOut(): Promise<void> {
+    // 1. Limpieza síncrona inmediata de estado reactivo y almacenamiento local
+    this.clearSessionState();
     try {
       await this.supabase.auth.signOut();
     } catch (err) {
       this.logger.warn('SupabaseService', 'Error en signOut de Supabase', err);
-    } finally {
-      this.clearSessionState();
     }
   }
 
@@ -329,6 +329,8 @@ export class SupabaseService {
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(STORAGE_KEY_ROLE);
+        localStorage.removeItem('barbertrack_role');
+        localStorage.removeItem('barbertrack_current_client_id');
       } catch {
         // Ignorar
       }

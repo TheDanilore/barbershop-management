@@ -129,13 +129,15 @@
 
       <div class="action-divider"></div>
 
-      <button type="button" class="btn-icon-top" (click)="switchToBarber()" title="Cambiar a Vista Barbero / Staff">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="6" cy="6" r="3"></circle>
-          <circle cx="6" cy="18" r="3"></circle>
-          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-        </svg>
-      </button>
+      @if (isAdmin()) {
+        <button type="button" class="btn-icon-top" (click)="switchToBarber()" title="Cambiar a Vista Barbero / Staff">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          </svg>
+        </button>
+      }
 
       <button type="button" class="btn-icon-top" (click)="logout()" title="Cerrar sesión">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

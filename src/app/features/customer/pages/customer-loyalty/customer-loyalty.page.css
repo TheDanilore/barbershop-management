@@ -3,20 +3,27 @@
   width: 100%;
 }
 
-.loyalty-page-container {
+/* ======================================================================= */
+/* SHELL PRINCIPAL DEL COMPONENTE                                          */
+/* ======================================================================= */
+.loyalty-page-shell {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
   width: 100%;
+  padding-bottom: 24px;
 }
 
-.loyalty-header {
+/* ======================================================================= */
+/* CABECERA DE PÁGINA RESPONSIVA                                           */
+/* ======================================================================= */
+.loyalty-page-header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.lh-header-row {
+.lph-top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -24,55 +31,164 @@
   flex-wrap: wrap;
 }
 
-.btn-loyalty-tiers {
-  padding: 8px 16px;
-  background: rgba(229, 169, 60, 0.12);
-  border: 1px solid rgba(229, 169, 60, 0.35);
-  border-radius: var(--radius-full, 9999px);
-  color: var(--gold-light, #f5cf7c);
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
+.lph-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lph-badge-row {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  white-space: nowrap;
+  gap: 8px;
 }
 
-.btn-loyalty-tiers:hover {
-  background: var(--gold-primary, #e5a93c);
-  color: #111114;
-  border-color: var(--gold-primary, #e5a93c);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(229, 169, 60, 0.3);
-}
-
-.lh-badge {
-  font-size: 0.72rem;
+.lph-badge {
+  font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--gold-light, #f5cf7c);
 }
 
-.lh-title {
-  font-size: 1.45rem;
+.lph-vip-tag {
+  font-size: 0.65rem;
   font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 9999px);
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.25) 0%, rgba(196, 134, 32, 0.25) 100%);
+  color: #fff1c2;
+  border: 1px solid rgba(229, 169, 60, 0.45);
+}
+
+.lph-title {
+  font-size: 1.55rem;
+  font-weight: 900;
   color: var(--text-main, #f9fafb);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
-.lh-subtitle {
-  font-size: 0.88rem;
-  color: var(--text-muted, #9ca3af);
+.lph-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #d1d5db);
   margin: 0;
   max-width: 680px;
+  line-height: 1.45;
 }
 
-/* Split View Layout en Desktop */
-.loyalty-split-layout {
+/* Botón Explorar Niveles (Desktop Power User con Atajo) */
+.btn-explore-tiers {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: rgba(229, 169, 60, 0.1);
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--gold-light, #f5cf7c);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 42px;
+}
+
+.btn-explore-tiers:hover {
+  background: var(--gold-primary, #e5a93c);
+  color: #111114;
+  border-color: var(--gold-primary, #e5a93c);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(229, 169, 60, 0.35);
+}
+
+.btn-explore-tiers:hover .kbd-hint {
+  background: rgba(0, 0, 0, 0.2);
+  color: #111114;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.btn-crown-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.kbd-hint {
+  display: none;
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--text-muted, #9ca3af);
+  margin-left: 2px;
+}
+
+@media (min-width: 768px) {
+  .kbd-hint {
+    display: inline-block;
+  }
+}
+
+/* Navegación Segmentada Móvil (< 768px) */
+.mobile-segment-nav {
+  display: none;
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+@media (max-width: 767px) {
+  .mobile-segment-nav {
+    display: flex;
+  }
+}
+
+.msn-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #9ca3af);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.msn-btn.active {
+  background: var(--gold-primary, #e5a93c);
+  color: #111114;
+  box-shadow: 0 2px 8px rgba(229, 169, 60, 0.3);
+}
+
+.msn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+/* ======================================================================= */
+/* SPLIT VIEW LAYOUT: ESCRITORIO Y TABLET                                  */
+/* ======================================================================= */
+.loyalty-split-view {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
@@ -80,137 +196,377 @@
 }
 
 @media (min-width: 1024px) {
-  .loyalty-split-layout {
-    grid-template-columns: 1fr 1fr;
+  .loyalty-split-view {
+    grid-template-columns: 460px 1fr;
     gap: 32px;
+  }
+
+  .lsv-left-column {
+    position: sticky;
+    top: 24px;
+    align-self: start;
   }
 }
 
-.lsl-card-column {
+.lsv-left-column {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.lsl-details-column {
+.lsv-right-column {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-/* Sección de Cupones Ganados */
-.claims-section {
-  background: linear-gradient(135deg, rgba(229, 169, 60, 0.12) 0%, rgba(26, 26, 34, 0.95) 100%);
-  border: 1px solid rgba(229, 169, 60, 0.4);
-  border-radius: var(--radius-lg, 20px);
-  padding: 20px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+/* Modos de ocultación por segmento en móvil */
+@media (max-width: 767px) {
+  .lsv-left-column.hidden-mobile,
+  .lsv-right-column.hidden-mobile {
+    display: none !important;
+  }
 }
 
-.section-badge-header {
+/* ======================================================================= */
+/* TARJETA DE BENEFICIOS Y REGLAS DEL CLUB (DESACOPLADA Y SEMÁNTICA)      */
+/* ======================================================================= */
+.club-rules-card {
+  background: var(--bg-surface, #17171c);
+  border: 1px solid var(--border-subtle, #282833);
+  border-radius: 20px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.crc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.crc-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crc-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--gold-light, #f5cf7c);
+  text-transform: uppercase;
+}
+
+.crc-title {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+}
+
+.crc-shield-icon {
+  font-size: 1.25rem;
+  opacity: 0.85;
+}
+
+.crc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #d1d5db);
+}
+
+.crc-bullet {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin-top: 1px;
+}
+
+.crc-bullet.check {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.crc-bullet.star {
+  background: rgba(229, 169, 60, 0.16);
+  color: var(--gold-primary, #e5a93c);
+  border: 1px solid rgba(229, 169, 60, 0.4);
+}
+
+.crc-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.crc-reward-highlight {
+  color: var(--gold-light, #f5cf7c);
+  font-weight: 800;
+}
+
+/* ======================================================================= */
+/* SECCIÓN DE CUPONES GANADOS (ESTILO TEAR-OFF TICKET DE LUJO)             */
+/* ======================================================================= */
+.vouchers-section {
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.12) 0%, rgba(23, 23, 28, 0.95) 100%);
+  border: 1px solid rgba(229, 169, 60, 0.38);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.vouchers-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vh-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .pulsing-gift {
-  font-size: 1.3rem;
-  animation: bounceGift 1.8s infinite ease-in-out;
+  font-size: 1.35rem;
+  animation: bounceGift 2s infinite ease-in-out;
 }
 
 @keyframes bounceGift {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-4px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
 
-.section-title {
-  font-size: 1.1rem;
-  font-weight: 800;
+.vouchers-title {
+  font-size: 1.15rem;
+  font-weight: 900;
   color: var(--text-main, #f9fafb);
   margin: 0;
 }
 
-.section-desc {
+.vouchers-desc {
   font-size: 0.82rem;
   color: var(--text-muted, #9ca3af);
-  margin: 4px 0 14px 0;
+  margin: 0;
 }
 
-.claims-grid {
+.vouchers-grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.claim-voucher-card {
-  background: #15151c;
-  border: 1.5px dashed rgba(229, 169, 60, 0.5);
-  border-radius: var(--radius-md, 14px);
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 12px;
 }
 
-.cvc-left {
+/* Ticket Troquelado / Tear-off Ticket */
+.tear-off-ticket {
+  position: relative;
+  background: #15151c;
+  border: 1.5px solid rgba(229, 169, 60, 0.4);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.tear-off-ticket:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-primary, #e5a93c);
+}
+
+/* Muescas troqueladas decorativas */
+.ticket-notch {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(22, 22, 28, 1);
+  border: 1.5px solid rgba(229, 169, 60, 0.4);
+  z-index: 2;
+}
+
+.notch-top {
+  top: -9px;
+  left: 64%;
+}
+
+.notch-bottom {
+  bottom: -9px;
+  left: 64%;
+}
+
+.tot-left {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
 }
 
-.cvc-tag {
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: #10b981;
+.tot-badge {
+  font-size: 0.64rem;
+  font-weight: 900;
   letter-spacing: 0.08em;
+  color: #10b981;
+  text-transform: uppercase;
 }
 
-.cvc-title {
-  font-size: 0.95rem;
+.tot-title {
+  font-size: 0.98rem;
   font-weight: 800;
   color: var(--text-main, #f9fafb);
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.cvc-date {
+.tot-date {
   font-size: 0.74rem;
   color: var(--text-muted, #9ca3af);
 }
 
-.cvc-right {
+.tot-divider {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin: 0 4px;
+}
+
+.dashed-line {
+  width: 1px;
+  height: 100%;
+  border-left: 1.5px dashed rgba(229, 169, 60, 0.35);
+}
+
+.tot-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.cvc-code {
-  font-family: monospace;
-  font-size: 1rem;
+.tot-code-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.tot-code-label {
+  font-size: 0.6rem;
   font-weight: 800;
-  color: var(--gold-light, #f5cf7c);
-  background: rgba(229, 169, 60, 0.15);
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-
-.cvc-instruction {
-  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   color: var(--text-muted, #9ca3af);
 }
 
-/* Catálogo de Hitos */
-.rewards-catalog-section {
+.tot-code-val {
+  font-family: monospace;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: var(--gold-light, #f5cf7c);
+  background: rgba(229, 169, 60, 0.14);
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.06em;
+}
+
+.btn-copy-code {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: var(--text-secondary, #d1d5db);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-code:hover {
+  background: rgba(229, 169, 60, 0.2);
+  color: var(--gold-light, #f5cf7c);
+  border-color: rgba(229, 169, 60, 0.4);
+}
+
+.btn-copy-code.copied {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* ======================================================================= */
+/* CATÁLOGO DE HITOS Y PREMIOS (LÍNEA DE TIEMPO)                           */
+/* ======================================================================= */
+.milestones-section {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+
+.milestones-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mh-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mh-icon {
+  font-size: 1.25rem;
+}
+
+.milestones-title {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--text-main, #f9fafb);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.milestones-desc {
+  font-size: 0.84rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 0;
 }
 
 .milestones-timeline {
@@ -219,80 +575,177 @@
   gap: 10px;
 }
 
-.default-milestone-card {
+.milestone-card {
   background: var(--bg-surface, #17171c);
   border: 1px solid var(--border-subtle, #282833);
-  border-radius: var(--radius-md, 14px);
-  padding: 14px 16px;
+  border-radius: 16px;
+  padding: 14px 18px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  transition: all 0.2s ease;
+  gap: 16px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
-.default-milestone-card.unlocked {
-  border-color: rgba(229, 169, 60, 0.35);
-  background: linear-gradient(135deg, rgba(229, 169, 60, 0.08) 0%, rgba(23, 23, 28, 0.95) 100%);
+.milestone-card:hover {
+  border-color: rgba(229, 169, 60, 0.3);
+  transform: translateX(3px);
 }
 
-.dmc-circle {
-  width: 40px;
-  height: 40px;
+.milestone-card.unlocked {
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.09) 0%, rgba(23, 23, 28, 0.95) 100%);
+  border-color: rgba(229, 169, 60, 0.4);
+}
+
+.mc-node-circle {
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.05);
   border: 1.5px solid var(--border-subtle, #282833);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
   font-size: 0.95rem;
+  font-weight: 900;
   color: var(--text-secondary, #d1d5db);
   flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.default-milestone-card.unlocked .dmc-circle {
-  background: var(--gold-gradient);
+.mc-node-circle.active {
+  background: var(--gold-gradient, linear-gradient(135deg, #f7d488 0%, #e5a93c 50%, #c48620 100%));
   border-color: var(--gold-light, #f5cf7c);
   color: #111114;
+  box-shadow: 0 0 12px rgba(229, 169, 60, 0.4);
 }
 
-.dmc-info {
+.mc-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-break: break-word;
 }
 
-.dmc-title {
-  font-size: 0.92rem;
-  font-weight: 700;
+.mc-title {
+  font-size: 0.95rem;
+  font-weight: 800;
   color: var(--text-main, #f9fafb);
   margin: 0;
 }
 
-.dmc-subtitle {
-  font-size: 0.76rem;
+.mc-subtitle {
+  font-size: 0.78rem;
   color: var(--text-muted, #9ca3af);
-  display: block;
+  margin: 0;
+  line-height: 1.35;
 }
 
-.dmc-status {
+.mc-status {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .badge-unlocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.74rem;
   font-weight: 800;
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 3px 9px;
-  border-radius: 9999px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  white-space: nowrap;
 }
 
 .badge-progress {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.74rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-muted, #9ca3af);
   background: rgba(255, 255, 255, 0.05);
-  padding: 3px 9px;
-  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  white-space: nowrap;
+}
+
+/* ======================================================================= */
+/* RESPONSIVIDAD PARA PANTALLAS MÓVILES (< 640px)                          */
+/* ======================================================================= */
+@media (max-width: 640px) {
+  .lph-top-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .btn-explore-tiers {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .club-rules-card {
+    padding: 16px;
+  }
+
+  .tear-off-ticket {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .tot-divider {
+    display: none;
+  }
+
+  .ticket-notch {
+    display: none;
+  }
+
+  .tot-right {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    padding-top: 8px;
+    width: 100%;
+  }
+
+  .tot-code-group {
+    align-items: flex-start;
+  }
+
+  .milestone-card {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .mc-node-circle {
+    width: 36px;
+    height: 36px;
+    font-size: 0.85rem;
+  }
+
+  .mc-title {
+    font-size: 0.88rem;
+  }
+
+  .mc-subtitle {
+    font-size: 0.74rem;
+  }
+
+  .badge-unlocked,
+  .badge-progress {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
 }

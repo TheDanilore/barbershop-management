@@ -1,66 +1,101 @@
 :host {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  display: block;
   width: 100%;
 }
 
-/* Tarjeta Virtual Física - Form Factor "Credit Card / Apple Wallet" */
-.virtual-loyalty-card {
+/* ======================================================================= */
+/* CONTENEDOR DE PERSPECTIVA 3D (APPLE WALLET / STRIPE BLACK CARD)         */
+/* ======================================================================= */
+.virtual-card-perspective {
+  perspective: 1200px;
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   margin: 0 auto;
-  aspect-ratio: 1.586 / 1;
-  background: linear-gradient(145deg, #1f1d17 0%, #161514 45%, #0f0f12 100%);
-  border: 1px solid rgba(229, 169, 60, 0.45);
+}
+
+.virtual-card-flipper {
+  position: relative;
+  width: 100%;
+  height: 290px;
   border-radius: 20px;
-  padding: 22px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(229, 169, 60, 0.18);
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.2, 0.85, 0.32, 1.15), box-shadow 0.3s ease;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+
+@media (min-width: 480px) {
+  .virtual-card-flipper {
+    height: 298px;
+    border-radius: 22px;
+  }
+}
+
+.virtual-card-flipper:focus-visible {
+  box-shadow: 0 0 0 3px rgba(229, 169, 60, 0.7), 0 12px 35px rgba(0, 0, 0, 0.7);
+}
+
+.virtual-card-flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+/* Hover de elevación táctil / de escritorio */
+.virtual-card-flipper:hover {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 30px rgba(229, 169, 60, 0.22);
+}
+
+/* ======================================================================= */
+/* CARAS DE LA TARJETA (FRONT & BACK)                                      */
+/* ======================================================================= */
+.card-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 16px 18px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  position: relative;
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+  border: 1px solid rgba(229, 169, 60, 0.38);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(229, 169, 60, 0.12);
+  box-sizing: border-box;
 }
 
-.virtual-loyalty-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.85), 0 0 32px rgba(229, 169, 60, 0.28);
-}
-
-/* Brillo Foil Holográfico */
-.card-shimmer-foil {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.08),
-      rgba(229, 169, 60, 0.15),
-      transparent);
-  transform: skewX(-25deg);
-  pointer-events: none;
-  animation: cardShimmer 6s infinite ease-in-out;
-}
-
-@keyframes cardShimmer {
-  0% {
-    left: -100%;
-  }
-
-  35% {
-    left: 200%;
-  }
-
-  100% {
-    left: 200%;
+@media (min-width: 480px) {
+  .card-face {
+    border-radius: 22px;
+    padding: 18px 20px 14px;
   }
 }
 
-.virtual-loyalty-card::before {
+/* Gradientes por nivel de membresía */
+.card-face.bronze {
+  background: linear-gradient(145deg, #1e1b18 0%, #171514 45%, #0f0f12 100%);
+  border-color: rgba(205, 127, 50, 0.45);
+}
+
+.card-face.silver {
+  background: linear-gradient(145deg, #202428 0%, #181a1e 45%, #101215 100%);
+  border-color: rgba(203, 213, 225, 0.45);
+}
+
+.card-face.gold {
+  background: linear-gradient(145deg, #262117 0%, #1a1712 45%, #100f0d 100%);
+  border-color: rgba(229, 169, 60, 0.55);
+}
+
+.card-face.vip {
+  background: linear-gradient(145deg, #221c0e 0%, #16120b 45%, #0a0805 100%);
+  border-color: rgba(247, 212, 136, 0.65);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), 0 0 35px rgba(229, 169, 60, 0.28);
+}
+
+.card-face::before {
   content: '';
   position: absolute;
   top: 0;
@@ -70,116 +105,204 @@
   background: var(--gold-gradient, linear-gradient(135deg, #f7d488 0%, #e5a93c 50%, #c48620 100%));
 }
 
+/* Brillo Foil Holográfico */
+.card-shimmer-foil {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    rgba(229, 169, 60, 0.16),
+    transparent
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  animation: cardShimmer 6s infinite ease-in-out;
+}
+
+@keyframes cardShimmer {
+  0% { left: -100%; }
+  35% { left: 220%; }
+  100% { left: 220%; }
+}
+
+/* ======================================================================= */
+/* HEADER FRONTAL                                                          */
+/* ======================================================================= */
 .vlc-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   z-index: 1;
+  width: 100%;
 }
 
 .vlc-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--gold-primary, #e5a93c);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  min-width: 0;
 }
 
 .vlc-scissors-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(229, 169, 60, 0.4));
 }
 
-.vlc-tier-pill {
-  font-size: 0.7rem;
+.brand-text {
+  font-size: 0.74rem;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 3px 9px;
-  border-radius: 9999px;
-  background: var(--gold-gradient);
-  color: #111114;
-}
-
-.vlc-tier-pill.vip {
-  background: linear-gradient(135deg, #e5a93c 0%, #ffffff 50%, #e5a93c 100%);
-  color: #000;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
-.card-chip-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 2px;
-  z-index: 1;
-}
-
-.emv-chip {
-  width: 38px;
-  height: 28px;
-  background: linear-gradient(135deg, #d4af37, #aa820a);
-  border-radius: 6px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-
-.chip-line {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.chip-line.c1 {
-  width: 100%;
-  height: 1px;
-  top: 14px;
-  left: 0;
-}
-
-.chip-line.c2 {
-  width: 1px;
-  height: 100%;
-  top: 0;
-  left: 19px;
-}
-
-.nfc-icon svg {
-  width: 20px;
-  height: 20px;
-  color: rgba(229, 169, 60, 0.6);
-}
-
-.vlc-card-body {
-  display: flex;
-  flex-direction: column;
-  z-index: 1;
-}
-
-.vlc-client-name {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--text-main, #f9fafb);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.vlc-card-number {
-  font-size: 0.72rem;
-  letter-spacing: 0.22em;
-  color: var(--text-muted, #9ca3af);
+.vlc-tier-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
-/* Grid de Sellos Ordenado y Proporcional */
-.stamps-grid-wrap {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 8px 10px;
+.vlc-cycle-pill {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #d1d5db);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  white-space: nowrap;
+}
+
+.vlc-tier-pill {
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(229, 169, 60, 0.16);
+  color: var(--gold-light, #f5cf7c);
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.vlc-tier-pill.silver {
+  background: rgba(203, 213, 225, 0.16);
+  color: #e2e8f0;
+  border-color: rgba(203, 213, 225, 0.4);
+}
+
+.vlc-tier-pill.vip {
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.3) 0%, rgba(196, 134, 32, 0.3) 100%);
+  color: #fff2cc;
+  border-color: rgba(247, 212, 136, 0.7);
+  box-shadow: 0 0 12px rgba(229, 169, 60, 0.4);
+}
+
+/* ======================================================================= */
+/* CHIP EMV & NFC                                                          */
+/* ======================================================================= */
+.card-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 0;
+  z-index: 1;
+}
+
+.emv-chip {
+  width: 35px;
+  height: 25px;
+  background: linear-gradient(135deg, #d4af37 0%, #aa8214 50%, #f6e27a 100%);
+  border-radius: 5px;
+  position: relative;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.chip-circuit {
+  position: absolute;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.chip-circuit.c1 {
+  top: 4px;
+  left: 0;
+  right: 0;
+  height: 15px;
+  border-left: none;
+  border-right: none;
+}
+
+.chip-circuit.c2 {
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 13px;
+  border-top: none;
+  border-bottom: none;
+}
+
+.nfc-icon {
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+}
+
+.nfc-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ======================================================================= */
+/* CUERPO: TITULAR Y NÚMERO                                                 */
+/* ======================================================================= */
+.vlc-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 0;
+  z-index: 1;
+}
+
+.vlc-client-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main, #f9fafb);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.vlc-card-number {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
+  letter-spacing: 0.14em;
+}
+
+/* ======================================================================= */
+/* MALLA DE SELLOS (5 POR FILA)                                            */
+/* ======================================================================= */
+.stamps-grid-container {
+  margin: 4px 0;
   z-index: 1;
 }
 
@@ -187,175 +310,263 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
+  justify-items: center;
+  align-items: center;
 }
 
 .stamp-slot {
-  aspect-ratio: 1 / 1;
-  max-width: 44px;
-  margin: 0 auto;
   width: 100%;
+  max-width: 40px;
+  max-height: 40px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  background: rgba(18, 18, 22, 0.8);
+  border: 1.5px dashed rgba(229, 169, 60, 0.35);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1.5px dashed rgba(229, 169, 60, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  transition: all 0.25s ease;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-muted, #9ca3af);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .stamp-slot.stamped {
-  background: var(--gold-gradient);
-  border: 1.5px solid var(--gold-light, #f5cf7c);
-  box-shadow: 0 0 10px rgba(229, 169, 60, 0.45);
-}
-
-.stamp-slot.reward-slot {
+  background: linear-gradient(135deg, rgba(229, 169, 60, 0.22) 0%, rgba(196, 134, 32, 0.35) 100%);
   border: 1.5px solid var(--gold-primary, #e5a93c);
-  background: rgba(229, 169, 60, 0.14);
-}
-
-.stamp-icon {
-  font-size: 0.95rem;
-  line-height: 1;
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.35), inset 0 0 6px rgba(229, 169, 60, 0.2);
+  transform: scale(1.02);
 }
 
 .stamp-icon.stamped {
-  color: #111114;
-  font-weight: 800;
+  color: var(--gold-primary, #e5a93c);
+  font-size: 0.92rem;
+  filter: drop-shadow(0 0 4px rgba(229, 169, 60, 0.5));
+}
+
+.stamp-slot.reward-slot {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .stamp-icon.reward {
-  font-size: 1rem;
-  animation: rewardPulse 2s infinite ease-in-out;
+  font-size: 0.9rem;
 }
 
-@keyframes rewardPulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.18);
-  }
+.stamp-icon.pulsing {
+  animation: pulseGift 1.8s infinite ease-in-out;
 }
 
-.stamp-number {
-  font-size: 0.72rem;
-  color: var(--text-muted, #9ca3af);
-  font-weight: 600;
+@keyframes pulseGift {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
 }
 
+/* ======================================================================= */
+/* FOOTER FRONTAL                                                          */
+/* ======================================================================= */
 .vlc-footer {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   z-index: 1;
 }
 
-.vlc-progress-text {
+.vlc-progress-info {
   display: flex;
   justify-content: space-between;
-  font-size: 0.74rem;
+  align-items: center;
+  font-size: 0.72rem;
   color: var(--text-secondary, #d1d5db);
 }
 
 .percentage-accent {
   color: var(--gold-light, #f5cf7c);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .stamps-progress-bar {
-  width: 100%;
   height: 5px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 9999px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .stamps-fill {
   height: 100%;
-  background: var(--gold-gradient);
+  background: var(--gold-gradient, linear-gradient(135deg, #f7d488 0%, #e5a93c 50%, #c48620 100%));
   border-radius: 9999px;
-  transition: width 0.4s ease;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px rgba(229, 169, 60, 0.5);
 }
 
-/* Reglas y Términos */
-.loyalty-rules-card {
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  background: var(--bg-surface, #17171c);
-  border: 1px solid var(--border-subtle, #282833);
-  border-radius: var(--radius-md, 14px);
-  padding: 16px 20px;
-  box-shadow: var(--shadow-sm);
-}
-
-.rules-header {
-  display: flex;
+.vlc-flip-hint {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 1px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gold-light, #f5cf7c);
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.rules-badge {
+.virtual-card-flipper:hover .vlc-flip-hint {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.flip-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* ======================================================================= */
+/* CARA TRASERA (DORSO - QR EN SILLÓN / CAJA)                              */
+/* ======================================================================= */
+.card-face.card-back {
+  transform: rotateY(180deg);
+  padding: 0 0 12px;
+  justify-content: space-between;
+}
+
+.mag-stripe {
+  width: 100%;
+  height: 38px;
+  background: #09090c;
+  margin-top: 14px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vlc-back-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 18px;
+}
+
+.brand-sub {
   font-size: 0.65rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
-  background: rgba(229, 169, 60, 0.15);
-  border: 1px solid rgba(229, 169, 60, 0.3);
-  color: var(--gold-light, #f5cf7c);
-  padding: 2px 7px;
-  border-radius: 4px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted, #9ca3af);
 }
 
-.rules-badge.vip {
-  background: var(--gold-gradient);
-  border: none;
-  color: #111114;
-  box-shadow: 0 0 8px rgba(229, 169, 60, 0.3);
+.vlc-tier-pill.mini {
+  font-size: 0.6rem;
+  padding: 2px 8px;
 }
 
-.rules-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-main, #f9fafb);
-  margin: 0;
+.qr-vault-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 18px;
 }
 
-.rules-list {
-  list-style: none;
+.qr-code-box {
+  width: 82px;
+  height: 82px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qr-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.qr-info-col {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  font-size: 0.82rem;
-  color: var(--text-secondary, #d1d5db);
+  gap: 3px;
+  flex: 1;
 }
 
-.rules-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  line-height: 1.4;
-}
-
-.bullet {
-  color: #10b981;
+.qr-code-label {
+  font-size: 0.62rem;
   font-weight: 800;
-}
-
-.bullet-star {
-  color: var(--gold-primary, #e5a93c);
-  font-weight: 800;
-}
-
-.reward-milestone-item {
-  color: var(--text-main, #f9fafb);
-}
-
-.reward-milestone-item strong {
+  letter-spacing: 0.08em;
   color: var(--gold-light, #f5cf7c);
+}
+
+.qr-code-val {
+  font-family: monospace;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text-main, #ffffff);
+  letter-spacing: 0.08em;
+}
+
+.barcode-strip {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted, #9ca3af);
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+}
+
+.vlc-back-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 18px;
+  text-align: center;
+}
+
+.back-instruction {
+  font-size: 0.68rem;
+  color: var(--text-muted, #9ca3af);
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* ======================================================================= */
+/* RESPONSIVIDAD PARA PANTALLAS COMPACTAS (< 380px)                        */
+/* ======================================================================= */
+@media (max-width: 380px) {
+  .card-face {
+    padding: 12px 14px 10px;
+  }
+
+  .virtual-card-flipper {
+    height: 280px;
+  }
+
+  .vlc-client-name {
+    font-size: 0.92rem;
+  }
+
+  .stamps-grid {
+    gap: 5px;
+  }
+
+  .stamp-slot {
+    max-width: 34px;
+    max-height: 34px;
+    font-size: 0.74rem;
+  }
+
+  .qr-code-box {
+    width: 68px;
+    height: 68px;
+  }
+
+  .qr-code-val {
+    font-size: 0.95rem;
+  }
 }

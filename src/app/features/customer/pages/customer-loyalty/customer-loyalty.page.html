@@ -1,106 +1,289 @@
-<div class="loyalty-page-container">
-  <!-- Cabecera -->
-  <header class="loyalty-header">
-    <div class="lh-header-row">
-      <div>
-        <span class="lh-badge">PROGRAMA DE LEALTAD</span>
-        <h1 class="lh-title">{{ isVip() ? 'Tarjeta & Sellos VIP' : 'Tarjeta & Sellos' }}</h1>
+<main class="loyalty-page-shell" aria-labelledby="loyalty-main-title">
+  <!-- ===================================================================== -->
+  <!-- CABECERA DE PÁGINA RESPONSIVA (MOBILE FIRST A DESKTOP POWER USER)    -->
+  <!-- ===================================================================== -->
+  <header class="loyalty-page-header">
+    <div class="lph-top-row">
+      <div class="lph-title-group">
+        <div class="lph-badge-row">
+          <span class="lph-badge">PROGRAMA DE LEALTAD</span>
+          @if (isVip()) {
+            <span class="lph-vip-tag">SOCIO VIP</span>
+          }
+        </div>
+        <h1 id="loyalty-main-title" class="lph-title">
+          {{ isVip() ? 'Tarjeta & Sellos VIP' : 'Tarjeta & Sellos' }}
+        </h1>
       </div>
-      <button type="button" class="btn-loyalty-tiers" (click)="openTierCatalogModal()"
-        title="Ver tabla de niveles de membresía">
-        <span>Explorar Niveles 👑</span>
+
+      <button
+        type="button"
+        class="btn-explore-tiers"
+        (click)="openTierCatalogModal()"
+        title="Ver catálogo y comparativa de niveles de membresía (Alt+N)"
+      >
+        <span>Explorar Niveles</span>
+        <span class="btn-crown-icon" aria-hidden="true">👑</span>
+        <kbd class="kbd-hint" aria-hidden="true">Alt+N</kbd>
       </button>
     </div>
-    <p class="lh-subtitle">Cada corte te acerca a servicios gratuitos, cortesías exclusivas y beneficios premium.</p>
+
+    <p class="lph-subtitle">
+      Cada {{ barberService.loyaltyUnitSingular() }} te acerca a servicios gratuitos, cortesías exclusivas y beneficios de tu nivel.
+    </p>
+
+    <!-- Barra de Pestañas Segmentadas para Móviles (Visible solo en < 768px) -->
+    <nav class="mobile-segment-nav" aria-label="Filtro de vista de lealtad">
+      <button
+        type="button"
+        class="msn-btn"
+        [class.active]="mobileViewTab() === 'pass'"
+        (click)="setMobileTab('pass')"
+      >
+        <span>Mi Tarjeta</span>
+      </button>
+
+      <button
+        type="button"
+        class="msn-btn"
+        [class.active]="mobileViewTab() === 'rewards'"
+        (click)="setMobileTab('rewards')"
+      >
+        <span>Hitos & Premios</span>
+        @if (activeClaims().length > 0) {
+          <span class="msn-dot"></span>
+        }
+      </button>
+
+      <button
+        type="button"
+        class="msn-btn"
+        [class.active]="mobileViewTab() === 'all'"
+        (click)="setMobileTab('all')"
+      >
+        <span>Ver Todo</span>
+      </button>
+    </nav>
   </header>
 
-  <!-- Split View en Desktop (2 Columnas Fluidas) -->
-  <div class="loyalty-split-layout">
-    <!-- Columna Izquierda: Tarjeta Virtual de Lujo -->
-    <div class="lsl-card-column">
+  <!-- ===================================================================== -->
+  <!-- SPLIT VIEW LAYOUT: TARJETA A LA IZQUIERDA, CUPONES E HITOS A LA DERECHA -->
+  <!-- ===================================================================== -->
+  <div class="loyalty-split-view">
+    <!-- =================================================================== -->
+    <!-- COLUMNA IZQUIERDA: TARJETA VIRTUAL 3D Y REGLAS DEL CLUB            -->
+    <!-- =================================================================== -->
+    <aside
+      class="lsv-left-column"
+      [class.hidden-mobile]="mobileViewTab() === 'rewards'"
+      aria-label="Pase digital del cliente"
+    >
+      <!-- Subcomponente Tarjeta Virtual Apple Wallet con Giro 3D a QR -->
       <app-loyalty-card></app-loyalty-card>
-    </div>
 
-    <!-- Columna Derecha: Cupones Ganados & Catálogo de Hitos -->
-    <div class="lsl-details-column">
-      <!-- 1. Cupones / Recompensas Listas para Canjear -->
-      @if (activeClaims().length > 0) {
-      <section class="claims-section">
-        <div class="section-badge-header">
-          <span class="pulsing-gift">🎁</span>
-          <h2 class="section-title">¡Premios Listos para Canjear!</h2>
-        </div>
-        <p class="section-desc">Muestra este cupón digital a tu barbero antes de que empiece tu atención.</p>
+      <!-- Módulo Semántico Desacoplado: Tus Beneficios & Reglas del Club -->
+      <section class="club-rules-card" aria-labelledby="rules-section-title">
+        <header class="crc-header">
+          <div class="crc-header-left">
+            <span class="crc-badge" [class.vip]="isVip()">
+              {{ isVip() ? 'VIP CLUB' : (clientTier() | uppercase) + ' CLUB' }}
+            </span>
+            <h2 id="rules-section-title" class="crc-title">Tus Beneficios & Reglas</h2>
+          </div>
+          <span class="crc-shield-icon" aria-hidden="true">🛡️</span>
+        </header>
 
-        <div class="claims-grid">
-          @for (claim of activeClaims(); track claim.id) {
-          <article class="claim-voucher-card">
-            <div class="cvc-left">
-              <span class="cvc-tag">CUPÓN GANADO</span>
-              <h3 class="cvc-title">{{ claim.rewardName || 'Premio de Lealtad' }}</h3>
-              <span class="cvc-date">Alcanzado el {{ formatClaimDate(claim.claimedAt) }}</span>
+        <ul class="crc-list" role="list">
+          <li class="crc-item">
+            <span class="crc-bullet check">✓</span>
+            <div class="crc-text">
+              <strong>Acumulación Automática:</strong>
+              <span>Recibes sellos por cada {{ barberService.loyaltyUnitSingular() }} completado en caja.</span>
             </div>
-            <div class="cvc-right">
-              <span class="cvc-code">#{{ claim.id.slice(0, 6).toUpperCase() }}</span>
-              <span class="cvc-instruction">Válido en sillón</span>
-            </div>
-          </article>
+          </li>
+
+          @if (barberService.loyaltyRewards().length > 0) {
+            @for (reward of barberService.loyaltyRewards(); track reward.id) {
+              <li class="crc-item reward">
+                <span class="crc-bullet star">★</span>
+                <div class="crc-text">
+                  <span>A los <strong>{{ reward.stampsRequired }} sellos</strong>:</span>
+                  <strong class="crc-reward-highlight">{{ reward.name }}</strong>
+                </div>
+              </li>
+            }
+          } @else {
+            <li class="crc-item reward">
+              <span class="crc-bullet star">★</span>
+              <div class="crc-text">
+                <span>Al alcanzar <strong>{{ targetStamps() }} sellos</strong>:</span>
+                <strong class="crc-reward-highlight">Servicio 100% GRATIS en sillón</strong>
+              </div>
+            </li>
           }
-        </div>
+
+          <li class="crc-item">
+            <span class="crc-bullet check">✓</span>
+            <div class="crc-text">
+              <strong>Sin Vencimiento:</strong>
+              <span>Tus sellos no caducan y son válidos con todo el staff.</span>
+            </div>
+          </li>
+        </ul>
       </section>
+    </aside>
+
+    <!-- =================================================================== -->
+    <!-- COLUMNA DERECHA: CUPONES LISTOS PARA CANJEAR & HITOS DESBLOQUEABLES -->
+    <!-- =================================================================== -->
+    <section
+      class="lsv-right-column"
+      [class.hidden-mobile]="mobileViewTab() === 'pass'"
+      aria-label="Recompensas y catálogo de hitos"
+    >
+      <!-- 1. SECCIÓN CUPONES GANADOS (ESTILO TICKET TROQUELADO DE LUJO) -->
+      @if (activeClaims().length > 0) {
+        <article class="vouchers-section" aria-labelledby="vouchers-title">
+          <header class="vouchers-header">
+            <div class="vh-title-row">
+              <span class="pulsing-gift" aria-hidden="true">🎁</span>
+              <h2 id="vouchers-title" class="vouchers-title">¡Premios Listos para Canjear!</h2>
+            </div>
+            <p class="vouchers-desc">
+              Presenta este cupón o díctale el código a tu barbero antes de que empiece tu atención.
+            </p>
+          </header>
+
+          <div class="vouchers-grid">
+            @for (claim of activeClaims(); track claim.id) {
+              <div class="tear-off-ticket" role="region" [attr.aria-label]="claim.rewardName || 'Cupón de Lealtad'">
+                <!-- Muescas troqueladas decorativas -->
+                <div class="ticket-notch notch-top" aria-hidden="true"></div>
+                <div class="ticket-notch notch-bottom" aria-hidden="true"></div>
+
+                <div class="tot-left">
+                  <span class="tot-badge">CUPÓN GANADO</span>
+                  <h3 class="tot-title">{{ claim.rewardName || 'Premio de Lealtad' }}</h3>
+                  <span class="tot-date">Alcanzado el {{ formatClaimDate(claim.claimedAt) }}</span>
+                </div>
+
+                <div class="tot-divider" aria-hidden="true">
+                  <span class="dashed-line"></span>
+                </div>
+
+                <div class="tot-right">
+                  <div class="tot-code-group">
+                    <span class="tot-code-label">CÓDIGO</span>
+                    <strong class="tot-code-val">#{{ claim.id.slice(0, 6).toUpperCase() }}</strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="btn-copy-code"
+                    (click)="copyVoucherCode('#' + claim.id.slice(0, 6).toUpperCase())"
+                    [class.copied]="copiedCode() === '#' + claim.id.slice(0, 6).toUpperCase()"
+                    title="Copiar código al portapapeles"
+                  >
+                    @if (copiedCode() === '#' + claim.id.slice(0, 6).toUpperCase()) {
+                      <span>¡Copiado! ✓</span>
+                    } @else {
+                      <span>Copiar</span>
+                    }
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </article>
       }
 
-      <!-- 2. Catálogo de Hitos y Recompensas del Negocio -->
-      <section class="rewards-catalog-section">
-        <h2 class="section-title">Hitos Desbloqueables</h2>
-        <p class="section-desc">Conoce los premios que ganarás a medida que acumules {{ barberService.loyaltyUnitLabel() }} en BarberTrack.</p>
+      <!-- 2. CATÁLOGO DE HITOS Y PREMIOS DEL NEGOCIO (LÍNEA DE TIEMPO) -->
+      <article class="milestones-section" aria-labelledby="milestones-title">
+        <header class="milestones-header">
+          <div class="mh-title-row">
+            <span class="mh-icon" aria-hidden="true">🏆</span>
+            <h2 id="milestones-title" class="milestones-title">Hitos Desbloqueables</h2>
+          </div>
+          <p class="milestones-desc">
+            Premios y cortesías exclusivas que desbloqueas al acumular sellos en BarberTrack.
+          </p>
+        </header>
 
-        <div class="milestones-timeline">
+        <div class="milestones-timeline" role="list">
           @if (sortedRewards().length === 0) {
-          <div class="default-milestone-card" [class.unlocked]="currentStamps() >= 10">
-            <div class="dmc-circle">
-              <span>10</span>
+            <!-- Hito Predeterminado si no hay catálogo personalizado en base de datos -->
+            <div
+              class="milestone-card"
+              [class.unlocked]="currentStamps() >= 10"
+              role="listitem"
+            >
+              <div class="mc-node-circle" [class.active]="currentStamps() >= 10" aria-hidden="true">
+                <span>10</span>
+              </div>
+
+              <div class="mc-content">
+                <h3 class="mc-title">Servicio 100% Gratis</h3>
+                <p class="mc-subtitle">Al completar los 10 sellos de tu tarjeta de lealtad</p>
+              </div>
+
+              <div class="mc-status">
+                @if (currentStamps() >= 10) {
+                  <span class="badge-unlocked">
+                    <span class="badge-icon">✓</span>
+                    <span>¡Alcanzado!</span>
+                  </span>
+                } @else {
+                  <span class="badge-progress">
+                    Faltan {{ 10 - currentStamps() }}
+                  </span>
+                }
+              </div>
             </div>
-            <div class="dmc-info">
-              <h3 class="dmc-title">Servicio 100% Gratis</h3>
-              <span class="dmc-subtitle">Al completar los 10 sellos de tu tarjeta</span>
-            </div>
-            <div class="dmc-status">
-              @if (currentStamps() >= 10) {
-              <span class="badge-unlocked">¡Alcanzado!</span>
-              } @else {
-              <span class="badge-progress">Faltan {{ 10 - currentStamps() }} {{ barberService.loyaltyUnitLabel() }}</span>
-              }
-            </div>
-          </div>
           } @else {
-          @for (reward of sortedRewards(); track reward.id) {
-          <div class="default-milestone-card" [class.unlocked]="currentStamps() >= reward.stampsRequired">
-            <div class="dmc-circle">
-              <span>{{ reward.stampsRequired }}</span>
-            </div>
-            <div class="dmc-info">
-              <h3 class="dmc-title">{{ reward.name }}</h3>
-              @if (reward.description) {
-              <span class="dmc-subtitle">{{ reward.description }}</span>
-              }
-            </div>
-            <div class="dmc-status">
-              @if (currentStamps() >= reward.stampsRequired) {
-              <span class="badge-unlocked">¡Desbloqueado!</span>
-              } @else {
-              <span class="badge-progress">Faltan {{ reward.stampsRequired - currentStamps() }}</span>
-              }
-            </div>
-          </div>
-          }
+            @for (reward of sortedRewards(); track reward.id) {
+              <div
+                class="milestone-card"
+                [class.unlocked]="currentStamps() >= reward.stampsRequired"
+                role="listitem"
+              >
+                <div
+                  class="mc-node-circle"
+                  [class.active]="currentStamps() >= reward.stampsRequired"
+                  aria-hidden="true"
+                >
+                  <span>{{ reward.stampsRequired }}</span>
+                </div>
+
+                <div class="mc-content">
+                  <h3 class="mc-title">{{ reward.name }}</h3>
+                  @if (reward.description) {
+                    <p class="mc-subtitle">{{ reward.description }}</p>
+                  }
+                </div>
+
+                <div class="mc-status">
+                  @if (currentStamps() >= reward.stampsRequired) {
+                    <span class="badge-unlocked">
+                      <span class="badge-icon">✓</span>
+                      <span>¡Alcanzado!</span>
+                    </span>
+                  } @else {
+                    <span class="badge-progress">
+                      Faltan {{ reward.stampsRequired - currentStamps() }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
           }
         </div>
-      </section>
-    </div>
+      </article>
+    </section>
   </div>
 
-  <!-- Modal Comparador de Niveles y Membresías -->
-  <app-tier-catalog-modal [isOpen]="isTierCatalogModalOpen()"
-    (close)="closeTierCatalogModal()"></app-tier-catalog-modal>
-</div>
+  <!-- Modal Comparador de Niveles & Membresías (Apple HIG Bottom Sheet en móvil / Diálogo Centrado en Desktop) -->
+  <app-tier-catalog-modal
+    [isOpen]="isTierCatalogModalOpen()"
+    (close)="closeTierCatalogModal()"
+  ></app-tier-catalog-modal>
+</main>

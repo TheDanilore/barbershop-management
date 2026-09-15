@@ -1,103 +1,188 @@
-<!-- Tarjeta Virtual de Lujo "Apple Wallet / Black Card" -->
-<div class="virtual-loyalty-card">
-  <!-- Efecto de Brillo Holográfico / Foil -->
-  <div class="card-shimmer-foil" aria-hidden="true"></div>
+<!-- ======================================================================= -->
+<!-- TARJETA VIRTUAL DE LEALTAD "APPLE WALLET 3D FLIP PASS"                  -->
+<!-- Frente: Malla de sellos y progreso / Dorso: Código QR y Barcode en caja -->
+<!-- ======================================================================= -->
+<div class="virtual-card-perspective">
+  <div
+    class="virtual-card-flipper"
+    [class.is-flipped]="isFlipped()"
+    (click)="toggleFlip()"
+    (keydown.enter)="toggleFlip()"
+    (keydown.space)="$event.preventDefault(); toggleFlip()"
+    role="button"
+    tabindex="0"
+    [attr.aria-label]="isFlipped() ? 'Voltear tarjeta para ver tus sellos' : 'Voltear tarjeta para ver código QR de sillón'"
+  >
+    <!-- =================================================================== -->
+    <!-- CARA FRONTAL: SELLOS & PROGRESO VIP                                 -->
+    <!-- =================================================================== -->
+    <div class="card-face card-front" [class]="clientTier().toLowerCase()">
+      <!-- Brillo Holográfico Foil de Lujo -->
+      <div class="card-shimmer-foil" aria-hidden="true"></div>
 
-  <header class="vlc-header">
-    <div class="vlc-brand">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vlc-scissors-icon">
-        <circle cx="6" cy="6" r="3"></circle>
-        <circle cx="6" cy="18" r="3"></circle>
-        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-      </svg>
-      <span>BARBERTRACK LOYALTY</span>
-    </div>
-    <span class="vlc-tier-pill" [class]="barberService.currentClient().membershipLevel.toLowerCase()">
-      {{ barberService.currentClient().membershipLevel }}
-    </span>
-  </header>
+      <!-- Cabecera de la Tarjeta -->
+      <header class="vlc-header">
+        <div class="vlc-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="vlc-scissors-icon" aria-hidden="true">
+            <circle cx="6" cy="6" r="3"></circle>
+            <circle cx="6" cy="18" r="3"></circle>
+            <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+            <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+            <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+          </svg>
+          <span class="brand-text">BARBERTRACK</span>
+        </div>
 
-  <!-- Chip EMV Virtual y Red de Pago -->
-  <div class="card-chip-row" aria-hidden="true">
-    <div class="emv-chip">
-      <div class="chip-line c1"></div>
-      <div class="chip-line c2"></div>
-    </div>
-    <div class="nfc-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2a10 10 0 0 1 10 10"></path>
-        <path d="M12 6a6 6 0 0 1 6 6"></path>
-        <path d="M12 10a2 2 0 0 1 2 2"></path>
-      </svg>
-    </div>
-  </div>
-
-  <div class="vlc-card-body">
-    <div class="vlc-client-name">{{ barberService.currentClient().name }}</div>
-    <div class="vlc-card-number">•••• •••• •••• 2026</div>
-  </div>
-
-  <!-- Grid Compacto y Elegante de Sellos (Máximo 5 por fila) -->
-  <div class="stamps-grid-wrap">
-    <div class="stamps-grid">
-      @for (slot of stampSlots(); track slot) {
-      <div class="stamp-slot" [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
-        [class.reward-slot]="isRewardSlot(slot)"
-        [title]="isRewardSlot(slot) ? '¡Sello con Recompensa!' : 'Sello Nº ' + slot">
-        @if (slot <= barberService.currentClient().loyaltyStamps) { <span class="stamp-icon stamped">✂</span>
-          } @else if (isRewardSlot(slot)) {
-          <span class="stamp-icon reward">🎁</span>
-          } @else {
-          <span class="stamp-number">{{ slot }}</span>
+        <div class="vlc-tier-wrap">
+          @if (currentCycle() > 1) {
+            <span class="vlc-cycle-pill">#{{ currentCycle() }}</span>
           }
+          <span class="vlc-tier-pill" [class]="clientTier().toLowerCase()">
+            {{ isVip() ? 'VIP PASS' : clientTier().toUpperCase() }}
+          </span>
+        </div>
+      </header>
+
+      <!-- Fila Chip EMV & Tecnología Contactless -->
+      <div class="card-chip-row" aria-hidden="true">
+        <div class="emv-chip">
+          <div class="chip-circuit c1"></div>
+          <div class="chip-circuit c2"></div>
+        </div>
+        <div class="nfc-icon" title="Pase digital sin contacto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 0 1 10 10"></path>
+            <path d="M12 6a6 6 0 0 1 6 6"></path>
+            <path d="M12 10a2 2 0 0 1 2 2"></path>
+          </svg>
+        </div>
       </div>
-      }
+
+      <!-- Titular de la Tarjeta -->
+      <div class="vlc-card-body">
+        <div class="vlc-client-name" [title]="clientName()">{{ clientName() }}</div>
+        <div class="vlc-card-number">•••• •••• •••• 2026</div>
+      </div>
+
+      <!-- Malla de Sellos Interactiva (Grid Fluido con Feedback Visual) -->
+      <div class="stamps-grid-container" aria-label="Malla de sellos acumulados">
+        <div class="stamps-grid">
+          @for (slot of stampSlots(); track slot) {
+            <div
+              class="stamp-slot"
+              [class.stamped]="slot <= stampsCount()"
+              [class.reward-slot]="isRewardSlot(slot)"
+              [title]="isRewardSlot(slot) ? '¡Recompensa: ' + (getRewardNameForSlot(slot) || 'Premio') + '!' : 'Sello Nº ' + slot"
+            >
+              @if (slot <= stampsCount()) {
+                <span class="stamp-icon stamped">✂</span>
+              } @else if (isRewardSlot(slot)) {
+                <span class="stamp-icon reward pulsing">🎁</span>
+              } @else {
+                <span class="stamp-number">{{ slot }}</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Footer de la Tarjeta: Barra de Progreso y Trigger de Giro -->
+      <footer class="vlc-footer">
+        <div class="vlc-progress-info">
+          <span class="vlc-progress-label">{{ cycleStampsCompleted() }} de 10 sellos (Total: {{ stampsCount() }})</span>
+          <strong class="percentage-accent">{{ progressPercentage() }}%</strong>
+        </div>
+
+        <div class="stamps-progress-bar" role="progressbar" [attr.aria-valuenow]="progressPercentage()" aria-valuemin="0" aria-valuemax="100">
+          <div class="stamps-fill" [style.width.%]="progressPercentage()"></div>
+        </div>
+
+        <div class="vlc-flip-hint">
+          <span class="flip-icon">↺</span>
+          <span>Toca para ver QR en caja</span>
+        </div>
+      </footer>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- CARA TRASERA (DORSO): CÓDIGO QR & IDENTIFICADOR EN SILLÓN / CAJA    -->
+    <!-- =================================================================== -->
+    <div class="card-face card-back" [class]="clientTier().toLowerCase()">
+      <!-- Banda Magnética Superior -->
+      <div class="mag-stripe" aria-hidden="true"></div>
+
+      <header class="vlc-back-header">
+        <div class="vlc-brand small">
+          <span class="brand-sub">PASE DIGITAL DE CLIENTE</span>
+        </div>
+        <span class="vlc-tier-pill mini" [class]="clientTier().toLowerCase()">
+          {{ clientTier().toUpperCase() }}
+        </span>
+      </header>
+
+      <!-- Zona Central: Código QR Nítido y Código de Barras -->
+      <div class="qr-vault-zone">
+        <div class="qr-code-box">
+          <!-- SVG QR Code Vectorial de Alto Contraste con Tijeras Centrales -->
+          <svg viewBox="0 0 100 100" class="qr-svg" aria-label="Código QR del cliente">
+            <!-- Esquinas de orientación QR -->
+            <rect x="5" y="5" width="26" height="26" fill="black" rx="4"/>
+            <rect x="9" y="9" width="18" height="18" fill="white" rx="2"/>
+            <rect x="13" y="13" width="10" height="10" fill="black" rx="1"/>
+
+            <rect x="69" y="5" width="26" height="26" fill="black" rx="4"/>
+            <rect x="73" y="9" width="18" height="18" fill="white" rx="2"/>
+            <rect x="77" y="13" width="10" height="10" fill="black" rx="1"/>
+
+            <rect x="5" y="69" width="26" height="26" fill="black" rx="4"/>
+            <rect x="9" y="73" width="18" height="18" fill="white" rx="2"/>
+            <rect x="13" y="77" width="10" height="10" fill="black" rx="1"/>
+
+            <!-- Patrones de datos -->
+            <rect x="37" y="10" width="6" height="6" fill="black"/>
+            <rect x="47" y="14" width="6" height="6" fill="black"/>
+            <rect x="57" y="10" width="6" height="6" fill="black"/>
+            <rect x="37" y="24" width="6" height="6" fill="black"/>
+            <rect x="47" y="24" width="6" height="6" fill="black"/>
+            <rect x="57" y="24" width="6" height="6" fill="black"/>
+
+            <rect x="10" y="37" width="6" height="6" fill="black"/>
+            <rect x="22" y="47" width="6" height="6" fill="black"/>
+            <rect x="14" y="57" width="6" height="6" fill="black"/>
+
+            <rect x="37" y="72" width="6" height="6" fill="black"/>
+            <rect x="47" y="80" width="6" height="6" fill="black"/>
+            <rect x="57" y="72" width="6" height="6" fill="black"/>
+
+            <rect x="72" y="37" width="6" height="6" fill="black"/>
+            <rect x="80" y="47" width="6" height="6" fill="black"/>
+            <rect x="72" y="57" width="6" height="6" fill="black"/>
+            <rect x="82" y="72" width="6" height="6" fill="black"/>
+
+            <!-- Ícono central de barbería -->
+            <circle cx="50" cy="50" r="13" fill="white" stroke="#e5a93c" stroke-width="2"/>
+            <text x="50" y="55" font-size="12" text-anchor="middle" fill="#111114">✂</text>
+          </svg>
+        </div>
+
+        <div class="qr-info-col">
+          <span class="qr-code-label">CÓDIGO DE CLIENTE</span>
+          <strong class="qr-code-val">{{ clientCode() }}</strong>
+          <span class="barcode-strip" aria-hidden="true">|||| | ||| ||||| | || |||| | |||</span>
+        </div>
+      </div>
+
+      <!-- Footer Reverso: Instrucción y Botón de Retorno -->
+      <footer class="vlc-back-footer">
+        <p class="back-instruction">
+          Presenta este pase en caja para acumular tus sellos y canjear tus cortes gratis de inmediato.
+        </p>
+
+        <div class="vlc-flip-hint">
+          <span class="flip-icon">↻</span>
+          <span>Voltear a mis sellos</span>
+        </div>
+      </footer>
     </div>
   </div>
-
-  <footer class="vlc-footer">
-    <div class="vlc-progress-text">
-      <span>{{ barberService.currentClient().loyaltyStamps }} de {{ targetStamps() }} sellos</span>
-      <strong class="percentage-accent">{{ progressPercentage() }}%</strong>
-    </div>
-    <div class="stamps-progress-bar light">
-      <div class="stamps-fill" [style.width.%]="progressPercentage()"></div>
-    </div>
-  </footer>
 </div>
-
-<!-- Reglas y Beneficios del Club -->
-<section class="loyalty-rules-card">
-  <div class="rules-header">
-    <span class="rules-badge" [class.vip]="isVip()">{{ isVip() ? 'VIP CLUB' : (clientTier() | uppercase) + ' CLUB'
-      }}</span>
-    <h3 class="rules-title">Tus Beneficios & Reglas</h3>
-  </div>
-
-  <ul class="rules-list">
-    <li>
-      <span class="bullet">✓</span>
-      <span>Recibes sellos por cada {{ barberService.loyaltyUnitSingular() }} registrado en caja.</span>
-    </li>
-    @if (barberService.loyaltyRewards().length > 0) {
-    @for (reward of barberService.loyaltyRewards(); track reward.id) {
-    <li class="reward-milestone-item">
-      <span class="bullet-star">★</span>
-      <span>A los <strong>{{ reward.stampsRequired }} sellos</strong>: {{ reward.name }}</span>
-    </li>
-    }
-    } @else {
-    <li>
-      <span class="bullet">✓</span>
-      <span>Al alcanzar los <strong>{{ targetStamps() }} sellos</strong>, tu próximo {{ barberService.loyaltyUnitSingular() }} es <strong>100%
-          GRATIS</strong>.</span>
-    </li>
-    }
-    <li>
-      <span class="bullet">✓</span>
-      <span>Tus sellos no caducan y son válidos con cualquier barbero del staff.</span>
-    </li>
-  </ul>
-</section>

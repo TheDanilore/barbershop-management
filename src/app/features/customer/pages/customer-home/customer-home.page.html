@@ -45,7 +45,7 @@
         <span class="kpi-label">Servicios Realizados</span>
         <div class="kpi-value-row">
           <strong class="kpi-val">{{ barberService.currentClient().cutsCount }}</strong>
-          <span class="kpi-denom">visitas</span>
+          <span class="kpi-denom">{{ barberService.loyaltyUnitLabel() }}</span>
         </div>
         <span class="kpi-hint">Ver historial →</span>
       </div>
@@ -214,9 +214,9 @@
 
           <p class="lsb-motivation">
             @if (barberService.currentClient().loyaltyStamps >= barberService.stampsRequired() - 1) {
-            🎉 ¡Tu próximo corte es <strong>100% GRATIS</strong>!
+            🎉 ¡Tu próximo {{ barberService.loyaltyUnitSingular() }} es <strong>100% GRATIS</strong>!
             } @else {
-            Te faltan {{ barberService.stampsRequired() - barberService.currentClient().loyaltyStamps }} cortes para tu
+            Te faltan {{ barberService.stampsRequired() - barberService.currentClient().loyaltyStamps }} {{ barberService.loyaltyUnitLabel() }} para tu
             recompensa gratuita.
             }
           </p>
@@ -245,7 +245,7 @@
           <span class="teaser-icon">🔒</span>
           <div class="teaser-text">
             <strong>Descuento del 15% en Productos</strong>
-            <p>Privilegio exclusivo para socios <strong>VIP Élite</strong> (50+ cortes). <span class="teaser-cta">Ver
+            <p>Privilegio exclusivo para socios <strong>VIP Élite</strong> (50+ {{ barberService.loyaltyUnitLabel() }}). <span class="teaser-cta">Ver
                 comparativa →</span></p>
           </div>
         </div>

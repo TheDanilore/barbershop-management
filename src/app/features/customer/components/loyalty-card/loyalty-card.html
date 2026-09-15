@@ -59,7 +59,7 @@
 
   <footer class="vlc-footer">
     <div class="vlc-progress-text">
-      <span>{{ barberService.currentClient().loyaltyStamps }} de {{ targetStamps() }} cortes</span>
+      <span>{{ barberService.currentClient().loyaltyStamps }} de {{ targetStamps() }} sellos</span>
       <strong class="percentage-accent">{{ progressPercentage() }}%</strong>
     </div>
     <div class="stamps-progress-bar light">
@@ -79,19 +79,19 @@
   <ul class="rules-list">
     <li>
       <span class="bullet">✓</span>
-      <span>Recibes sellos por cada servicio de corte o barba registrado.</span>
+      <span>Recibes sellos por cada {{ barberService.loyaltyUnitSingular() }} registrado en caja.</span>
     </li>
     @if (barberService.loyaltyRewards().length > 0) {
     @for (reward of barberService.loyaltyRewards(); track reward.id) {
     <li class="reward-milestone-item">
       <span class="bullet-star">★</span>
-      <span>A los <strong>{{ reward.stampsRequired }} cortes</strong>: {{ reward.name }}</span>
+      <span>A los <strong>{{ reward.stampsRequired }} sellos</strong>: {{ reward.name }}</span>
     </li>
     }
     } @else {
     <li>
       <span class="bullet">✓</span>
-      <span>Al alcanzar los <strong>{{ targetStamps() }} sellos</strong>, tu próximo corte es <strong>100%
+      <span>Al alcanzar los <strong>{{ targetStamps() }} sellos</strong>, tu próximo {{ barberService.loyaltyUnitSingular() }} es <strong>100%
           GRATIS</strong>.</span>
     </li>
     }

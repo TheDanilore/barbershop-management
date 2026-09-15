@@ -46,10 +46,20 @@ export class CustomerHomePage {
 
   readonly isVip = computed<boolean>(() => this.clientTier() === 'VIP');
 
-  // Beneficios contextuales según el nivel real de membresía
-  // REGLA ESTRICTA: Bronze es nivel base sin descuentos comerciales ni cortesías; VIP tiene el monopolio de descuentos.
+  // Beneficios contextuales según el nivel real de membresía (dinámico desde Supabase)
   readonly tierPerks = computed(() => {
     const tier = this.clientTier();
+    const config = this.barberService.membershipTiers().find((t) => t.id.toLowerCase() === tier.toLowerCase());
+
+    if (config && config.perks && config.perks.length > 0) {
+      const defaultIcons = tier === 'VIP' ? ['🏷️', '👑', '⚡', '🎂', '🍸'] : tier === 'Gold' ? ['☕', '✨', '⚡', '⭐'] : tier === 'Silver' ? ['☕', '⭐', '📅', '🛎️'] : ['⭐', '📅', '🔔', '✂️'];
+      return config.perks.slice(0, 3).map((perk, i) => ({
+        icon: defaultIcons[i % defaultIcons.length],
+        title: perk.length > 32 ? perk.slice(0, 32) + '...' : perk,
+        desc: perk,
+      }));
+    }
+
     if (tier === 'VIP') {
       return [
         { icon: '🏷️', title: '15% Dto. en Productos', desc: 'Descuento VIP exclusivo en todas las ceras, pomadas y aceites de barba.' },
@@ -58,20 +68,19 @@ export class CustomerHomePage {
       ];
     } else if (tier === 'Gold') {
       return [
-        { icon: '☕', title: 'Bebida Premium de Cortesía', desc: 'Café de especialidad, infusión o bebida fría en cada visita.' },
+        { icon: '☕', title: 'Bebida Premium de Cortesía', desc: `Café de especialidad, infusión o bebida fría en cada ${this.barberService.loyaltyUnitSingular()}.` },
         { icon: '✨', title: 'Tratamiento Toalla Caliente', desc: 'Vapor y toalla aromatizada de cortesía en servicio de barba.' },
         { icon: '⚡', title: 'Prioridad en Lista de Espera', desc: 'Preferencia en cupos libres por cancelaciones de último minuto.' },
       ];
     } else if (tier === 'Silver') {
       return [
-        { icon: '☕', title: 'Bebida de Cortesía', desc: 'Café espresso artesanal o agua purificada en cada corte.' },
-        { icon: '⭐', title: 'Sellos de Fidelidad', desc: 'Acumulación continua de sellos hacia cortes gratuitos.' },
+        { icon: '☕', title: 'Bebida de Cortesía', desc: `Café espresso artesanal o agua purificada en cada ${this.barberService.loyaltyUnitSingular()}.` },
+        { icon: '⭐', title: 'Sellos de Fidelidad', desc: 'Acumulación continua de sellos hacia recompensas gratuitas.' },
         { icon: '📅', title: 'Reserva Anticipada', desc: 'Prioridad estándar en la agenda de los profesionales.' },
       ];
     }
-    // Bronze (Nivel Inicial Base: solo acumulación hacia premios, sin descuentos)
     return [
-      { icon: '⭐', title: 'Acumulación de Sellos', desc: 'Suma 1 sello por cada visita para canjear servicios y cortes 100% gratis en el sillón.' },
+      { icon: '⭐', title: 'Acumulación de Sellos', desc: `Suma 1 sello por cada ${this.barberService.loyaltyUnitSingular()} para canjear servicios 100% gratis en el sillón.` },
       { icon: '📅', title: 'Reserva Directa 24/7', desc: 'Acceso a la agenda digital con tus barberos preferidos en tiempo real.' },
       { icon: '🔔', title: 'Recordatorios & Historial', desc: 'Alertas automáticas de tus turnos y registro de tus estilos favoritos.' },
     ];

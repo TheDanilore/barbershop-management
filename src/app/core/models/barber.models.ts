@@ -38,6 +38,34 @@ export interface LoyaltyRewardClaim {
   stampsAtClaim: number;
 }
 
+export interface MembershipTierRow {
+  id: string; // 'Bronze' | 'Silver' | 'Gold' | 'VIP'
+  name: string;
+  min_cuts_required: number;
+  discount_percentage: number;
+  badge_label: string;
+  color_class: string;
+  tagline: string;
+  perks: string[];
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface MembershipTierConfig {
+  id: MembershipTier | string;
+  name: string;
+  minCutsRequired: number;
+  discountPercentage: number;
+  badgeLabel: string;
+  colorClass: string;
+  tagline: string;
+  perks: string[];
+  isActive: boolean;
+  sortOrder: number;
+}
+
 // Tipos reflejo de la base de datos Supabase (PostgreSQL)
 export interface ProfileRow {
   id: string; // uuid

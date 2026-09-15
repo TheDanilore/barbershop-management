@@ -41,6 +41,42 @@
     </div>
   </header>
 
+  <!-- Pestañas de Navegación Segmentada (Apple / Stripe Luxury Design) -->
+  <nav class="loyalty-tabs-nav" role="tablist" aria-label="Secciones del programa de fidelización">
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab() === 'rewards'"
+      [attr.aria-selected]="activeTab() === 'rewards'"
+      (click)="setActiveTab('rewards')"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon" aria-hidden="true">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      <span>Sellos &amp; Hitos</span>
+      <span class="tab-counter">{{ barberService.loyaltyRewards().length }}</span>
+    </button>
+
+    <button
+      type="button"
+      role="tab"
+      class="tab-btn"
+      [class.active]="activeTab() === 'tiers'"
+      [attr.aria-selected]="activeTab() === 'tiers'"
+      (click)="setActiveTab('tiers')"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tab-icon" aria-hidden="true">
+        <path d="M6 3h12l4 6-10 12L2 9z"></path>
+        <path d="M11 3v6"></path>
+        <path d="M2 9h20"></path>
+      </svg>
+      <span>Niveles de Membresía</span>
+      <span class="tab-counter vip-badge">{{ barberService.membershipTiers().length }}</span>
+      <kbd class="tab-kbd-hint">Alt+T</kbd>
+    </button>
+  </nav>
+
   <!-- ESTADO DE CARGA SWR SHIMMER -->
   @if (isLoyaltyInitialLoading()) {
   <div class="loyalty-shimmer-wrap" aria-busy="true">
@@ -53,6 +89,7 @@
     </div>
   </div>
   } @else {
+  @if (activeTab() === 'rewards') {
 
   <!-- Cinta Compacta de Métricas del Programa (Horizontal Metrics Strip) -->
   <section class="loyalty-kpi-strip" aria-label="Métricas del programa de fidelización">
@@ -391,14 +428,161 @@
     </div>
     }
   </section>
-  }
+  } @else {
+  <!-- ======================================================================= -->
+  <!-- PESTAÑA 2: GESTIÓN DINÁMICA DE NIVELES DE MEMBRESÍA                    -->
+  <!-- ======================================================================= -->
+  <div class="tiers-tab-content fade-in">
+    <!-- Cinta de Métricas de Membresías -->
+    <section class="loyalty-kpi-strip" aria-label="Métricas de niveles de membresía">
+      <article class="kpi-cell gold">
+        <div class="kpi-icon-box gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 3h12l4 6-10 12L2 9z"></path>
+            <path d="M11 3v6"></path>
+            <path d="M2 9h20"></path>
+          </svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-num">{{ barberService.membershipTiers().length }}</span>
+          <span class="kpi-label">Niveles Configurados</span>
+        </div>
+      </article>
 
+      <article class="kpi-cell amber">
+        <div class="kpi-icon-box amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="7"></circle>
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-num text-amber">15%</span>
+          <span class="kpi-label">Descuento VIP Productos</span>
+        </div>
+      </article>
+
+      <article class="kpi-cell blue">
+        <div class="kpi-icon-box blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+        </div>
+        <div class="kpi-data">
+          <span class="kpi-num">Sincronizado</span>
+          <span class="kpi-label">Base de Datos PostgreSQL</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- Encabezado de Sección -->
+    <section class="catalog-section" aria-label="Niveles de Membresía">
+      <div class="section-heading">
+        <div class="heading-title-group">
+          <h2 class="section-title">Niveles de Membresía y Beneficios</h2>
+          <span class="badge-counter-sub">{{ barberService.membershipTiers().length }} niveles</span>
+        </div>
+        <p class="section-desc">
+          Configura los requisitos de ascenso, privilegios y descuentos en productos de tocador para cada nivel. Los clientes ascienden automáticamente al completar sus cortes o servicios.
+        </p>
+      </div>
+
+      <!-- Grid de Tarjetas de Membresía -->
+      <div class="tiers-mgmt-grid">
+        @for (tier of barberService.membershipTiers(); track tier.id) {
+        <article class="tier-mgmt-card" [class.paused]="!tier.isActive" [attr.data-tier]="tier.colorClass">
+          <div class="tmc-header">
+            <div class="tmc-icon-badge" [attr.data-tier]="tier.colorClass">
+              {{ getTierIcon(tier.id) }}
+            </div>
+            <div class="tmc-title-box">
+              <span class="tmc-badge-pill" [attr.data-tier]="tier.colorClass">{{ tier.badgeLabel }}</span>
+              <h3 class="tmc-tier-name">{{ tier.name }}</h3>
+            </div>
+            <button
+              type="button"
+              class="status-toggle-chip"
+              [class.active]="tier.isActive"
+              (click)="confirmToggleTier(tier)"
+              [title]="tier.isActive ? 'Pausar nivel' : 'Activar nivel'"
+            >
+              <span class="status-dot"></span>
+              <span>{{ tier.isActive ? 'Activo' : 'Pausado' }}</span>
+            </button>
+          </div>
+
+          <div class="tmc-metrics-row">
+            <div class="tmc-metric-item">
+              <span class="tmc-metric-label">Requisito de Nivel:</span>
+              <strong class="tmc-metric-val">
+                {{ tier.minCutsRequired }}+ {{ barberService.loyaltyUnitLabel() }}
+              </strong>
+            </div>
+
+            <div class="tmc-metric-item" [class.highlight-vip]="tier.discountPercentage > 0">
+              <span class="tmc-metric-label">Descuento Productos:</span>
+              <strong class="tmc-metric-val">
+                @if (tier.discountPercentage > 0) {
+                  {{ tier.discountPercentage }}% OFF Exclusivo
+                } @else {
+                  Sin descuentos
+                }
+              </strong>
+            </div>
+          </div>
+
+          @if (tier.tagline) {
+          <p class="tmc-tagline">“{{ tier.tagline }}”</p>
+          }
+
+          <div class="tmc-perks-box">
+            <span class="tmc-perks-title">Beneficios y Privilegios ({{ tier.perks.length }}):</span>
+            <ul class="tmc-perks-list">
+              @for (perk of tier.perks; track perk) {
+              <li class="tmc-perk-item">
+                <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>{{ perk }}</span>
+              </li>
+              }
+            </ul>
+          </div>
+
+          <div class="tmc-footer-actions">
+            <button
+              type="button"
+              class="btn-tmc-edit"
+              (click)="openMembershipTierModal(tier)"
+              title="Editar cortes requeridos, descuento y privilegios"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-sm" aria-hidden="true">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>Configurar Nivel &amp; Beneficios</span>
+            </button>
+          </div>
+        </article>
+        }
+      </div>
+    </section>
+  </div>
+  }
+  }
 
 </div>
 
 <!-- ======================================================================= -->
-<!-- MODAL: CREAR / EDITAR RECOMPENSA DE FIDELIZACIÓN                        -->
+<!-- MODALES: RECOMPENSAS (SELLOS) Y NIVELES DE MEMBRESÍA                    -->
 <!-- ======================================================================= -->
 <app-loyalty-reward-modal [isOpen]="isLoyaltyRewardModalOpen()" [rewardToEdit]="editingReward()"
   (closed)="closeLoyaltyRewardModal()" (saved)="showToast($event)">
 </app-loyalty-reward-modal>
+
+<app-membership-tier-modal [isOpen]="isMembershipTierModalOpen()" [tierToEdit]="editingTier()"
+  (closed)="closeMembershipTierModal()" (saved)="showToast($event)">
+</app-membership-tier-modal>

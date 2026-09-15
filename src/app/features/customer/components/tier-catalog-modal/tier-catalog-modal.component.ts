@@ -47,125 +47,79 @@ export class TierCatalogModalComponent {
   readonly cutsCount = computed<number>(() => this.currentClient().cutsCount || 0);
 
   // Progresión hacia el siguiente nivel
+  // Unidades dinámicas según el modo de fidelización del negocio ('servicios' o 'visitas')
+  readonly loyaltyUnitLabel = computed(() => this.barberService.loyaltyUnitLabel());
+  readonly loyaltyUnitSingular = computed(() => this.barberService.loyaltyUnitSingular());
+
+  // Progresión hacia el siguiente nivel (computado dinámicamente desde membership_tiers)
   readonly nextTierInfo = computed(() => {
     const cuts = this.cutsCount();
-    const tier = this.clientTier();
+    const currentTierId = this.clientTier();
+    const unit = this.loyaltyUnitLabel();
+    const tiers = this.barberService.membershipTiers().filter((t) => t.isActive);
 
-    if (tier === 'VIP') {
+    const currentIndex = tiers.findIndex((t) => t.id.toLowerCase() === currentTierId.toLowerCase());
+    const nextTier = currentIndex >= 0 && currentIndex < tiers.length - 1 ? tiers[currentIndex + 1] : null;
+
+    if (!nextTier) {
       return {
         isMax: true,
-        nextTier: 'VIP',
+        nextTier: currentTierId,
         cutsNeeded: 0,
         progressPct: 100,
         message: '¡Perteneces al nivel más alto de BarberTrack! Cuentas con todos los privilegios y descuentos.',
       };
     }
-    if (tier === 'Gold') {
-      const target = 50;
-      const cutsNeeded = Math.max(0, target - cuts);
-      const progressPct = Math.min(100, Math.round((cuts / target) * 100));
-      return {
-        isMax: false,
-        nextTier: 'VIP',
-        cutsNeeded,
-        progressPct,
-        message: `Te faltan ${cutsNeeded} cortes para alcanzar VIP y desbloquear el 15% de descuento en productos y reservas prioritarias.`,
-      };
-    }
-    if (tier === 'Silver') {
-      const target = 20;
-      const cutsNeeded = Math.max(0, target - cuts);
-      const progressPct = Math.min(100, Math.round((cuts / target) * 100));
-      return {
-        isMax: false,
-        nextTier: 'Gold',
-        cutsNeeded,
-        progressPct,
-        message: `Te faltan ${cutsNeeded} cortes para ascender a Gold y disfrutar de tratamientos de toalla caliente y bebidas premium.`,
-      };
-    }
-    // Bronze
-    const target = 5;
+
+    const target = nextTier.minCutsRequired;
     const cutsNeeded = Math.max(0, target - cuts);
     const progressPct = Math.min(100, Math.round((cuts / target) * 100));
+
+    const perkHint = nextTier.discountPercentage > 0
+      ? `desbloquear el ${nextTier.discountPercentage}% de descuento en productos y reservas prioritarias.`
+      : `desbloquear tus privilegios de socio ${nextTier.name}.`;
+
     return {
       isMax: false,
-      nextTier: 'Silver',
+      nextTier: nextTier.name,
       cutsNeeded,
       progressPct,
-      message: `Te faltan ${cutsNeeded} cortes para ascender a Silver y desbloquear tu primera cortesía artesanal en cada visita.`,
+      message: `Te faltan ${cutsNeeded} ${unit} para alcanzar ${nextTier.name} y ${perkHint}`,
     };
   });
 
-  // Catálogo completo de membresías del sistema
-  readonly allTiers: TierDefinition[] = [
-    {
-      id: 'Bronze',
-      name: 'Bronze Member',
-      badge: 'Nivel Inicial',
-      cutsRequired: '0 a 4 cortes',
-      icon: '🥉',
-      colorClass: 'bronze',
-      tagline: 'Tu entrada al club para acumular sellos de fidelidad.',
-      discount: 'Sin descuentos en productos',
-      perks: [
-        'Acumula sellos en tu tarjeta digital con cada visita',
-        'Canjea 1 corte 100% gratis al llegar a 10 sellos',
-        'Gestión y agendamiento de turnos online 24/7',
-        'Recordatorios de citas en web y WhatsApp',
-      ],
-    },
-    {
-      id: 'Silver',
-      name: 'Silver Member',
-      badge: 'Socio Frecuente',
-      cutsRequired: '5 a 19 cortes',
-      icon: '🥈',
-      colorClass: 'silver',
-      tagline: 'Desbloquea atenciones de cortesía en cada corte.',
-      discount: 'Sin descuentos en productos',
-      perks: [
-        'Café espresso artesanal o agua purificada de cortesía',
-        'Acumulación continua de sellos hacia cortes gratis',
-        'Notificaciones de ofertas especiales anticipadas',
-        'Atención prioritaria en recepción',
-      ],
-    },
-    {
-      id: 'Gold',
-      name: 'Gold Member',
-      badge: 'Socio Distinguido',
-      cutsRequired: '20 a 49 cortes',
-      icon: '🥇',
-      colorClass: 'gold',
-      tagline: 'Experiencia premium y tratamientos relajantes.',
-      discount: 'Sin descuentos en productos',
-      perks: [
-        'Bebida Premium de cortesía (café especialidad o infusión fría)',
-        'Tratamiento de toalla caliente aromatizada en servicio de barba',
-        'Prioridad en lista de espera ante citas liberadas',
-        'Acumulación de sellos para canjes sin límite',
-      ],
-    },
-    {
-      id: 'VIP',
-      name: 'VIP Élite Member',
-      badge: 'Máximo Prestigio',
-      cutsRequired: '50+ cortes',
-      icon: '👑',
-      colorClass: 'vip',
-      tagline: 'El círculo más exclusivo con descuentos y atención total.',
-      discount: '15% DTO. EXCLUSIVO',
-      isVipTier: true,
-      perks: [
-        '15% de Descuento en todas las ceras, pomadas y aceites de barba',
-        'Reserva prioritaria garantizada en fines de semana y festivos',
-        'Bebidas premium ilimitadas durante toda tu visita',
-        'Preferencia absoluta de horario con Master Barber',
-        'Detalle y atención personalizada en tu cumpleaños',
-      ],
-    },
-  ];
+  // Catálogo completo de membresías del sistema (computado dinámicamente desde Supabase)
+  readonly allTiers = computed<TierDefinition[]>(() => {
+    const unit = this.loyaltyUnitLabel();
+    const configuredTiers = this.barberService.membershipTiers().filter((t) => t.isActive);
+
+    return configuredTiers.map((t, index) => {
+      const nextTier = configuredTiers[index + 1];
+      const cutsRequiredStr = nextTier
+        ? `${t.minCutsRequired} a ${nextTier.minCutsRequired - 1} ${unit}`
+        : `${t.minCutsRequired}+ ${unit}`;
+
+      const isVip = t.id === 'VIP' || t.discountPercentage > 0;
+      const discountLabel = t.discountPercentage > 0
+        ? `${t.discountPercentage}% DTO. EXCLUSIVO`
+        : 'Sin descuentos en productos';
+
+      const icon = t.id === 'VIP' ? '👑' : t.id === 'Gold' ? '🥇' : t.id === 'Silver' ? '🥈' : '🥉';
+
+      return {
+        id: t.id as any,
+        name: t.name,
+        badge: t.badgeLabel,
+        cutsRequired: cutsRequiredStr,
+        icon,
+        colorClass: t.colorClass,
+        tagline: t.tagline,
+        discount: discountLabel,
+        perks: t.perks,
+        isVipTier: isVip,
+      };
+    });
+  });
 
   @HostListener('window:keydown.escape')
   handleEscape(): void {

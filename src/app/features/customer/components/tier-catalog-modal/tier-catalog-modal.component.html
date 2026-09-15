@@ -40,7 +40,7 @@
           </div>
           <div class="csb-cuts-counter">
             <span class="cuts-num">{{ cutsCount() }}</span>
-            <span class="cuts-lbl">cortes completados</span>
+            <span class="cuts-lbl">{{ loyaltyUnitLabel() }} completados</span>
           </div>
         </div>
 
@@ -60,7 +60,7 @@
 
       <!-- Grid Comparativo de los 4 Niveles -->
       <section class="tiers-comparison-grid" aria-label="Comparativa de niveles de membresía">
-        @for (tier of allTiers; track tier.id) {
+        @for (tier of allTiers(); track tier.id) {
         <article class="tier-plan-card" [class]="tier.colorClass"
           [class.is-current-user-tier]="tier.id === clientTier()">
           <!-- Badge de Nivel Actual -->
@@ -112,7 +112,7 @@
       <!-- Nota Informativa de Política -->
       <div class="tier-footer-note">
         <span class="note-icon">ℹ️</span>
-        <p>Los niveles se actualizan automáticamente al completar cortes registrados en caja. Los descuentos VIP aplican
+        <p>Los niveles se actualizan automáticamente al completar {{ loyaltyUnitLabel() }} registrados en caja. Los descuentos VIP aplican
           directamente sobre precio de lista en recepción.</p>
       </div>
 

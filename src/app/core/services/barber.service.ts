@@ -30,6 +30,7 @@ import {
   LoyaltyReward,
   LoyaltyRewardClaim,
   MembershipTier,
+  MembershipTierConfig,
   MovementType,
   Order,
   OrderItem,
@@ -57,6 +58,7 @@ const STORAGE_KEYS = {
   APP_SETTINGS: 'barbertrack_app_settings',
   LOYALTY_REWARDS: 'barbertrack_loyalty_rewards',
   PENDING_REWARD_CLAIMS: 'barbertrack_pending_reward_claims',
+  MEMBERSHIP_TIERS: 'barbertrack_membership_tiers',
 };
 
 /** Mapeo bidireccional estricto entre Enums de TypeScript y PostgreSQL (public.appointment_status) */
@@ -95,6 +97,78 @@ const INITIAL_CLIENTS: Client[] = [];
 const INITIAL_CUTS: CutRecord[] = [];
 const INITIAL_APPOINTMENTS: Appointment[] = [];
 const INITIAL_REVIEWS: Review[] = [];
+
+export const DEFAULT_MEMBERSHIP_TIERS: MembershipTierConfig[] = [
+  {
+    id: 'Bronze',
+    name: 'Bronze Member',
+    minCutsRequired: 0,
+    discountPercentage: 0,
+    badgeLabel: 'Nivel Inicial',
+    colorClass: 'bronze',
+    tagline: 'Tu entrada al club para acumular sellos de fidelidad.',
+    perks: [
+      'Acumulación de sellos en tu tarjeta digital con cada visita o servicio',
+      'Canje de servicio 100% gratis al llegar a tus sellos meta',
+      'Gestión y agendamiento de turnos online 24/7',
+      'Recordatorios de citas en web y WhatsApp',
+    ],
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    id: 'Silver',
+    name: 'Silver Member',
+    minCutsRequired: 5,
+    discountPercentage: 0,
+    badgeLabel: 'Socio Frecuente',
+    colorClass: 'silver',
+    tagline: 'Desbloquea atenciones de cortesía en cada atención.',
+    perks: [
+      'Café espresso artesanal o agua purificada de cortesía',
+      'Acumulación continua de sellos hacia servicios gratis',
+      'Notificaciones de ofertas especiales anticipadas',
+      'Atención prioritaria en recepción',
+    ],
+    isActive: true,
+    sortOrder: 2,
+  },
+  {
+    id: 'Gold',
+    name: 'Gold Member',
+    minCutsRequired: 20,
+    discountPercentage: 0,
+    badgeLabel: 'Socio Distinguido',
+    colorClass: 'gold',
+    tagline: 'Experiencia premium y tratamientos relajantes.',
+    perks: [
+      'Bebida Premium de cortesía (café especialidad o infusión fría)',
+      'Tratamiento de toalla caliente aromatizada en servicio de barba',
+      'Prioridad en lista de espera ante citas liberadas',
+      'Acumulación de sellos para canjes sin límite',
+    ],
+    isActive: true,
+    sortOrder: 3,
+  },
+  {
+    id: 'VIP',
+    name: 'VIP Élite Member',
+    minCutsRequired: 50,
+    discountPercentage: 15,
+    badgeLabel: 'Máximo Prestigio',
+    colorClass: 'vip',
+    tagline: 'El círculo más exclusivo con descuentos y atención total.',
+    perks: [
+      '15% de Descuento en todas las ceras, pomadas y aceites de barba',
+      'Reserva prioritaria garantizada en fines de semana y festivos',
+      'Bebidas premium ilimitadas durante toda tu visita',
+      'Preferencia absoluta de horario con Master Barber',
+      'Detalle y atención personalizada en tu cumpleaños',
+    ],
+    isActive: true,
+    sortOrder: 4,
+  },
+];
 
 @Injectable({
   providedIn: 'root',
@@ -209,6 +283,18 @@ export class BarberService {
   );
   readonly isLoyaltyLoaded = signal<boolean>(false);
 
+  // Niveles y Beneficios de Membresía (Bronze, Silver, Gold, VIP) dinámicos desde Supabase
+  readonly membershipTiers = signal<MembershipTierConfig[]>(
+    this.loadFromStorage(STORAGE_KEYS.MEMBERSHIP_TIERS, DEFAULT_MEMBERSHIP_TIERS)
+  );
+
+  // Porcentaje de descuento en productos aplicable al cliente actual según su membresía
+  readonly currentClientProductDiscountPct = computed<number>(() => {
+    const tier = this.currentClient().membershipLevel || 'Bronze';
+    const tierConfig = this.membershipTiers().find((t) => t.id === tier);
+    return tierConfig ? Number(tierConfig.discountPercentage || 0) : 0;
+  });
+
   // Próximo hito de fidelización que el cliente actual aún no ha alcanzado
   readonly nextLoyaltyMilestone = computed<LoyaltyReward | null>(() => {
     const stamps = this.currentClient().loyaltyStamps;
@@ -237,6 +323,15 @@ export class BarberService {
   // Modo de acumulación de sellos de fidelización: 'per_service' (por servicio realizado) o 'per_visit' (1 por cita/ticket)
   readonly loyaltyMode = computed<'per_visit' | 'per_service'>(() => this.businessSettings().loyaltyMode || 'per_service');
 
+  // Unidad semántica de fidelización reactiva ('servicios' o 'visitas')
+  readonly loyaltyUnitLabel = computed<string>(() =>
+    this.loyaltyMode() === 'per_service' ? 'servicios' : 'visitas'
+  );
+
+  readonly loyaltyUnitSingular = computed<string>(() =>
+    this.loyaltyMode() === 'per_service' ? 'servicio' : 'visita'
+  );
+
   readonly appSettings = signal<Record<string, number>>(
     this.loadFromStorage(STORAGE_KEYS.APP_SETTINGS, { stamps_required: 10 })
   );
@@ -254,8 +349,16 @@ export class BarberService {
 
   readonly currentClientId = signal<string>(this.loadFromStorage(STORAGE_KEYS.CURRENT_CLIENT_ID, 'cli-1'));
 
-  // Cliente activo computado ligado al perfil real o fallback a demo
+  // Estado específico para el portal del cliente activo autenticado (Data Egress Zero-Leak)
+  readonly customerPortalClient = signal<Client | null>(null);
+
+  // Cliente activo computado ligado al portal, al perfil real o fallback a demo
   readonly currentClient = computed<Client>(() => {
+    // 1. Si el portal de cliente ya sincronizó quirúrgicamente el perfil del usuario activo
+    const portalClient = this.customerPortalClient();
+    if (portalClient) return portalClient;
+
+    // 2. Si hay perfil de sesión en Supabase
     const profile = this.supabaseService.userProfile();
     if (profile) {
       const found = this.clients().find(
@@ -263,14 +366,22 @@ export class BarberService {
       );
       if (found) return found;
 
+      const lp = (profile as any).loyalty_progress;
+      const cc = (profile as any).customer_credits;
+      const lpData = Array.isArray(lp) ? lp[0] : lp;
+      const ccData = Array.isArray(cc) ? cc[0] : cc;
+
       return {
         id: profile.id,
         name: profile.full_name || 'Mi Perfil',
         phone: profile.phone || '',
         email: this.supabaseService.currentUser()?.email || '',
-        cutsCount: 0,
-        loyaltyStamps: 0,
+        cutsCount: lpData?.total_historical_cuts ?? 0,
+        loyaltyStamps: lpData?.current_stamps ?? 0,
         membershipLevel: (profile.membership_tier as any) || 'Bronze',
+        currentDebt: Number(ccData?.current_debt ?? 0),
+        creditLimit: Number(ccData?.credit_limit ?? 0),
+        isActive: profile.is_active ?? true,
       };
     }
 
@@ -1187,10 +1298,334 @@ export class BarberService {
         this.isLoyaltyLoaded.set(true);
       }
 
+      // 12. Cargar Niveles y Beneficios de Membresía (Bronze, Silver, Gold, VIP)
+      try {
+        const { data: tiersData, error: tiersErr } = await this.supabaseService.supabase
+          .from('membership_tiers')
+          .select('id, name, min_cuts_required, discount_percentage, badge_label, color_class, tagline, perks, is_active, sort_order')
+          .order('sort_order', { ascending: true })
+          .order('min_cuts_required', { ascending: true });
+
+        if (tiersErr) {
+          this.logger.warn('BarberService', 'Aviso al cargar membership_tiers (usando fallback local)', tiersErr);
+        } else if (tiersData && tiersData.length > 0) {
+          const mappedTiers: MembershipTierConfig[] = tiersData.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            minCutsRequired: Number(t.min_cuts_required ?? 0),
+            discountPercentage: Number(t.discount_percentage ?? 0),
+            badgeLabel: t.badge_label ?? '',
+            colorClass: t.color_class ?? t.id.toLowerCase(),
+            tagline: t.tagline ?? '',
+            perks: Array.isArray(t.perks) ? t.perks : [],
+            isActive: t.is_active ?? true,
+            sortOrder: Number(t.sort_order ?? 0),
+          }));
+          this.membershipTiers.set(mappedTiers);
+          this.saveToStorage(STORAGE_KEYS.MEMBERSHIP_TIERS, mappedTiers);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando membership_tiers', err);
+      }
+
       this.logger.info('BarberService', 'Sincronización completada con éxito');
     } catch (err: unknown) {
       this.logger.error('BarberService', 'Error durante la sincronización con Supabase', err);
       this.errorMessage.set('No se pudo sincronizar con el servidor. Modo offline activado.');
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Sincronización hiper-optimizada exclusiva para el Portal de Cliente.
+   * Evita la descarga masiva de la base de datos (Zero Data Egress leak de otros clientes).
+   * Descarga únicamente:
+   * 1. Settings de negocio mínimos (moneda, fidelidad)
+   * 2. Catálogo de servicios activos (para reservas)
+   * 3. Barberos activos (para reservas)
+   * 4. Catálogo de recompensas de fidelidad activas
+   * 5. Perfil propio del cliente con su progreso de fidelidad y créditos
+   * 6. Citas propias del cliente
+   * 7. Órdenes / historial de compras propio
+   * 8. Recompensas / cupones propios ganados
+   */
+  async syncCustomerPortalData(targetClientId?: string): Promise<void> {
+    if (!this.supabaseService.isConfigured() || !this.supabaseService.isAuthenticated) {
+      return;
+    }
+
+    const currentProfile = this.supabaseService.userProfile();
+    const resolvedClientId = targetClientId || currentProfile?.id;
+    if (!resolvedClientId) return;
+
+    this.isLoading.set(true);
+
+    try {
+      this.logger.info('BarberService', `Sincronizando portal quirúrgico para cliente: ${resolvedClientId}`);
+
+      // 1. Settings de negocio mínimos (moneda, stamps_required, loyalty_mode)
+      try {
+        const [appRes, bsRes] = await Promise.all([
+          this.supabaseService.supabase.from('app_settings').select('key, value'),
+          this.supabaseService.supabase.from('business_settings').select('*').limit(1).maybeSingle(),
+        ]);
+
+        if (appRes.data && appRes.data.length > 0) {
+          const settingsMap: Record<string, number> = {};
+          for (const s of appRes.data) settingsMap[s.key] = Number(s.value);
+          this.appSettings.set(settingsMap);
+        }
+
+        if (bsRes.data) {
+          this.businessSettings.set({
+            id: bsRes.data.id,
+            businessName: bsRes.data.business_name ?? 'BarberTrack PRO',
+            currencySymbol: bsRes.data.currency_symbol ?? 'S/',
+            loyaltyMode: (bsRes.data.loyalty_mode as any) || 'per_service',
+          });
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando settings para cliente', err);
+      }
+
+      // 2. Servicios y Barberos activos (para agendar citas en el portal)
+      try {
+        const [srvRes, barbRes] = await Promise.all([
+          this.supabaseService.supabase.from('services').select('*').eq('is_active', true).order('name'),
+          this.supabaseService.supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url, role')
+            .in('role', ['barber', 'admin'])
+            .eq('is_active', true),
+        ]);
+
+        if (srvRes.data) {
+          const mappedServices: ServiceItem[] = srvRes.data.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            price: Number(s.base_price || 0),
+            durationMinutes: s.duration_minutes || 30,
+            description: s.description || '',
+            category: s.category || 'Otros',
+            isActive: s.is_active ?? true,
+          }));
+          this.services.set(mappedServices);
+        }
+
+        if (barbRes.data) {
+          const mappedBarbers: Barber[] = barbRes.data.map((b: any) => ({
+            id: b.id,
+            name: b.full_name || 'Barbero',
+            specialty: b.role === 'admin' ? 'Master Barber & Administrador' : 'Barbero Profesional',
+            avatarUrl: b.avatar_url || undefined,
+            rating: 5.0,
+            totalCuts: 0,
+          }));
+          this.barbers.set(mappedBarbers);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando servicios y staff para cliente', err);
+      }
+
+      // 3. Perfil individual QUIRÚRGICO del cliente con su progreso de fidelidad y créditos
+      try {
+        const { data: p, error: pErr } = await this.supabaseService.supabase
+          .from('profiles')
+          .select(`
+            id, full_name, phone, role, is_active, membership_tier, avatar_url,
+            loyalty_progress (current_stamps, total_historical_cuts),
+            customer_credits!customer_credits_profile_id_fkey (current_debt, credit_limit)
+          `)
+          .eq('id', resolvedClientId)
+          .maybeSingle();
+
+        if (p && !pErr) {
+          const lp = Array.isArray(p.loyalty_progress) ? p.loyalty_progress[0] : (p.loyalty_progress as any);
+          const cc = Array.isArray(p.customer_credits) ? p.customer_credits[0] : (p.customer_credits as any);
+
+          const clientObj: Client = {
+            id: p.id,
+            name: p.full_name,
+            phone: p.phone || '',
+            cutsCount: lp?.total_historical_cuts ?? 0,
+            loyaltyStamps: lp?.current_stamps ?? 0,
+            membershipLevel: (p.membership_tier as any) || 'Bronze',
+            avatarUrl: p.avatar_url || undefined,
+            currentDebt: Number(cc?.current_debt ?? 0),
+            creditLimit: Number(cc?.credit_limit ?? 0),
+            isActive: p.is_active ?? true,
+          };
+          this.customerPortalClient.set(clientObj);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando perfil propio del cliente', err);
+      }
+
+      // 4. Recompensas del programa de fidelización y cupones propios ganados
+      // 4. Recompensas del programa de fidelización y cupones propios ganados
+      try {
+        const { data: rewData } = await this.supabaseService.supabase
+          .from('loyalty_rewards')
+          .select('*')
+          .eq('is_active', true)
+          .order('stamps_required');
+
+        if (rewData) {
+          const mappedRewards: LoyaltyReward[] = rewData.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            description: r.description ?? undefined,
+            rewardType: r.reward_type,
+            stampsRequired: r.stamps_required,
+            rewardValue: r.reward_value != null ? Number(r.reward_value) : null,
+            isActive: r.is_active ?? true,
+            sortOrder: r.sort_order ?? 0,
+            createdAt: r.created_at,
+          }));
+          this.loyaltyRewards.set(mappedRewards);
+        }
+
+        const { data: claimsData } = await this.supabaseService.supabase
+          .from('loyalty_reward_claims')
+          .select(`
+            id, customer_id, reward_id, sale_id, claimed_at, redeemed_at, redeemed_by, notes, stamps_at_claim,
+            reward:loyalty_rewards!loyalty_reward_claims_reward_id_fkey (name, reward_type, reward_value)
+          `)
+          .eq('customer_id', resolvedClientId)
+          .is('redeemed_at', null)
+          .order('claimed_at', { ascending: false });
+
+        if (claimsData) {
+          const mappedClaims: LoyaltyRewardClaim[] = claimsData.map((c: any) => ({
+            id: c.id,
+            customerId: c.customer_id,
+            customerName: this.customerPortalClient()?.name || 'Cliente',
+            rewardId: c.reward_id,
+            rewardName: c.reward?.name ?? 'Premio',
+            rewardType: c.reward?.reward_type ?? 'gift',
+            rewardValue: c.reward?.reward_value != null ? Number(c.reward.reward_value) : null,
+            saleId: c.sale_id ?? null,
+            claimedAt: c.claimed_at,
+            redeemedAt: c.redeemed_at ?? null,
+            redeemedBy: c.redeemed_by ?? null,
+            notes: c.notes ?? null,
+            stampsAtClaim: c.stamps_at_claim ?? 0,
+          }));
+          this.pendingRewardClaims.set(mappedClaims);
+        }
+
+        // Catálogo de niveles de membresía para portal de cliente
+        const { data: tiersData } = await this.supabaseService.supabase
+          .from('membership_tiers')
+          .select('id, name, min_cuts_required, discount_percentage, badge_label, color_class, tagline, perks, is_active, sort_order')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true });
+
+        if (tiersData && tiersData.length > 0) {
+          const mappedTiers: MembershipTierConfig[] = tiersData.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            minCutsRequired: Number(t.min_cuts_required ?? 0),
+            discountPercentage: Number(t.discount_percentage ?? 0),
+            badgeLabel: t.badge_label ?? '',
+            colorClass: t.color_class ?? t.id.toLowerCase(),
+            tagline: t.tagline ?? '',
+            perks: Array.isArray(t.perks) ? t.perks : [],
+            isActive: t.is_active ?? true,
+            sortOrder: Number(t.sort_order ?? 0),
+          }));
+          this.membershipTiers.set(mappedTiers);
+          this.saveToStorage(STORAGE_KEYS.MEMBERSHIP_TIERS, mappedTiers);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando fidelización propia', err);
+      } finally {
+        this.isLoyaltyLoaded.set(true);
+      }
+
+      // 5. Citas propias del cliente
+      try {
+        this.isAppointmentsLoading.set(true);
+        const { data: aptsData } = await this.supabaseService.supabase
+          .from('appointments')
+          .select(`
+            id, customer_id, barber_id, service_id, scheduled_at, status, total_duration_minutes,
+            service:service_id (name, base_price),
+            barber:barber_id (full_name)
+          `)
+          .eq('customer_id', resolvedClientId)
+          .order('scheduled_at', { ascending: false });
+
+        if (aptsData) {
+          const mappedApts: Appointment[] = aptsData.map((a: any) => {
+            const dateObj = new Date(a.scheduled_at);
+            const dateStr = getLocalDateString(dateObj);
+            const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+            return {
+              id: a.id,
+              clientId: a.customer_id,
+              clientName: this.customerPortalClient()?.name || 'Yo',
+              clientPhone: this.customerPortalClient()?.phone || '',
+              barberId: a.barber_id,
+              barberName: a.barber?.full_name || 'Barbero',
+              serviceId: a.service_id,
+              serviceName: a.service?.name || 'Servicio de Barbería',
+              totalDurationMinutes: a.total_duration_minutes || 30,
+              date: dateStr,
+              time: timeStr,
+              price: Number(a.service?.base_price || 0),
+              status: fromDbAppointmentStatus(a.status),
+            };
+          });
+          this.appointments.set(mappedApts);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando citas propias', err);
+      } finally {
+        this.isAppointmentsLoading.set(false);
+      }
+
+      // 6. Historial de órdenes / boletas propias del cliente
+      try {
+        const { data: ordersData } = await this.supabaseService.supabase
+          .from('orders')
+          .select(`
+            id, order_number, customer_id, barber_id, total_amount, payment_method, notes, created_at, status,
+            barber:barber_id (full_name),
+            order_items (id, service_id, item_name, quantity, unit_price, subtotal)
+          `)
+          .eq('customer_id', resolvedClientId)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: false });
+
+        if (ordersData) {
+          const mappedCuts: CutRecord[] = ordersData.map((o: any) => {
+            const dateObj = new Date(o.created_at);
+            const dateStr = getLocalDateString(dateObj);
+            const firstItem = (o.order_items && o.order_items[0]) || null;
+            return {
+              id: o.id,
+              clientId: o.customer_id,
+              clientName: this.customerPortalClient()?.name || 'Yo',
+              barberId: o.barber_id,
+              barberName: o.barber?.full_name || 'Barbero',
+              serviceId: firstItem?.service_id || '',
+              serviceName: firstItem?.item_name || 'Servicio de Barbería',
+              date: dateStr,
+              price: Number(o.total_amount || 0),
+              paymentMethod: o.payment_method || 'cash',
+              notes: o.notes || '',
+              orderNumber: o.order_number,
+              items: o.order_items || [],
+            };
+          });
+          this.cuts.set(mappedCuts);
+        }
+      } catch (err) {
+        this.logger.warn('BarberService', 'Aviso cargando historial de cortes propio', err);
+      }
+
     } finally {
       this.isLoading.set(false);
     }
@@ -2795,6 +3230,95 @@ export class BarberService {
       this.logger.error('BarberService', 'Error al canjear loyalty_reward_claim', err);
       throw err;
     }
+  }
+
+  // ===========================================================================
+  // MEMBERSHIP TIERS CRUD
+  // ===========================================================================
+
+  /**
+   * Actualiza la configuración de un nivel de membresía (Bronce, Plata, Oro, VIP).
+   * Si cambia minCutsRequired, recalcula de forma atómica los niveles en PostgreSQL
+   * y resincroniza los clientes en memoria.
+   */
+  async updateMembershipTier(
+    id: string,
+    updates: {
+      name?: string;
+      minCutsRequired?: number;
+      discountPercentage?: number;
+      badgeLabel?: string;
+      tagline?: string;
+      perks?: string[];
+      isActive?: boolean;
+    }
+  ): Promise<void> {
+    const current = this.membershipTiers().find((t) => t.id === id);
+    if (!current) return;
+
+    const minCutsChanged = updates.minCutsRequired !== undefined && updates.minCutsRequired !== current.minCutsRequired;
+
+    // Actualización local optimista SWR
+    this.membershipTiers.update((list) => {
+      const updated = list.map((t) => {
+        if (t.id !== id) return t;
+        return {
+          ...t,
+          name: updates.name !== undefined ? updates.name.trim() : t.name,
+          minCutsRequired: updates.minCutsRequired !== undefined ? Math.max(0, Math.floor(Number(updates.minCutsRequired))) : t.minCutsRequired,
+          discountPercentage: updates.discountPercentage !== undefined ? Math.max(0, Math.min(100, Number(updates.discountPercentage))) : t.discountPercentage,
+          badgeLabel: updates.badgeLabel !== undefined ? updates.badgeLabel.trim() : t.badgeLabel,
+          tagline: updates.tagline !== undefined ? updates.tagline.trim() : t.tagline,
+          perks: updates.perks !== undefined ? updates.perks : t.perks,
+          isActive: updates.isActive !== undefined ? updates.isActive : t.isActive,
+        };
+      });
+      this.saveToStorage(STORAGE_KEYS.MEMBERSHIP_TIERS, updated);
+      return updated;
+    });
+
+    if (this.supabaseService.isConfigured()) {
+      try {
+        const payload: any = { updated_at: new Date().toISOString() };
+        if (updates.name !== undefined) payload.name = updates.name.trim();
+        if (updates.minCutsRequired !== undefined) payload.min_cuts_required = Math.max(0, Math.floor(Number(updates.minCutsRequired)));
+        if (updates.discountPercentage !== undefined) payload.discount_percentage = Math.max(0, Math.min(100, Number(updates.discountPercentage)));
+        if (updates.badgeLabel !== undefined) payload.badge_label = updates.badgeLabel.trim();
+        if (updates.tagline !== undefined) payload.tagline = updates.tagline.trim();
+        if (updates.perks !== undefined) payload.perks = updates.perks;
+        if (updates.isActive !== undefined) payload.is_active = updates.isActive;
+
+        const { error } = await this.supabaseService.supabase
+          .from('membership_tiers')
+          .update(payload)
+          .eq('id', id);
+
+        if (error) {
+          this.logger.error('BarberService', 'Error al actualizar membership_tier en Supabase', error);
+          throw error;
+        }
+
+        // Si cambiaron los cortes mínimos requeridos, disparar recálculo masivo en BD
+        if (minCutsChanged) {
+          try {
+            await this.supabaseService.supabase.rpc('recalculate_all_membership_tiers');
+          } catch (rpcErr) {
+            this.logger.warn('BarberService', 'Aviso al ejecutar recalculate_all_membership_tiers', rpcErr);
+          }
+          await this.syncFromSupabase();
+        }
+      } catch (err) {
+        this.logger.error('BarberService', 'Excepción actualizando membership_tier', err);
+        throw err;
+      }
+    }
+  }
+
+  /**
+   * Alternar estado activo de un nivel de membresía
+   */
+  async toggleMembershipTier(id: string, isActive: boolean): Promise<void> {
+    await this.updateMembershipTier(id, { isActive });
   }
 
   private loadRole(): 'landing' | 'barber' | 'customer' | 'admin' | 'client' {

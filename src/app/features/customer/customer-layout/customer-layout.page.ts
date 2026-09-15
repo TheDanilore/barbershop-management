@@ -107,10 +107,51 @@ export class CustomerLayoutPage implements OnInit {
         this.extractTabFromUrl(event.urlAfterRedirects || event.url);
       });
 
-    // Sincronización inicial si está autenticado en Supabase
+    // Sincronización hiper-optimizada quirúrgica para portal de cliente (Zero-Leak de datos de terceros)
     if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
-      this.barberService.syncFromSupabase();
+      const profile = this.supabaseService.userProfile();
+      this.barberService.syncCustomerPortalData(profile?.id);
+      this.setupRealtimeLoyalty(profile?.id);
     }
+  }
+
+  /**
+   * Suscripción en tiempo real a cambios en fidelidad o perfil (POS checkout en sillón)
+   */
+  private setupRealtimeLoyalty(clientId?: string): void {
+    if (!this.supabaseService.isConfigured() || !clientId) return;
+
+    const channel = this.supabaseService.supabase
+      .channel(`customer_loyalty_realtime_${clientId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'loyalty_progress',
+          filter: `customer_id=eq.${clientId}`,
+        },
+        () => {
+          this.barberService.syncCustomerPortalData(clientId);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${clientId}`,
+        },
+        () => {
+          this.barberService.syncCustomerPortalData(clientId);
+        }
+      )
+      .subscribe();
+
+    this.destroyRef.onDestroy(() => {
+      this.supabaseService.supabase.removeChannel(channel);
+    });
   }
 
   private extractTabFromUrl(url: string): void {

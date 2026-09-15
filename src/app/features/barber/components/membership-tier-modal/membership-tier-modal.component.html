@@ -1,0 +1,240 @@
+@if (isOpen) {
+<div class="modal-backdrop fade-in" (click)="close()">
+  <div
+    class="modal-card scale-in"
+    appBottomSheet
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tier-modal-title"
+  >
+    <div class="bottom-sheet-handle-bar">
+      <div class="sheet-pill"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="modal-header">
+      <div class="header-content">
+        <div class="tier-avatar-badge" [attr.data-tier]="tierToEdit?.colorClass">
+          {{ getTierIcon(tierToEdit?.id) }}
+        </div>
+        <div class="header-texts">
+          <span class="eyebrow-tag">Gestión de Nivel</span>
+          <h3 id="tier-modal-title" class="modal-title">
+            Editar {{ tierToEdit?.name || 'Membresía' }}
+          </h3>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn-close"
+        (click)="close()"
+        aria-label="Cerrar modal"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Error Alert -->
+    @if (errorMessage()) {
+    <div class="error-alert" role="alert">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="alert-icon"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+    }
+
+    <!-- Form Body -->
+    <form [formGroup]="tierForm" (ngSubmit)="submit()" class="modal-body" novalidate>
+      <!-- Nombre del Nivel -->
+      <div class="form-group">
+        <label for="tier-name" class="form-label">
+          Nombre del Nivel <span class="req">*</span>
+        </label>
+        <input
+          id="tier-name"
+          type="text"
+          formControlName="name"
+          class="form-input"
+          placeholder="Ej. VIP Élite Member"
+          maxlength="60"
+        />
+        @if (tierForm.get('name')?.touched && tierForm.get('name')?.invalid) {
+        <span class="field-error">El nombre es obligatorio (2-60 caracteres).</span>
+        }
+      </div>
+
+      <!-- Fila: Distintivo + Cortes Requeridos -->
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="tier-badge" class="form-label">
+            Etiqueta Distintiva <span class="req">*</span>
+          </label>
+          <input
+            id="tier-badge"
+            type="text"
+            formControlName="badgeLabel"
+            class="form-input"
+            placeholder="Ej. Socio Distinguido"
+            maxlength="40"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="tier-cuts" class="form-label">
+            Min. {{ barberService.loyaltyUnitLabel() | titlecase }} <span class="req">*</span>
+          </label>
+          <input
+            id="tier-cuts"
+            type="number"
+            formControlName="minCutsRequired"
+            class="form-input"
+            min="0"
+            max="999"
+          />
+          <span class="field-hint">Cortes mínimos para desbloquear.</span>
+        </div>
+      </div>
+
+      <!-- Fila: Descuento en Productos + Slogan -->
+      <div class="form-row-2">
+        <div class="form-group">
+          <label for="tier-discount" class="form-label">
+            Descuento Productos (%) <span class="req">*</span>
+          </label>
+          <div class="input-addon-wrap">
+            <input
+              id="tier-discount"
+              type="number"
+              formControlName="discountPercentage"
+              class="form-input with-addon"
+              min="0"
+              max="100"
+              step="1"
+            />
+            <span class="input-addon">%</span>
+          </div>
+          <span class="field-hint">0% para niveles estándar; 15% para VIP.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="tier-tagline" class="form-label">Slogan o Frase Corta</label>
+          <input
+            id="tier-tagline"
+            type="text"
+            formControlName="tagline"
+            class="form-input"
+            placeholder="Ej. Experiencia premium..."
+            maxlength="120"
+          />
+        </div>
+      </div>
+
+      <!-- Estado Activo -->
+      <div class="form-group-checkbox">
+        <label class="toggle-label">
+          <input type="checkbox" formControlName="isActive" class="toggle-input" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">Nivel Habilitado en BarberTrack</span>
+        </label>
+      </div>
+
+      <!-- Editor de Beneficios / Perks Dinámico -->
+      <div class="form-group perks-section">
+        <label class="form-label">
+          Beneficios y Privilegios
+          <span class="perks-counter">({{ currentPerks().length }})</span>
+        </label>
+
+        <!-- Chips de Perks Actuales -->
+        <div class="perks-list-chips">
+          @for (perk of currentPerks(); track perk; let i = $index) {
+          <div class="perk-chip">
+            <span class="perk-bullet">✦</span>
+            <span class="perk-text">{{ perk }}</span>
+            <button
+              type="button"
+              class="btn-remove-perk"
+              (click)="removePerk(i)"
+              title="Eliminar beneficio"
+            >
+              ×
+            </button>
+          </div>
+          } @empty {
+          <p class="empty-perks-msg">No hay beneficios agregados aún.</p>
+          }
+        </div>
+
+        <!-- Input para Añadir Nuevo Perk -->
+        <div class="add-perk-row">
+          <input
+            type="text"
+            class="form-input perk-input"
+            placeholder="Ej. Bebidas premium de cortesía"
+            [value]="newPerkInput()"
+            (input)="newPerkInput.set($any($event.target).value)"
+            (keydown)="onNewPerkKeyDown($event)"
+            maxlength="140"
+          />
+          <button
+            type="button"
+            class="btn-add-perk"
+            [disabled]="!newPerkInput().trim()"
+            (click)="addPerk()"
+          >
+            + Agregar
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <footer class="modal-footer">
+        <button
+          type="button"
+          class="btn-secondary"
+          (click)="close()"
+          [disabled]="isSubmitting()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn-primary-gold"
+          [disabled]="tierForm.invalid || isSubmitting()"
+        >
+          @if (isSubmitting()) {
+          <span class="spinner-sm"></span>
+          <span>Guardando...</span>
+          } @else {
+          <span>Guardar Cambios</span>
+          }
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>
+}

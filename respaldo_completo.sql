@@ -239,14 +239,33 @@ CREATE OR REPLACE FUNCTION "public"."fn_on_order_deleted"() RETURNS "trigger"
 DECLARE
     v_real_cuts integer := 0;
     v_new_tier  text;
+    v_loyalty_mode text;
 BEGIN
     IF OLD.customer_id IS NOT NULL THEN
-        -- Contar órdenes reales vigentes
-        SELECT COUNT(*) INTO v_real_cuts
-        FROM public.orders
-        WHERE customer_id = OLD.customer_id AND status = 'completed';
+        -- 1. Consultar el modo de fidelización activo
+        SELECT COALESCE(loyalty_mode, 'per_service') 
+        INTO v_loyalty_mode 
+        FROM public.business_settings 
+        LIMIT 1;
 
-        -- Actualizar progreso
+        -- 2. Calcular cortes/servicios reales vigentes según la regla dinámica
+        IF v_loyalty_mode = 'per_service' THEN
+            SELECT COALESCE(SUM(oi.quantity), 0) INTO v_real_cuts
+            FROM public.orders o
+            JOIN public.order_items oi ON oi.order_id = o.id
+            WHERE o.customer_id = OLD.customer_id 
+              AND o.status = 'completed'
+              AND o.id != OLD.id
+              AND (oi.item_type = 'service' OR oi.item_type IS NULL);
+        ELSE
+            SELECT COUNT(*) INTO v_real_cuts
+            FROM public.orders
+            WHERE customer_id = OLD.customer_id 
+              AND status = 'completed'
+              AND id != OLD.id;
+        END IF;
+
+        -- 3. Actualizar progreso en loyalty_progress
         INSERT INTO public.loyalty_progress (
             customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
         )
@@ -256,13 +275,16 @@ BEGIN
             total_historical_cuts = EXCLUDED.total_historical_cuts,
             updated_at            = now();
 
-        -- Recalcular nivel de membresía
-        v_new_tier := CASE
-            WHEN v_real_cuts >= 50 THEN 'VIP'
-            WHEN v_real_cuts >= 20 THEN 'Gold'
-            WHEN v_real_cuts >= 5  THEN 'Silver'
-            ELSE 'Bronze'
-        END;
+        -- 4. Recalcular nivel de membresía DINÁMICAMENTE desde public.membership_tiers
+        SELECT id INTO v_new_tier
+        FROM public.membership_tiers
+        WHERE is_active = true AND min_cuts_required <= v_real_cuts
+        ORDER BY min_cuts_required DESC
+        LIMIT 1;
+
+        IF v_new_tier IS NULL THEN
+            v_new_tier := 'Bronze';
+        END IF;
 
         UPDATE public.profiles
         SET membership_tier = v_new_tier
@@ -290,19 +312,18 @@ DECLARE
 BEGIN
     -- Solo procesar si la orden está completada, tiene un cliente asociado,
     -- y NO es una venta al crédito/fiada sin pagar (payment_method != 'credit').
-    -- Si es un UPDATE, solo disparar si antes NO estaba completed (evita acumulación duplicada)
     IF NEW.customer_id IS NOT NULL 
        AND NEW.status = 'completed' 
        AND (NEW.payment_method IS DISTINCT FROM 'credit')
        AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'completed') THEN
 
-        -- Consultar el modo de fidelización configurado por el Administrador
+        -- 1. Consultar el modo de fidelización activo configurado por el Administrador
         SELECT COALESCE(loyalty_mode, 'per_service') 
         INTO v_loyalty_mode 
         FROM public.business_settings 
         LIMIT 1;
 
-        -- En modo 'per_service', contar cuántos servicios de corte/barba se realizaron en la orden
+        -- Modo 'per_service': contar items de servicio en la orden
         IF v_loyalty_mode = 'per_service' THEN
             SELECT COALESCE(SUM(quantity), 1)
             INTO v_stamps_to_add
@@ -313,11 +334,11 @@ BEGIN
                 v_stamps_to_add := 1;
             END IF;
         ELSE
-            -- En modo 'per_visit', cada ticket completado suma 1 sello
+            -- Modo 'per_visit': cada orden completada suma 1 sello
             v_stamps_to_add := 1;
         END IF;
 
-        -- 1. Upsert de progreso en loyalty_progress
+        -- 2. Upsert de progreso en loyalty_progress
         INSERT INTO public.loyalty_progress (
             customer_id, current_stamps, total_historical_cuts, rewards_claimed, updated_at
         )
@@ -329,7 +350,7 @@ BEGIN
         RETURNING current_stamps, total_historical_cuts
         INTO v_new_stamps, v_total_cuts;
 
-        -- 2. Detección de premios alcanzados
+        -- 3. Detección de premios alcanzados
         FOR v_reward IN
             SELECT id, stamps_required, name
             FROM public.loyalty_rewards
@@ -346,13 +367,16 @@ BEGIN
                 (NEW.customer_id, v_reward.id, NEW.id, NEW.id, v_new_stamps);
         END LOOP;
 
-        -- 3. Sincronizar nivel de membresía (Bronze, Silver, Gold, VIP)
-        v_new_tier := CASE
-            WHEN v_total_cuts >= 50 THEN 'VIP'
-            WHEN v_total_cuts >= 20 THEN 'Gold'
-            WHEN v_total_cuts >= 5  THEN 'Silver'
-            ELSE 'Bronze'
-        END;
+        -- 4. Sincronizar nivel de membresía DINÁMICAMENTE desde public.membership_tiers
+        SELECT id INTO v_new_tier
+        FROM public.membership_tiers
+        WHERE is_active = true AND min_cuts_required <= v_total_cuts
+        ORDER BY min_cuts_required DESC
+        LIMIT 1;
+
+        IF v_new_tier IS NULL THEN
+            v_new_tier := 'Bronze';
+        END IF;
 
         UPDATE public.profiles
         SET membership_tier = v_new_tier
@@ -540,6 +564,38 @@ $$;
 
 
 ALTER FUNCTION "public"."is_staff"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_all_membership_tiers"() RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+    v_updated_count integer := 0;
+BEGIN
+    UPDATE public.profiles p
+    SET membership_tier = COALESCE(
+        (
+            SELECT mt.id
+            FROM public.membership_tiers mt
+            WHERE mt.is_active = true 
+              AND mt.min_cuts_required <= COALESCE(lp.total_historical_cuts, 0)
+            ORDER BY mt.min_cuts_required DESC
+            LIMIT 1
+        ),
+        'Bronze'
+    )
+    FROM public.loyalty_progress lp
+    WHERE p.id = lp.customer_id
+      AND p.role = 'customer';
+
+    GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+
+    RETURN jsonb_build_object('success', true, 'updated_count', v_updated_count);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."recalculate_all_membership_tiers"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text" DEFAULT NULL::"text") RETURNS "void"
@@ -752,6 +808,27 @@ CREATE TABLE IF NOT EXISTS "public"."loyalty_rewards" (
 ALTER TABLE "public"."loyalty_rewards" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."membership_tiers" (
+    "id" "text" NOT NULL,
+    "name" "text" NOT NULL,
+    "min_cuts_required" integer DEFAULT 0 NOT NULL,
+    "discount_percentage" numeric(5,2) DEFAULT 0.00 NOT NULL,
+    "badge_label" "text" DEFAULT ''::"text" NOT NULL,
+    "color_class" "text" DEFAULT 'bronze'::"text" NOT NULL,
+    "tagline" "text" DEFAULT ''::"text" NOT NULL,
+    "perks" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "membership_tiers_discount_check" CHECK ((("discount_percentage" >= (0)::numeric) AND ("discount_percentage" <= (100)::numeric))),
+    CONSTRAINT "membership_tiers_min_cuts_check" CHECK (("min_cuts_required" >= 0))
+);
+
+
+ALTER TABLE "public"."membership_tiers" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."order_items" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "order_id" "uuid" NOT NULL,
@@ -926,6 +1003,11 @@ ALTER TABLE ONLY "public"."loyalty_reward_claims"
 
 ALTER TABLE ONLY "public"."loyalty_rewards"
     ADD CONSTRAINT "loyalty_rewards_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."membership_tiers"
+    ADD CONSTRAINT "membership_tiers_pkey" PRIMARY KEY ("id");
 
 
 
@@ -1376,6 +1458,17 @@ CREATE POLICY "loyalty_rewards_staff_modify" ON "public"."loyalty_rewards" TO "a
 
 
 
+ALTER TABLE "public"."membership_tiers" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "membership_tiers_select" ON "public"."membership_tiers" FOR SELECT USING (true);
+
+
+
+CREATE POLICY "membership_tiers_staff_manage" ON "public"."membership_tiers" TO "authenticated" USING (("public"."is_staff"() = true)) WITH CHECK (("public"."is_staff"() = true));
+
+
+
 ALTER TABLE "public"."order_items" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1438,6 +1531,10 @@ ALTER TABLE "public"."services" ENABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
+
+
+
+
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."appointments";
 
 
@@ -1451,6 +1548,10 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."loyalty_progress"
 
 
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."loyalty_reward_claims";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."membership_tiers";
 
 
 
@@ -1688,6 +1789,12 @@ GRANT ALL ON FUNCTION "public"."is_staff"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."recalculate_all_membership_tiers"() TO "anon";
+GRANT ALL ON FUNCTION "public"."recalculate_all_membership_tiers"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."recalculate_all_membership_tiers"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."redeem_loyalty_claim"("p_claim_id" "uuid", "p_notes" "text") TO "service_role";
@@ -1772,6 +1879,12 @@ GRANT ALL ON TABLE "public"."loyalty_reward_claims" TO "service_role";
 GRANT ALL ON TABLE "public"."loyalty_rewards" TO "anon";
 GRANT ALL ON TABLE "public"."loyalty_rewards" TO "authenticated";
 GRANT ALL ON TABLE "public"."loyalty_rewards" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."membership_tiers" TO "anon";
+GRANT ALL ON TABLE "public"."membership_tiers" TO "authenticated";
+GRANT ALL ON TABLE "public"."membership_tiers" TO "service_role";
 
 
 

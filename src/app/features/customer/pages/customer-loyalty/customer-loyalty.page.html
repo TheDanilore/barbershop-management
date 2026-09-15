@@ -53,7 +53,7 @@
       <!-- 2. Catálogo de Hitos y Recompensas del Negocio -->
       <section class="rewards-catalog-section">
         <h2 class="section-title">Hitos Desbloqueables</h2>
-        <p class="section-desc">Conoce los premios que ganarás a medida que acumules visitas en BarberTrack.</p>
+        <p class="section-desc">Conoce los premios que ganarás a medida que acumules {{ barberService.loyaltyUnitLabel() }} en BarberTrack.</p>
 
         <div class="milestones-timeline">
           @if (sortedRewards().length === 0) {
@@ -62,14 +62,14 @@
               <span>10</span>
             </div>
             <div class="dmc-info">
-              <h3 class="dmc-title">Corte de Cabello 100% Gratis</h3>
+              <h3 class="dmc-title">Servicio 100% Gratis</h3>
               <span class="dmc-subtitle">Al completar los 10 sellos de tu tarjeta</span>
             </div>
             <div class="dmc-status">
               @if (currentStamps() >= 10) {
               <span class="badge-unlocked">¡Alcanzado!</span>
               } @else {
-              <span class="badge-progress">Faltan {{ 10 - currentStamps() }} cortes</span>
+              <span class="badge-progress">Faltan {{ 10 - currentStamps() }} {{ barberService.loyaltyUnitLabel() }}</span>
               }
             </div>
           </div>

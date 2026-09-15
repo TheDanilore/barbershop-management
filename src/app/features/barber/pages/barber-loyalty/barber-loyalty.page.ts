@@ -9,10 +9,15 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { LoyaltyReward, RewardType } from '../../../../core/models/barber.models';
+import {
+  LoyaltyReward,
+  MembershipTierConfig,
+  RewardType,
+} from '../../../../core/models/barber.models';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoyaltyRewardModalComponent } from '../../components/loyalty-reward-modal/loyalty-reward-modal.component';
+import { MembershipTierModalComponent } from '../../components/membership-tier-modal/membership-tier-modal.component';
 
 export interface ClientProgressItem {
   id: string;
@@ -27,7 +32,13 @@ export interface ClientProgressItem {
 @Component({
   selector: 'app-barber-loyalty',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, LoyaltyRewardModalComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    LoyaltyRewardModalComponent,
+    MembershipTierModalComponent,
+  ],
   templateUrl: './barber-loyalty.page.html',
   styleUrl: './barber-loyalty.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,8 +48,17 @@ export class BarberLoyaltyPage {
   readonly haptics = inject(HapticsService);
   private readonly destroyRef = inject(DestroyRef);
 
+  // Navegación por pestañas: Sellos y Premios vs Niveles de Membresía
+  readonly activeTab = signal<'rewards' | 'tiers'>('rewards');
+
+  // Modal de Hito / Recompensa (Sellos)
   readonly isLoyaltyRewardModalOpen = signal(false);
   readonly editingReward = signal<LoyaltyReward | null>(null);
+
+  // Modal de Nivel de Membresía (Bronce, Plata, Oro, VIP)
+  readonly isMembershipTierModalOpen = signal(false);
+  readonly editingTier = signal<MembershipTierConfig | null>(null);
+
   readonly isSubmitting = signal(false);
 
   // Notificación local de feedback con limpieza automática
@@ -110,6 +130,7 @@ export class BarberLoyaltyPage {
 
     if (e.key === 'Escape') {
       if (this.isLoyaltyRewardModalOpen()) this.closeLoyaltyRewardModal();
+      if (this.isMembershipTierModalOpen()) this.closeMembershipTierModal();
       return;
     }
 
@@ -125,6 +146,49 @@ export class BarberLoyaltyPage {
       e.preventDefault();
       const nextMode = this.barberService.loyaltyMode() === 'per_service' ? 'per_visit' : 'per_service';
       this.setLoyaltyMode(nextMode);
+    }
+    // Alt+T: Alternar entre Pestaña Sellos y Pestaña Niveles
+    else if (e.altKey && (e.key === 't' || e.key === 'T')) {
+      e.preventDefault();
+      this.setActiveTab(this.activeTab() === 'rewards' ? 'tiers' : 'rewards');
+    }
+  }
+
+  setActiveTab(tab: 'rewards' | 'tiers'): void {
+    this.haptics.selection();
+    this.activeTab.set(tab);
+  }
+
+  openMembershipTierModal(tier: MembershipTierConfig): void {
+    this.haptics.lightTap();
+    this.editingTier.set(tier);
+    this.isMembershipTierModalOpen.set(true);
+  }
+
+  closeMembershipTierModal(): void {
+    this.haptics.lightTap();
+    this.isMembershipTierModalOpen.set(false);
+    this.editingTier.set(null);
+  }
+
+  async confirmToggleTier(tier: MembershipTierConfig): Promise<void> {
+    try {
+      const nextActive = !tier.isActive;
+      await this.barberService.toggleMembershipTier(String(tier.id), nextActive);
+      this.haptics.lightTap();
+      this.showToast(nextActive ? `Nivel "${tier.name}" activado` : `Nivel "${tier.name}" pausado`);
+    } catch (err: any) {
+      this.haptics.warning();
+      this.showToast(err?.message || 'Error al cambiar estado del nivel');
+    }
+  }
+
+  getTierIcon(id: string | undefined): string {
+    switch (id) {
+      case 'VIP': return '👑';
+      case 'Gold': return '🥇';
+      case 'Silver': return '🥈';
+      default: return '🥉';
     }
   }
 

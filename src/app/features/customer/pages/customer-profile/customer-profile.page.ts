@@ -230,10 +230,38 @@ export class CustomerProfilePage implements OnInit {
     this.router.navigate(['/barber']);
   }
 
-  async logout(): Promise<void> {
+  // Modal de confirmación de cierre de sesión
+  readonly showLogoutModal = signal(false);
+  readonly isLoggingOut = signal(false);
+
+  promptLogout(): void {
     this.haptics.lightTap();
-    this.barberService.setRole('landing');
-    await this.supabaseService.signOut();
-    this.router.navigate(['/login'], { replaceUrl: true });
+    this.showLogoutModal.set(true);
+  }
+
+  cancelLogout(): void {
+    this.haptics.lightTap();
+    this.showLogoutModal.set(false);
+  }
+
+  async confirmLogout(): Promise<void> {
+    if (this.isLoggingOut()) return;
+    this.isLoggingOut.set(true);
+    this.haptics.lightTap();
+
+    try {
+      this.barberService.setRole('landing');
+      await this.supabaseService.signOut();
+      await this.router.navigate(['/login'], { replaceUrl: true });
+    } catch {
+      await this.router.navigate(['/login'], { replaceUrl: true });
+    } finally {
+      this.isLoggingOut.set(false);
+      this.showLogoutModal.set(false);
+    }
+  }
+
+  logout(): void {
+    this.promptLogout();
   }
 }

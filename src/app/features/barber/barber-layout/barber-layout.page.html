@@ -61,7 +61,7 @@
 
       <!-- Avatar de Usuario -->
       <button type="button" class="mobile-avatar-btn" (click)="navigateTo('profile')" aria-label="Perfil del usuario" title="Mi perfil">
-        {{ (supabaseService.userProfile()?.full_name || 'Admin').charAt(0).toUpperCase() }}
+        {{ supabaseService.userInitial() }}
       </button>
     </div>
   </header>
@@ -220,11 +220,12 @@
     <div class="sidebar-user-footer">
       <div class="suf-profile" (click)="navigateTo('profile')" title="Ver mi perfil">
         <div class="suf-avatar" [class.active]="currentTab() === 'profile'">
-          {{ (supabaseService.userProfile()?.full_name || 'Admin').charAt(0).toUpperCase() }}
+          {{ supabaseService.userInitial() }}
         </div>
         <div class="suf-info">
-          <span class="suf-name">{{ supabaseService.userProfile()?.full_name || 'Administrador BarberTrack' }}</span>
-          <span class="suf-role">{{ getRoleLabelProfile(supabaseService.userProfile()?.role) }}</span>
+          <span class="suf-name" [title]="supabaseService.userDisplayName()">{{ supabaseService.userDisplayName() }}</span>
+          <span class="suf-email" [title]="supabaseService.userDisplayEmail()">{{ supabaseService.userDisplayEmail() }}</span>
+          <span class="suf-role">{{ getRoleLabelProfile(supabaseService.userDisplayRole()) }}</span>
         </div>
       </div>
       <div class="suf-actions">
@@ -235,7 +236,7 @@
           </svg>
           <span>Cliente</span>
         </button>
-        <button class="suf-btn-logout" (click)="logout()" title="Cerrar sesión">
+        <button class="suf-btn-logout" (click)="promptLogout()" title="Cerrar sesión">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -514,8 +515,8 @@
             </svg>
           </div>
           <div class="mas-row-info">
-            <span class="mas-row-title">Mi Perfil</span>
-            <span class="mas-row-desc">Configuración de cuenta y barbero</span>
+            <span class="mas-row-title">{{ supabaseService.userDisplayName() }}</span>
+            <span class="mas-row-desc">{{ supabaseService.userDisplayEmail() }}</span>
           </div>
           @if (currentTab() === 'profile') {
             <span class="mas-active-pill">Actual</span>
@@ -532,7 +533,7 @@
           </svg>
           <span>Cambiar a Vista Cliente</span>
         </button>
-        <button type="button" class="mas-btn-logout" (click)="logout()">
+        <button type="button" class="mas-btn-logout" (click)="promptLogout()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16 17 21 12 16 7"></polyline>
@@ -593,4 +594,36 @@
     (closed)="barberService.closeDebtPaymentModal()"
     (paymentSuccess)="onDebtPaymentSuccess($event)">
   </app-debt-payment-modal>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL GLOBAL DE CONFIRMACIÓN DE CIERRE DE SESIÓN                        -->
+  <!-- ======================================================================= -->
+  @if (showLogoutModal()) {
+  <div class="logout-modal-backdrop" (click)="cancelLogout()" role="presentation">
+    <div class="logout-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="layoutLogoutModalTitle">
+      <div class="lmc-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="lmc-warn-icon">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </div>
+      <h3 id="layoutLogoutModalTitle" class="lmc-title">¿Cerrar Sesión?</h3>
+      <p class="lmc-desc">¿Estás seguro de que deseas salir del sistema? Tu turno de caja y cambios se resguardarán de forma segura.</p>
+      <div class="lmc-actions">
+        <button type="button" class="lmc-btn-cancel" (click)="cancelLogout()" [disabled]="isLoggingOut()">
+          Cancelar
+        </button>
+        <button type="button" class="lmc-btn-confirm" (click)="confirmLogout()" [disabled]="isLoggingOut()">
+          @if (isLoggingOut()) {
+            <span class="lmc-spinner"></span>
+            <span>Cerrando...</span>
+          } @else {
+            <span>Sí, Cerrar Sesión</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+  }
 </div>

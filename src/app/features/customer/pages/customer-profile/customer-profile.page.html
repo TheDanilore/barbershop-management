@@ -393,7 +393,7 @@
           <button
             type="button"
             class="btn-logout"
-            (click)="logout()"
+            (click)="promptLogout()"
             title="Cerrar sesión de forma segura y salir al inicio"
           >
             <span class="btn-icon">🚪</span>
@@ -406,4 +406,34 @@
       </section>
     </div>
   </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE CIERRE DE SESIÓN -->
+  @if (showLogoutModal()) {
+  <div class="logout-modal-backdrop" (click)="cancelLogout()" role="presentation">
+    <div class="logout-modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="customerLogoutModalTitle">
+      <div class="lmc-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="lmc-warn-icon">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </div>
+      <h3 id="customerLogoutModalTitle" class="lmc-title">¿Cerrar Sesión?</h3>
+      <p class="lmc-desc">¿Estás seguro de que deseas salir? Podrás volver a iniciar sesión cuando quieras.</p>
+      <div class="lmc-actions">
+        <button type="button" class="lmc-btn-cancel" (click)="cancelLogout()" [disabled]="isLoggingOut()">
+          Cancelar
+        </button>
+        <button type="button" class="lmc-btn-confirm" (click)="confirmLogout()" [disabled]="isLoggingOut()">
+          @if (isLoggingOut()) {
+            <span class="lmc-spinner"></span>
+            <span>Cerrando...</span>
+          } @else {
+            <span>Sí, Cerrar Sesión</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+  }
 </div>

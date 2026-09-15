@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { SupabaseClient, User, createClient } from '@supabase/supabase-js';
 import { environment } from '../../../environments/environment';
 import { ProfileRow, UserRole } from '../models/barber.models';
@@ -25,6 +25,55 @@ export class SupabaseService {
 
   // Reactive signal for the current user profile
   public readonly userProfile = signal<ProfileRow | null>(null);
+
+  // Signals reactivos resilientes que garantizan la identidad del usuario en cualquier vista
+  public readonly userDisplayName = computed(() => {
+    const profile = this.userProfile();
+    const profileName = profile?.full_name?.trim();
+    if (
+      profileName &&
+      profileName !== 'Usuario del Sistema' &&
+      profileName !== 'Usuario Autorizado' &&
+      profileName !== 'Cliente Nuevo'
+    ) {
+      return profileName;
+    }
+
+    const user = this.currentUser();
+    const metaName = (user?.user_metadata?.['full_name'] || user?.user_metadata?.['name'])?.trim();
+    if (metaName) {
+      return metaName;
+    }
+
+    const email = user?.email;
+    if (email) {
+      const prefix = email.split('@')[0];
+      return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+
+    const role = this.currentRole() || profile?.role;
+    if (role === 'admin') return 'Administrador BarberTrack';
+    if (role === 'barber') return 'Barbero BarberTrack';
+    if (role === 'customer') return 'Cliente BarberTrack';
+    return 'Administrador';
+  });
+
+  public readonly userDisplayEmail = computed(() => {
+    const user = this.currentUser();
+    if (user?.email) return user.email;
+    const phone = this.userProfile()?.phone;
+    if (phone) return phone;
+    return 'Sin correo registrado';
+  });
+
+  public readonly userDisplayRole = computed(() => {
+    return this.userProfile()?.role || this.currentRole() || 'admin';
+  });
+
+  public readonly userInitial = computed(() => {
+    const name = this.userDisplayName();
+    return (name ? name.charAt(0) : 'A').toUpperCase();
+  });
 
   // Signal for network status
   public readonly isOnline = signal<boolean>(
@@ -257,29 +306,90 @@ export class SupabaseService {
    */
   async loadUserProfile(userId: string): Promise<ProfileRow | null> {
     try {
+      // 1. Consulta con las columnas básicas garantizadas para que NUNCA falle por columnas opcionales no migradas
       const { data, error } = await this.supabase
         .from('profiles')
-        .select('id, full_name, role, phone, notes, membership_tier, is_active, created_at, avatar_url, auth_user_id')
+        .select('id, full_name, role, phone, membership_tier, is_active, created_at, avatar_url, auth_user_id')
         .or(`auth_user_id.eq.${userId},id.eq.${userId}`)
         .maybeSingle();
 
       if (data && !error) {
         const profile = data as ProfileRow;
+        const authUser = this.currentUser();
+        // Si el full_name en base de datos está vacío o es un placeholder genérico, enriquecerlo con datos de auth
+        if (
+          (!profile.full_name ||
+            profile.full_name.trim() === '' ||
+            profile.full_name === 'Usuario del Sistema' ||
+            profile.full_name === 'Usuario Autorizado' ||
+            profile.full_name === 'Cliente Nuevo') &&
+          authUser
+        ) {
+          const enrichedName =
+            authUser.user_metadata?.['full_name'] ||
+            authUser.user_metadata?.['name'] ||
+            (authUser.email ? authUser.email.split('@')[0] : 'Administrador BarberTrack');
+          profile.full_name = enrichedName;
+        }
+
         this.userProfile.set(profile);
         this.setRole(profile.role);
         return profile;
       }
     } catch (err) {
-      this.logger.warn('SupabaseService', 'Error cargando perfil de usuario', err);
+      this.logger.warn('SupabaseService', 'Error cargando perfil de usuario desde Supabase', err);
     }
 
-    // Fallback seguro con claims del JWT autenticado en Supabase
+    // 2. Fallback resiliente con datos de Supabase Auth (JWT / Metadatos)
     const authUser = this.currentUser();
-    const fallbackRole: UserRole =
-      (authUser?.app_metadata?.['role'] as UserRole) ||
-      (authUser?.user_metadata?.['role'] as UserRole) ||
-      'customer';
-    this.setRole(fallbackRole);
+    if (authUser) {
+      const fallbackName =
+        authUser.user_metadata?.['full_name'] ||
+        authUser.user_metadata?.['name'] ||
+        (authUser.email ? authUser.email.split('@')[0] : 'Administrador BarberTrack');
+
+      const fallbackRole: UserRole =
+        (authUser.app_metadata?.['role'] as UserRole) ||
+        (authUser.user_metadata?.['role'] as UserRole) ||
+        this.currentRole() ||
+        'admin';
+
+      const synthesizedProfile: ProfileRow = {
+        id: userId,
+        auth_user_id: userId,
+        full_name: fallbackName,
+        role: fallbackRole,
+        phone: authUser.user_metadata?.['phone'] || null,
+        membership_tier: 'Bronze',
+        is_active: true,
+        created_at: authUser.created_at || new Date().toISOString(),
+        avatar_url: authUser.user_metadata?.['avatar_url'] || null,
+      };
+
+      this.userProfile.set(synthesizedProfile);
+      this.setRole(fallbackRole);
+
+      // Auto-reparación no bloqueante en Supabase para asegurar que exista la fila
+      try {
+        await this.supabase.from('profiles').upsert(
+          {
+            id: userId,
+            auth_user_id: userId,
+            full_name: fallbackName,
+            role: fallbackRole,
+            phone: authUser.user_metadata?.['phone'] || null,
+            membership_tier: 'Bronze',
+            is_active: true,
+          },
+          { onConflict: 'id', ignoreDuplicates: true }
+        );
+      } catch {
+        // Silencioso
+      }
+
+      return synthesizedProfile;
+    }
+
     return null;
   }
 
@@ -330,23 +440,41 @@ export class SupabaseService {
         phone: payload.phone !== undefined ? (payload.phone?.trim() || null) : undefined,
       };
 
-      if (payload.notes !== undefined) {
-        updateData['notes'] = payload.notes?.trim() || null;
-      }
-
       // Limpiar undefined
       Object.keys(updateData).forEach(
         (key) => updateData[key] === undefined && delete updateData[key]
       );
 
-      const { error } = await this.supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', targetId);
+      let updateError: any = null;
 
-      if (error) {
-        this.logger.error('SupabaseService', 'Error al actualizar perfil en Supabase', error);
-        return { success: false, error: error.message || 'Error al actualizar perfil en la base de datos' };
+      if (payload.notes !== undefined) {
+        const withNotes = { ...updateData, notes: payload.notes?.trim() || null };
+        const res = await this.supabase
+          .from('profiles')
+          .update(withNotes)
+          .eq('id', targetId);
+
+        if (res.error && (res.error.code === '42703' || res.error.message?.includes('notes'))) {
+          // Si notes no existe en la base remota, actualizar sin notes
+          const retry = await this.supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', targetId);
+          updateError = retry.error;
+        } else {
+          updateError = res.error;
+        }
+      } else {
+        const res = await this.supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', targetId);
+        updateError = res.error;
+      }
+
+      if (updateError) {
+        this.logger.error('SupabaseService', 'Error al actualizar perfil en Supabase', updateError);
+        return { success: false, error: updateError.message || 'Error al actualizar perfil en la base de datos' };
       }
 
       await this.refreshUserProfile();
@@ -428,7 +556,7 @@ export class SupabaseService {
   }
 
   /**
-   * Cierre de sesión completo
+   * Cierre de sesión completo garantizado contra rebotes en el login
    */
   async signOut(): Promise<void> {
     // 1. Limpieza síncrona inmediata de estado reactivo y almacenamiento local
@@ -438,18 +566,37 @@ export class SupabaseService {
     } catch (err) {
       this.logger.warn('SupabaseService', 'Error en signOut de Supabase', err);
     }
+    // 2. Segunda pasada para garantizar que ningún callback tardío restablezca tokens
+    this.clearSessionState();
   }
 
   private clearSessionState(): void {
-    this.sessionReadyPromise = null;
+    this.sessionReadyPromise = Promise.resolve();
     this.currentUser.set(null);
     this.userProfile.set(null);
     this.currentRole.set(null);
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(STORAGE_KEY_ROLE);
+        localStorage.removeItem('barbertrack_user_role');
+        localStorage.removeItem('supabase_user_role');
         localStorage.removeItem('barbertrack_role');
         localStorage.removeItem('barbertrack_current_client_id');
+        // Purgar inmediatamente todos los tokens de auth de Supabase
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (
+            key &&
+            (key.startsWith('sb-') ||
+              key.includes('auth-token') ||
+              key.includes('supabase.auth') ||
+              key.startsWith('supabase.'))
+          ) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
       } catch {
         // Ignorar
       }

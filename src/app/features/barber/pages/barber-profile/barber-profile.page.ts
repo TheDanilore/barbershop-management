@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
+  OnInit,
   computed,
   inject,
   signal,
@@ -22,7 +23,7 @@ import { ProfileModalComponent } from '../../components/profile-modal/profile-mo
   styleUrl: './barber-profile.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BarberProfilePage {
+export class BarberProfilePage implements OnInit {
   readonly supabaseService = inject(SupabaseService);
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
@@ -39,7 +40,25 @@ export class BarberProfilePage {
   readonly viewScope = signal<'personal' | 'shop'>('personal');
 
   readonly currentProfile = computed(() => this.supabaseService.userProfile());
-  readonly isAdmin = computed(() => this.currentProfile()?.role === 'admin');
+  readonly isAdmin = computed(() => (this.currentProfile()?.role || this.supabaseService.currentRole()) === 'admin');
+
+  // Signals reactivos resilientes que garantizan mostrar el nombre y correo reales
+  readonly userName = computed(() => this.supabaseService.userDisplayName());
+  readonly userRole = computed(() => this.supabaseService.userDisplayRole());
+  readonly userEmail = computed(() => this.supabaseService.userDisplayEmail());
+
+  // Modal de confirmación de cierre de sesión
+  readonly showLogoutModal = signal(false);
+  readonly isLoggingOut = signal(false);
+
+  async ngOnInit(): Promise<void> {
+    if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
+      await this.supabaseService.ensureSessionReady();
+      if (!this.supabaseService.userProfile()) {
+        await this.supabaseService.refreshUserProfile();
+      }
+    }
+  }
 
   // Métricas reactivas computadas vinculadas a la sesión actual
   readonly myCutsToday = computed(() => {
@@ -130,6 +149,7 @@ export class BarberProfilePage {
   onProfileSaved(message: string): void {
     this.showToast(message);
     this.isEditingProfile.set(false);
+    this.supabaseService.refreshUserProfile();
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -183,10 +203,31 @@ export class BarberProfilePage {
     return 'high';
   }
 
-  logout(): void {
+  promptLogout(): void {
     this.haptics.lightTap();
-    this.supabaseService.signOut();
-    this.router.navigate(['/login']);
+    this.showLogoutModal.set(true);
+  }
+
+  cancelLogout(): void {
+    this.haptics.lightTap();
+    this.showLogoutModal.set(false);
+  }
+
+  async confirmLogout(): Promise<void> {
+    if (this.isLoggingOut()) return;
+    this.isLoggingOut.set(true);
+    this.haptics.lightTap();
+
+    try {
+      this.barberService.setRole('landing');
+      await this.supabaseService.signOut();
+      await this.router.navigate(['/login'], { replaceUrl: true });
+    } catch {
+      await this.router.navigate(['/login'], { replaceUrl: true });
+    } finally {
+      this.isLoggingOut.set(false);
+      this.showLogoutModal.set(false);
+    }
   }
 
   formatDate(isoDate: string): string {
@@ -212,7 +253,7 @@ export class BarberProfilePage {
       case 'customer':
         return 'Cliente';
       default:
-        return 'Usuario Autorizado';
+        return 'Administrador';
     }
   }
 

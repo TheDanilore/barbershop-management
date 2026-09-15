@@ -533,6 +533,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .suf-name {
@@ -542,12 +545,25 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.suf-email {
+  font-size: 0.68rem;
+  color: var(--text-muted, #9ca3af);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .suf-role {
-  font-size: 0.7rem;
-  color: var(--text-subtle);
-  line-height: 1;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gold-primary, #e5a93c);
+  line-height: 1.2;
 }
 
 .suf-actions {
@@ -1417,4 +1433,144 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .tst-kbd {
     display: none !important;
   }
+}
+
+/* ==========================================================================
+   MODAL DE CONFIRMACIÓN DE CIERRE DE SESIÓN (APPLE HIG / GLASSMORPHISM)
+   ========================================================================== */
+.logout-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 30000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: lmcFadeIn 0.2s ease-out;
+}
+
+.logout-modal-card {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(135deg, rgba(26, 26, 36, 0.96), rgba(18, 18, 24, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(220, 38, 38, 0.12);
+  animation: lmcScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lmc-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.lmc-warn-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.lmc-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.lmc-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted, #9ca3af);
+  line-height: 1.45;
+  margin: 0 0 24px 0;
+}
+
+.lmc-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.lmc-btn-cancel,
+.lmc-btn-confirm {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lmc-btn-cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e4e4e7;
+}
+
+.lmc-btn-cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.lmc-btn-confirm {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+}
+
+.lmc-btn-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+}
+
+.lmc-btn-confirm:disabled,
+.lmc-btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lmc-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: lmcSpin 0.7s linear infinite;
+}
+
+@keyframes lmcFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lmcScaleUp {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lmcSpin {
+  to { transform: rotate(360deg); }
 }

@@ -107,8 +107,13 @@ export class BarberLayoutPage implements OnInit {
         this.isMobileMoreMenuOpen.set(false);
       });
 
-    // Sincronizar datos de Supabase si está autenticado
+    // Sincronizar datos y perfil de Supabase si está autenticado
     if (this.supabaseService.isConfigured() && this.supabaseService.isAuthenticated) {
+      this.supabaseService.ensureSessionReady().then(() => {
+        if (!this.supabaseService.userProfile()) {
+          this.supabaseService.refreshUserProfile();
+        }
+      });
       this.barberService.syncFromSupabase();
     }
   }
@@ -215,11 +220,40 @@ export class BarberLayoutPage implements OnInit {
     this.router.navigate(['/customer']);
   }
 
-  logout(): void {
+  // Modal de confirmación de cierre de sesión
+  readonly showLogoutModal = signal(false);
+  readonly isLoggingOut = signal(false);
+
+  promptLogout(): void {
     this.haptics.lightTap();
     this.isMobileMoreMenuOpen.set(false);
-    this.supabaseService.signOut();
-    this.router.navigate(['/login']);
+    this.showLogoutModal.set(true);
+  }
+
+  cancelLogout(): void {
+    this.haptics.lightTap();
+    this.showLogoutModal.set(false);
+  }
+
+  async confirmLogout(): Promise<void> {
+    if (this.isLoggingOut()) return;
+    this.isLoggingOut.set(true);
+    this.haptics.lightTap();
+
+    try {
+      this.barberService.setRole('landing');
+      await this.supabaseService.signOut();
+      await this.router.navigate(['/login'], { replaceUrl: true });
+    } catch {
+      await this.router.navigate(['/login'], { replaceUrl: true });
+    } finally {
+      this.isLoggingOut.set(false);
+      this.showLogoutModal.set(false);
+    }
+  }
+
+  logout(): void {
+    this.promptLogout();
   }
 
   showToast(message: string): void {
@@ -299,7 +333,7 @@ export class BarberLayoutPage implements OnInit {
       case 'admin': return 'Administrador';
       case 'barber': return 'Barbero / Estilista';
       case 'customer': return 'Cliente';
-      default: return 'Usuario';
+      default: return 'Administrador';
     }
   }
 }

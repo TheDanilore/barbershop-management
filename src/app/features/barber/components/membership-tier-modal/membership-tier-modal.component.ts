@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  HostListener,
   Input,
   OnChanges,
   Output,
@@ -76,7 +77,18 @@ export class MembershipTierModalComponent implements OnChanges {
     }
   }
 
+  @HostListener('window:keydown', ['$event'])
+  handleKeydown(event: KeyboardEvent): void {
+    if (!this.isOpen) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.close();
+    }
+  }
+
   close(): void {
+    this.errorMessage.set(null);
     this.haptics.lightTap();
     this.closed.emit();
   }

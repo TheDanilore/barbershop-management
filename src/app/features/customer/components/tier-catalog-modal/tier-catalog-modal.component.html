@@ -1,30 +1,20 @@
 @if (isOpen) {
-<div class="nc-backdrop" (click)="onClose()" role="presentation">
-  <div class="nc-dialog-sheet tier-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+<div class="modal-backdrop" (click)="onClose()" role="presentation">
+  <div class="modal-sheet tier-modal-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
     aria-labelledby="tierCatalogTitle" appBottomSheet (dismiss)="onClose()">
     <!-- Zona de arrastre para Bottom Sheet en móvil con física Apple HIG -->
-    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar">
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
       <div class="sheet-drag-handle"></div>
     </div>
 
     <!-- Cabecera del Catálogo -->
-    <header class="sheet-header">
-      <div class="sheet-title-group">
-        <div class="sheet-badge-row">
-          <span class="sheet-badge gold">PROGRAMA DE FIDELIDAD</span>
-          <span class="sheet-shortcut-badge" title="Cerrar con tecla Escape">Esc</span>
-        </div>
-        <h2 id="tierCatalogTitle" class="sheet-title">Niveles de Membresía</h2>
-        <p class="sheet-desc">Conoce los requisitos y beneficios de cada nivel. Los descuentos son un privilegio
-          exclusivo VIP.</p>
+    <div class="sheet-header">
+      <div class="sh-title-group">
+        <span class="sh-badge-pill">PROGRAMA DE FIDELIDAD</span>
+        <h3 id="tierCatalogTitle" class="sheet-title">Niveles de Membresía</h3>
       </div>
-      <button type="button" class="sheet-close-btn" (click)="onClose()" aria-label="Cerrar modal" title="Cerrar (Esc)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </header>
+      <button type="button" class="sheet-close-btn" (click)="onClose()" title="Cerrar (Esc)">✕</button>
+    </div>
 
     <!-- Cuerpo scrolleable del catálogo -->
     <div class="sheet-content-scroll">
@@ -53,8 +43,7 @@
           <p class="csb-motivation-text">{{ nextTierInfo().message }}</p>
         </div>
         } @else {
-        <p class="csb-max-text">👑 ¡Felicidades! Tienes el estatus VIP activo con 15% de descuento en todos los
-          productos.</p>
+        <p class="csb-max-text">👑 ¡Felicidades! Tienes el estatus VIP activo con {{ vipDiscountPct() }}% de descuento en todos los productos.</p>
         }
       </section>
 

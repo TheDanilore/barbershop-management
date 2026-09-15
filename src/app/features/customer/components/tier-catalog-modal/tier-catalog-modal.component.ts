@@ -51,6 +51,15 @@ export class TierCatalogModalComponent {
   readonly loyaltyUnitLabel = computed(() => this.barberService.loyaltyUnitLabel());
   readonly loyaltyUnitSingular = computed(() => this.barberService.loyaltyUnitSingular());
 
+  // Configuración VIP dinámica desde Supabase
+  readonly vipTier = computed(() => {
+    return this.barberService.membershipTiers().find((t) => t.id === 'VIP');
+  });
+
+  readonly vipDiscountPct = computed(() => {
+    return this.vipTier()?.discountPercentage ?? 15;
+  });
+
   // Progresión hacia el siguiente nivel (computado dinámicamente desde membership_tiers)
   readonly nextTierInfo = computed(() => {
     const cuts = this.cutsCount();

@@ -52,7 +52,8 @@
     </article>
 
     <!-- KPI 3: Nivel de Membresía -->
-    <article class="kpi-card" routerLink="/customer/profile">
+    <article class="kpi-card interactive" (click)="openTierCatalogModal()" role="button" tabindex="0"
+      (keydown.enter)="openTierCatalogModal()" title="Toca para explorar todos los niveles">
       <div class="kpi-icon-wrap tier">
         <span>👑</span>
       </div>
@@ -63,7 +64,7 @@
             {{ barberService.currentClient().membershipLevel }}
           </span>
         </div>
-        <span class="kpi-hint">Ver beneficios →</span>
+        <span class="kpi-hint accent">Ver todos los niveles →</span>
       </div>
     </article>
 
@@ -225,14 +226,34 @@
       <!-- Beneficios de Membresía según Nivel Real -->
       <section class="section-container" aria-labelledby="perks-title">
         <div class="section-header-flex">
-          <h2 id="perks-title" class="section-title">Beneficios Nivel {{ clientTier() }}</h2>
-          <span class="perk-tier-tag" [class]="clientTier().toLowerCase()">
-            {{ isVip() ? 'Socio VIP' : ('Membresía ' + clientTier()) }}
-          </span>
+          <div class="perks-title-wrap">
+            <h2 id="perks-title" class="section-title">Beneficios Nivel {{ clientTier() }}</h2>
+            <span class="perk-tier-tag" [class]="clientTier().toLowerCase()">
+              {{ isVip() ? 'Socio VIP' : ('Membresía ' + clientTier()) }}
+            </span>
+          </div>
+          <button type="button" class="btn-explore-tiers" (click)="openTierCatalogModal()"
+            title="Ver tabla de membresías y requisitos">
+            <span>Explorar Niveles 👑</span>
+          </button>
         </div>
+
+        <!-- Teaser informativo para no-VIP (Monopolio VIP de Descuentos) -->
+        @if (!isVip()) {
+        <div class="tier-vip-teaser-card" (click)="openTierCatalogModal()" role="button" tabindex="0"
+          title="Ver requisitos para subir a VIP">
+          <span class="teaser-icon">🔒</span>
+          <div class="teaser-text">
+            <strong>Descuento del 15% en Productos</strong>
+            <p>Privilegio exclusivo para socios <strong>VIP Élite</strong> (50+ cortes). <span class="teaser-cta">Ver
+                comparativa →</span></p>
+          </div>
+        </div>
+        }
+
         <div class="perks-grid">
           @for (perk of tierPerks(); track perk.title) {
-          <div class="perk-card">
+          <div class="perk-card" [class.perk-vip]="isVip()">
             <span class="perk-icon">{{ perk.icon }}</span>
             <div class="perk-info">
               <h3 class="perk-title">{{ perk.title }}</h3>
@@ -248,4 +269,8 @@
   <!-- Modal de Reserva -->
   <app-booking-modal [isOpen]="isBookingModalOpen()" (close)="closeBookingModal()"
     (booked)="onBookingSuccess($event)"></app-booking-modal>
+
+  <!-- Modal Catálogo de Membresías & Niveles -->
+  <app-tier-catalog-modal [isOpen]="isTierCatalogModalOpen()"
+    (close)="closeTierCatalogModal()"></app-tier-catalog-modal>
 </div>

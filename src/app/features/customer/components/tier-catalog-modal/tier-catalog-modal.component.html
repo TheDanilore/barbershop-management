@@ -1,0 +1,129 @@
+@if (isOpen) {
+<div class="nc-backdrop" (click)="onClose()" role="presentation">
+  <div class="nc-dialog-sheet tier-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+    aria-labelledby="tierCatalogTitle" appBottomSheet (dismiss)="onClose()">
+    <!-- Zona de arrastre para Bottom Sheet en móvil con física Apple HIG -->
+    <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar">
+      <div class="sheet-drag-handle"></div>
+    </div>
+
+    <!-- Cabecera del Catálogo -->
+    <header class="sheet-header">
+      <div class="sheet-title-group">
+        <div class="sheet-badge-row">
+          <span class="sheet-badge gold">PROGRAMA DE FIDELIDAD</span>
+          <span class="sheet-shortcut-badge" title="Cerrar con tecla Escape">Esc</span>
+        </div>
+        <h2 id="tierCatalogTitle" class="sheet-title">Niveles de Membresía</h2>
+        <p class="sheet-desc">Conoce los requisitos y beneficios de cada nivel. Los descuentos son un privilegio
+          exclusivo VIP.</p>
+      </div>
+      <button type="button" class="sheet-close-btn" (click)="onClose()" aria-label="Cerrar modal" title="Cerrar (Esc)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Cuerpo scrolleable del catálogo -->
+    <div class="sheet-content-scroll">
+
+      <!-- Banner de Progreso del Cliente Actual -->
+      <section class="current-status-banner">
+        <div class="csb-top-row">
+          <div class="csb-user-info">
+            <span class="csb-label">Tu Estatus Actual:</span>
+            <span class="csb-tier-badge" [class]="clientTier().toLowerCase()">
+              {{ clientTier() === 'VIP' ? '👑 SOCIO VIP' : ('SOCIO ' + clientTier().toUpperCase()) }}
+            </span>
+          </div>
+          <div class="csb-cuts-counter">
+            <span class="cuts-num">{{ cutsCount() }}</span>
+            <span class="cuts-lbl">cortes completados</span>
+          </div>
+        </div>
+
+        <!-- Barra de Progreso hacia el siguiente nivel -->
+        @if (!nextTierInfo().isMax) {
+        <div class="csb-progress-wrap">
+          <div class="csb-progress-bar">
+            <div class="csb-progress-fill" [style.width.%]="nextTierInfo().progressPct"></div>
+          </div>
+          <p class="csb-motivation-text">{{ nextTierInfo().message }}</p>
+        </div>
+        } @else {
+        <p class="csb-max-text">👑 ¡Felicidades! Tienes el estatus VIP activo con 15% de descuento en todos los
+          productos.</p>
+        }
+      </section>
+
+      <!-- Grid Comparativo de los 4 Niveles -->
+      <section class="tiers-comparison-grid" aria-label="Comparativa de niveles de membresía">
+        @for (tier of allTiers; track tier.id) {
+        <article class="tier-plan-card" [class]="tier.colorClass"
+          [class.is-current-user-tier]="tier.id === clientTier()">
+          <!-- Badge de Nivel Actual -->
+          @if (tier.id === clientTier()) {
+          <div class="current-tier-ribbon">
+            <span>★ TU NIVEL ACTUAL</span>
+          </div>
+          }
+
+          <!-- Cabecera de la Tarjeta de Nivel -->
+          <div class="tpc-header">
+            <div class="tpc-icon-box" [class]="tier.colorClass">
+              <span>{{ tier.icon }}</span>
+            </div>
+            <div class="tpc-title-wrap">
+              <h3 class="tpc-name">{{ tier.name }}</h3>
+              <span class="tpc-cuts-req">{{ tier.cutsRequired }}</span>
+            </div>
+          </div>
+
+          <!-- Tagline y Descuento -->
+          <p class="tpc-tagline">{{ tier.tagline }}</p>
+
+          <!-- Pill de Descuento (Regla estricta: Solo VIP tiene descuento) -->
+          <div class="tpc-discount-badge" [class.vip]="tier.isVipTier">
+            <span class="discount-icon">{{ tier.isVipTier ? '🏷️' : '🔒' }}</span>
+            <span class="discount-text">{{ tier.discount }}</span>
+          </div>
+
+          <div class="tpc-divider"></div>
+
+          <!-- Lista de Beneficios del Nivel -->
+          <div class="tpc-perks-section">
+            <span class="tpc-perks-title">Beneficios incluidos:</span>
+            <ul class="tpc-perks-list">
+              @for (perk of tier.perks; track perk) {
+              <li>
+                <span class="perk-bullet" [class.gold]="tier.isVipTier">✓</span>
+                <span class="perk-text" [class.highlight]="tier.isVipTier && perk.includes('Descuento')">{{ perk
+                  }}</span>
+              </li>
+              }
+            </ul>
+          </div>
+        </article>
+        }
+      </section>
+
+      <!-- Nota Informativa de Política -->
+      <div class="tier-footer-note">
+        <span class="note-icon">ℹ️</span>
+        <p>Los niveles se actualizan automáticamente al completar cortes registrados en caja. Los descuentos VIP aplican
+          directamente sobre precio de lista en recepción.</p>
+      </div>
+
+    </div>
+
+    <!-- Pie del Modal -->
+    <div class="sheet-footer">
+      <button type="button" class="btn-primary-action" (click)="onClose()">
+        Entendido
+      </button>
+    </div>
+  </div>
+</div>
+}

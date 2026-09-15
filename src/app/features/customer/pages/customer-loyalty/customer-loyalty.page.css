@@ -13,7 +13,39 @@
 .loyalty-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.lh-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btn-loyalty-tiers {
+  padding: 8px 16px;
+  background: rgba(229, 169, 60, 0.12);
+  border: 1px solid rgba(229, 169, 60, 0.35);
+  border-radius: var(--radius-full, 9999px);
+  color: var(--gold-light, #f5cf7c);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-loyalty-tiers:hover {
+  background: var(--gold-primary, #e5a93c);
+  color: #111114;
+  border-color: var(--gold-primary, #e5a93c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(229, 169, 60, 0.3);
 }
 
 .lh-badge {
@@ -87,8 +119,15 @@
 }
 
 @keyframes bounceGift {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .section-title {

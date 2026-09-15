@@ -1,9 +1,17 @@
 <div class="loyalty-page-container">
   <!-- Cabecera -->
   <header class="loyalty-header">
-    <span class="lh-badge">PROGRAMA DE LEALTAD</span>
-    <h1 class="lh-title">{{ isVip() ? 'Tarjeta & Sellos VIP' : 'Tarjeta & Sellos' }}</h1>
-    <p class="lh-subtitle">Cada corte te acerca a servicios gratuitos, descuentos exclusivos y beneficios premium.</p>
+    <div class="lh-header-row">
+      <div>
+        <span class="lh-badge">PROGRAMA DE LEALTAD</span>
+        <h1 class="lh-title">{{ isVip() ? 'Tarjeta & Sellos VIP' : 'Tarjeta & Sellos' }}</h1>
+      </div>
+      <button type="button" class="btn-loyalty-tiers" (click)="openTierCatalogModal()"
+        title="Ver tabla de niveles de membresía">
+        <span>Explorar Niveles 👑</span>
+      </button>
+    </div>
+    <p class="lh-subtitle">Cada corte te acerca a servicios gratuitos, cortesías exclusivas y beneficios premium.</p>
   </header>
 
   <!-- Split View en Desktop (2 Columnas Fluidas) -->
@@ -91,4 +99,8 @@
       </section>
     </div>
   </div>
+
+  <!-- Modal Comparador de Niveles y Membresías -->
+  <app-tier-catalog-modal [isOpen]="isTierCatalogModalOpen()"
+    (close)="closeTierCatalogModal()"></app-tier-catalog-modal>
 </div>

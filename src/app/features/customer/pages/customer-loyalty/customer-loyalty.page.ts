@@ -4,15 +4,17 @@ import {
   Component,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { BarberService } from '../../../../core/services/barber.service';
 import { HapticsService } from '../../../../core/services/haptics.service';
 import { LoyaltyCard } from '../../components/loyalty-card/loyalty-card';
+import { TierCatalogModalComponent } from '../../components/tier-catalog-modal/tier-catalog-modal.component';
 
 @Component({
   selector: 'app-customer-loyalty',
   standalone: true,
-  imports: [CommonModule, LoyaltyCard],
+  imports: [CommonModule, LoyaltyCard, TierCatalogModalComponent],
   templateUrl: './customer-loyalty.page.html',
   styleUrl: './customer-loyalty.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +22,17 @@ import { LoyaltyCard } from '../../components/loyalty-card/loyalty-card';
 export class CustomerLoyaltyPage {
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
+
+  readonly isTierCatalogModalOpen = signal(false);
+
+  openTierCatalogModal(): void {
+    this.haptics.lightTap();
+    this.isTierCatalogModalOpen.set(true);
+  }
+
+  closeTierCatalogModal(): void {
+    this.isTierCatalogModalOpen.set(false);
+  }
 
   readonly currentStamps = computed(
     () => this.barberService.currentClient().loyaltyStamps || 0

@@ -721,3 +721,37 @@
   margin: 0;
   line-height: 1.35;
 }
+
+.perk-tier-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.perk-tier-tag.bronze {
+  background: rgba(205, 127, 50, 0.16);
+  border: 1px solid rgba(205, 127, 50, 0.4);
+  color: #df9b64;
+}
+
+.perk-tier-tag.silver {
+  background: rgba(192, 192, 192, 0.16);
+  border: 1px solid rgba(192, 192, 192, 0.4);
+  color: #e2e8f0;
+}
+
+.perk-tier-tag.gold {
+  background: rgba(229, 169, 60, 0.18);
+  border: 1px solid rgba(229, 169, 60, 0.45);
+  color: #f5c46b;
+}
+
+.perk-tier-tag.vip {
+  background: var(--gold-gradient);
+  color: #121215;
+  border: none;
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.35);
+}

@@ -43,20 +43,16 @@
   <div class="stamps-grid-wrap">
     <div class="stamps-grid">
       @for (slot of stampSlots(); track slot) {
-        <div
-          class="stamp-slot"
-          [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
-          [class.reward-slot]="isRewardSlot(slot)"
-          [title]="isRewardSlot(slot) ? '¡Sello con Recompensa!' : 'Sello Nº ' + slot"
-        >
-          @if (slot <= barberService.currentClient().loyaltyStamps) {
-            <span class="stamp-icon stamped">✂</span>
+      <div class="stamp-slot" [class.stamped]="slot <= barberService.currentClient().loyaltyStamps"
+        [class.reward-slot]="isRewardSlot(slot)"
+        [title]="isRewardSlot(slot) ? '¡Sello con Recompensa!' : 'Sello Nº ' + slot">
+        @if (slot <= barberService.currentClient().loyaltyStamps) { <span class="stamp-icon stamped">✂</span>
           } @else if (isRewardSlot(slot)) {
-            <span class="stamp-icon reward">🎁</span>
+          <span class="stamp-icon reward">🎁</span>
           } @else {
-            <span class="stamp-number">{{ slot }}</span>
+          <span class="stamp-number">{{ slot }}</span>
           }
-        </div>
+      </div>
       }
     </div>
   </div>
@@ -75,7 +71,8 @@
 <!-- Reglas y Beneficios del Club -->
 <section class="loyalty-rules-card">
   <div class="rules-header">
-    <span class="rules-badge">VIP CLUB</span>
+    <span class="rules-badge" [class.vip]="isVip()">{{ isVip() ? 'VIP CLUB' : (clientTier() | uppercase) + ' CLUB'
+      }}</span>
     <h3 class="rules-title">Tus Beneficios & Reglas</h3>
   </div>
 
@@ -85,17 +82,18 @@
       <span>Recibes sellos por cada servicio de corte o barba registrado.</span>
     </li>
     @if (barberService.loyaltyRewards().length > 0) {
-      @for (reward of barberService.loyaltyRewards(); track reward.id) {
-        <li class="reward-milestone-item">
-          <span class="bullet-star">★</span>
-          <span>A los <strong>{{ reward.stampsRequired }} cortes</strong>: {{ reward.name }}</span>
-        </li>
-      }
+    @for (reward of barberService.loyaltyRewards(); track reward.id) {
+    <li class="reward-milestone-item">
+      <span class="bullet-star">★</span>
+      <span>A los <strong>{{ reward.stampsRequired }} cortes</strong>: {{ reward.name }}</span>
+    </li>
+    }
     } @else {
-      <li>
-        <span class="bullet">✓</span>
-        <span>Al alcanzar los <strong>{{ targetStamps() }} sellos</strong>, tu próximo corte es <strong>100% GRATIS</strong>.</span>
-      </li>
+    <li>
+      <span class="bullet">✓</span>
+      <span>Al alcanzar los <strong>{{ targetStamps() }} sellos</strong>, tu próximo corte es <strong>100%
+          GRATIS</strong>.</span>
+    </li>
     }
     <li>
       <span class="bullet">✓</span>

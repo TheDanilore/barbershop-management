@@ -44,6 +44,12 @@ export class BookingModalComponent implements OnChanges {
   readonly errorMessage = signal<string | null>(null);
   readonly todayDateStr = computed(() => getLocalDateString());
 
+  // Nivel de membresía del cliente para adaptar textos y badges
+  readonly clientTier = computed<string>(() => {
+    return this.barberService.currentClient().membershipLevel || 'Bronze';
+  });
+  readonly isVip = computed<boolean>(() => this.clientTier() === 'VIP');
+
   readonly availableTimeSlots = [
     '09:00', '09:45', '10:30', '11:15', '12:00',
     '14:00', '14:45', '15:30', '16:15', '17:00',

@@ -1,21 +1,23 @@
 <div class="customer-layout-shell">
   <!-- TOAST NOTIFICACIÓN GLOBAL (DYNAMIC ISLAND / APPLE HIG FLOATING PILL) -->
   @if (toastMessage()) {
-    <div class="toast-top-container">
-      <div class="toast-notification-pill" (click)="toastMessage.set(null)" role="alert" aria-live="assertive" tabindex="0">
-        <div class="toast-pill-glow"></div>
-        <div class="toast-indicator">
-          <span class="toast-dot-pulse"></span>
-        </div>
-        <span class="toast-text">{{ toastMessage() }}</span>
-        <button type="button" class="toast-dismiss-btn" (click)="$event.stopPropagation(); toastMessage.set(null)" aria-label="Cerrar notificación" title="Cerrar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+  <div class="toast-top-container">
+    <div class="toast-notification-pill" (click)="toastMessage.set(null)" role="alert" aria-live="assertive"
+      tabindex="0">
+      <div class="toast-pill-glow"></div>
+      <div class="toast-indicator">
+        <span class="toast-dot-pulse"></span>
       </div>
+      <span class="toast-text">{{ toastMessage() }}</span>
+      <button type="button" class="toast-dismiss-btn" (click)="$event.stopPropagation(); toastMessage.set(null)"
+        aria-label="Cerrar notificación" title="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
+  </div>
   }
 
   <!-- ======================================================================= -->
@@ -45,7 +47,8 @@
       </button>
 
       <!-- Avatar Perfil -->
-      <button type="button" class="mobile-avatar-btn" (click)="navigateTo('profile')" aria-label="Ir a mi perfil" title="Mi perfil">
+      <button type="button" class="mobile-avatar-btn" (click)="navigateTo('profile')" aria-label="Ir a mi perfil"
+        title="Mi perfil">
         {{ displayName().charAt(0).toUpperCase() }}
       </button>
     </div>
@@ -69,7 +72,9 @@
         <div>
           <div class="brand-title-row">
             <span class="brand-main-name">BarberTrack</span>
-            <span class="portal-badge">CLIENTE VIP</span>
+            <span class="portal-badge" [class]="clientTier().toLowerCase()" [class.is-vip]="isVip()">
+              {{ tierBadgeLabel() }}
+            </span>
           </div>
           <span class="greeting-sub">Hola, {{ displayName() }}</span>
         </div>
@@ -78,58 +83,37 @@
 
     <!-- Pestañas de Navegación Centrales -->
     <nav class="desktop-nav-links" aria-label="Pestañas de la aplicación">
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="currentTab() === 'home'"
-        (click)="navigateTo('home')"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="currentTab() === 'home'" (click)="navigateTo('home')">
         <span class="nav-tab-icon">🏠</span>
         <span>Mi Portal</span>
       </button>
 
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="currentTab() === 'appointments'"
-        (click)="navigateTo('appointments')"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="currentTab() === 'appointments'"
+        (click)="navigateTo('appointments')">
         <span class="nav-tab-icon">📅</span>
         <span>Mis Citas</span>
         @if (activeAppointmentsCount() > 0) {
-          <span class="tab-badge active-count">{{ activeAppointmentsCount() }}</span>
+        <span class="tab-badge active-count">{{ activeAppointmentsCount() }}</span>
         }
       </button>
 
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="currentTab() === 'loyalty'"
-        (click)="navigateTo('loyalty')"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="currentTab() === 'loyalty'"
+        (click)="navigateTo('loyalty')">
         <span class="nav-tab-icon">⭐</span>
         <span>Tarjeta & Sellos</span>
         @if (claimableRewardsCount() > 0) {
-          <span class="tab-badge reward-ready">🎁 {{ claimableRewardsCount() }}</span>
+        <span class="tab-badge reward-ready">🎁 {{ claimableRewardsCount() }}</span>
         }
       </button>
 
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="currentTab() === 'history'"
-        (click)="navigateTo('history')"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="currentTab() === 'history'"
+        (click)="navigateTo('history')">
         <span class="nav-tab-icon">✂</span>
         <span>Historial</span>
       </button>
 
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="currentTab() === 'profile'"
-        (click)="navigateTo('profile')"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="currentTab() === 'profile'"
+        (click)="navigateTo('profile')">
         <span class="nav-tab-icon">👤</span>
         <span>Mi Perfil</span>
       </button>
@@ -137,24 +121,15 @@
 
     <!-- Acciones Rápidas Superior Derecha -->
     <div class="desktop-header-right">
-      <button
-        type="button"
-        class="btn-desktop-primary-book"
-        (click)="openBookingModal()"
-        title="Reservar un nuevo corte (Alt+B)"
-      >
+      <button type="button" class="btn-desktop-primary-book" (click)="openBookingModal()"
+        title="Reservar un nuevo corte (Alt+B)">
         <span>✨ Reservar Cita</span>
         <kbd class="kbd-shortcut">Alt+B</kbd>
       </button>
 
       <div class="action-divider"></div>
 
-      <button
-        type="button"
-        class="btn-icon-top"
-        (click)="switchToBarber()"
-        title="Cambiar a Vista Barbero / Staff"
-      >
+      <button type="button" class="btn-icon-top" (click)="switchToBarber()" title="Cambiar a Vista Barbero / Staff">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="6" cy="6" r="3"></circle>
           <circle cx="6" cy="18" r="3"></circle>
@@ -162,12 +137,7 @@
         </svg>
       </button>
 
-      <button
-        type="button"
-        class="btn-icon-top"
-        (click)="logout()"
-        title="Cerrar sesión"
-      >
+      <button type="button" class="btn-icon-top" (click)="logout()" title="Cerrar sesión">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
           <polyline points="16 17 21 12 16 7"></polyline>
@@ -190,12 +160,7 @@
   <!-- NAVEGACIÓN INFERIOR MÓVIL (APPLE HIG GLASSMORPHIC BOTTOM NAV)          -->
   <!-- ======================================================================= -->
   <nav class="mobile-bottom-nav" aria-label="Navegación móvil del cliente">
-    <button
-      type="button"
-      class="mbn-item"
-      [class.active]="currentTab() === 'home'"
-      (click)="navigateTo('home')"
-    >
+    <button type="button" class="mbn-item" [class.active]="currentTab() === 'home'" (click)="navigateTo('home')">
       <div class="mbn-icon-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -205,12 +170,8 @@
       <span>Portal</span>
     </button>
 
-    <button
-      type="button"
-      class="mbn-item"
-      [class.active]="currentTab() === 'appointments'"
-      (click)="navigateTo('appointments')"
-    >
+    <button type="button" class="mbn-item" [class.active]="currentTab() === 'appointments'"
+      (click)="navigateTo('appointments')">
       <div class="mbn-icon-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -219,7 +180,7 @@
           <line x1="3" y1="10" x2="21" y2="10"></line>
         </svg>
         @if (activeAppointmentsCount() > 0) {
-          <span class="mbn-dot"></span>
+        <span class="mbn-dot"></span>
         }
       </div>
       <span>Citas</span>
@@ -227,39 +188,26 @@
 
     <!-- Botón Central Flotante de Reserva Rápida -->
     <div class="mbn-center-action">
-      <button
-        type="button"
-        class="mbn-fab"
-        (click)="openBookingModal()"
-        aria-label="Agendar Turno"
-      >
+      <button type="button" class="mbn-fab" (click)="openBookingModal()" aria-label="Agendar Turno">
         <span>+</span>
       </button>
     </div>
 
-    <button
-      type="button"
-      class="mbn-item"
-      [class.active]="currentTab() === 'loyalty'"
-      (click)="navigateTo('loyalty')"
-    >
+    <button type="button" class="mbn-item" [class.active]="currentTab() === 'loyalty'" (click)="navigateTo('loyalty')">
       <div class="mbn-icon-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          <polygon
+            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+          </polygon>
         </svg>
         @if (claimableRewardsCount() > 0) {
-          <span class="mbn-dot gold"></span>
+        <span class="mbn-dot gold"></span>
         }
       </div>
       <span>Tarjeta</span>
     </button>
 
-    <button
-      type="button"
-      class="mbn-item"
-      [class.active]="currentTab() === 'profile'"
-      (click)="navigateTo('profile')"
-    >
+    <button type="button" class="mbn-item" [class.active]="currentTab() === 'profile'" (click)="navigateTo('profile')">
       <div class="mbn-icon-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -271,9 +219,6 @@
   </nav>
 
   <!-- Subcomponente Global BookingModal -->
-  <app-booking-modal
-    [isOpen]="isBookingModalOpen()"
-    (close)="closeBookingModal()"
-    (booked)="onBookingSuccess($event)"
-  ></app-booking-modal>
+  <app-booking-modal [isOpen]="isBookingModalOpen()" (close)="closeBookingModal()"
+    (booked)="onBookingSuccess($event)"></app-booking-modal>
 </div>

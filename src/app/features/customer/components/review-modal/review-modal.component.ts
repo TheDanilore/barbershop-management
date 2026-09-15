@@ -8,6 +8,7 @@ import {
   OnChanges,
   Output,
   SimpleChanges,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -43,6 +44,10 @@ export class ReviewModalComponent implements OnChanges {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly hoveredStar = signal<number | null>(null);
+
+  readonly isVip = computed<boolean>(() => {
+    return this.barberService.currentClient().membershipLevel === 'VIP';
+  });
 
   readonly reviewForm: FormGroup = this.fb.group({
     rating: [5, [Validators.required, Validators.min(1), Validators.max(5)]],

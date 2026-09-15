@@ -36,22 +36,28 @@
   left: -100%;
   width: 60%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.08),
-    rgba(229, 169, 60, 0.15),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      rgba(229, 169, 60, 0.15),
+      transparent);
   transform: skewX(-25deg);
   pointer-events: none;
   animation: cardShimmer 6s infinite ease-in-out;
 }
 
 @keyframes cardShimmer {
-  0% { left: -100%; }
-  35% { left: 200%; }
-  100% { left: 200%; }
+  0% {
+    left: -100%;
+  }
+
+  35% {
+    left: 200%;
+  }
+
+  100% {
+    left: 200%;
+  }
 }
 
 .virtual-loyalty-card::before {
@@ -225,8 +231,15 @@
 }
 
 @keyframes rewardPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.18); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
 }
 
 .stamp-number {
@@ -297,6 +310,13 @@
   color: var(--gold-light, #f5cf7c);
   padding: 2px 7px;
   border-radius: 4px;
+}
+
+.rules-badge.vip {
+  background: var(--gold-gradient);
+  border: none;
+  color: #111114;
+  box-shadow: 0 0 8px rgba(229, 169, 60, 0.3);
 }
 
 .rules-title {

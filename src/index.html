@@ -1,23 +1,84 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <title>BarberTrack - Gestión & Fidelidad para Barbería</title>
-    <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="BarberTrack" />
-    <link rel="icon" type="image/x-icon" href="favicon.ico" />
-    <link rel="manifest" href="manifest.webmanifest" />
 
-    <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <app-root></app-root>
-    <noscript>Por favor active JavaScript para utilizar BarberTrack.</noscript>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <title>BarberTrack - Gestión & Fidelidad para Barbería</title>
+  <base href="/" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="BarberTrack" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap"
+    rel="stylesheet">
+</head>
+
+<body
+  style="margin: 0; background-color: #0b0b0f; color: #ffffff; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;">
+  <app-root>
+    <!-- Preloader Nativo Zero-JS (Activo en arranques en frío desde el fotograma 0) -->
+    <div id="app-preloader"
+      style="position: fixed; inset: 0; background: #0b0b0f; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99999; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;">
+      <style>
+        @keyframes btPulseGlow {
+
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.9;
+            filter: drop-shadow(0 0 16px rgba(229, 169, 60, 0.4));
+          }
+
+          50% {
+            transform: scale(1.06);
+            opacity: 1;
+            filter: drop-shadow(0 0 30px rgba(229, 169, 60, 0.75));
+          }
+        }
+
+        @keyframes btBarShimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+
+          100% {
+            transform: translateX(250%);
+          }
+        }
+      </style>
+      <div
+        style="width: 72px; height: 72px; border-radius: 20px; background: linear-gradient(135deg, rgba(229, 169, 60, 0.22) 0%, rgba(229, 169, 60, 0.06) 100%); border: 1.5px solid rgba(229, 169, 60, 0.5); display: flex; align-items: center; justify-content: center; animation: btPulseGlow 1.8s ease-in-out infinite; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);">
+        <svg style="width: 36px; height: 36px; color: #e5a93c;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="3"></circle>
+          <circle cx="6" cy="18" r="3"></circle>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+          <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+        </svg>
+      </div>
+      <div style="font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; color: #ffffff; margin-bottom: 6px;">
+        BarberTrack</div>
+      <div
+        style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #e5a93c; opacity: 0.9; margin-bottom: 24px;">
+        Iniciando Sistema...</div>
+      <div
+        style="width: 140px; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 9999px; overflow: hidden; position: relative;">
+        <div
+          style="width: 45%; height: 100%; background: linear-gradient(90deg, #e5a93c, #ffd770); border-radius: 9999px; animation: btBarShimmer 1.3s ease-in-out infinite;">
+        </div>
+      </div>
+    </div>
+  </app-root>
+  <noscript>Por favor active JavaScript para utilizar BarberTrack.</noscript>
+</body>
+
 </html>

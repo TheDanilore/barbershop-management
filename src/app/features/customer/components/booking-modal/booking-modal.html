@@ -1,14 +1,7 @@
 @if (isOpen) {
 <div class="nc-backdrop" (click)="onClose()" role="presentation">
-  <div
-    class="nc-dialog-sheet"
-    (click)="$event.stopPropagation()"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="bookingModalTitle"
-    appBottomSheet
-    (dismiss)="onClose()"
-  >
+  <div class="nc-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+    aria-labelledby="bookingModalTitle" appBottomSheet (dismiss)="onClose()">
     <!-- Zona de arrastre para Bottom Sheet en móvil con física Apple HIG -->
     <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
       <div class="sheet-drag-handle"></div>
@@ -17,20 +10,17 @@
     <header class="sheet-header">
       <div class="sheet-title-group">
         <div class="sheet-badge-row">
-          <span class="sheet-badge gold">Reserva VIP</span>
+          <span class="sheet-badge" [class.gold]="isVip()" [class.bronze]="clientTier() === 'Bronze'"
+            [class.silver]="clientTier() === 'Silver'">
+            {{ isVip() ? 'Reserva VIP' : 'Agendar Turno' }}
+          </span>
           <span class="sheet-shortcut-badge" title="Cerrar con tecla Escape">Esc</span>
         </div>
         <h2 id="bookingModalTitle" class="sheet-title">Agendar Mi Turno</h2>
         <p class="sheet-desc">Selecciona tu servicio, profesional y horario ideal para tu próximo corte</p>
       </div>
-      <button
-        type="button"
-        class="sheet-close-btn"
-        (click)="onClose()"
-        aria-label="Cerrar modal"
-        title="Cerrar (Esc)"
-        [disabled]="isSubmitting()"
-      >
+      <button type="button" class="sheet-close-btn" (click)="onClose()" aria-label="Cerrar modal" title="Cerrar (Esc)"
+        [disabled]="isSubmitting()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -39,14 +29,14 @@
     </header>
 
     @if (errorMessage()) {
-      <div class="nc-error-banner" role="alert">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>{{ errorMessage() }}</span>
-      </div>
+    <div class="nc-error-banner" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
     }
 
     <form [formGroup]="bookingForm" (ngSubmit)="submitBooking()" class="sheet-form" novalidate>
@@ -57,9 +47,9 @@
           <div class="select-wrapper">
             <select id="bookingService" class="form-input form-select" formControlName="serviceId">
               @for (srv of barberService.services(); track srv.id) {
-                <option [value]="srv.id">
-                  {{ srv.name }} ({{ barberService.currencySymbol() }}{{ srv.price }} • {{ srv.durationMinutes }} min)
-                </option>
+              <option [value]="srv.id">
+                {{ srv.name }} ({{ barberService.currencySymbol() }}{{ srv.price }} • {{ srv.durationMinutes }} min)
+              </option>
               }
             </select>
             <span class="select-chevron" aria-hidden="true">▾</span>
@@ -72,7 +62,7 @@
           <div class="select-wrapper">
             <select id="bookingBarber" class="form-input form-select" formControlName="barberId">
               @for (barber of barberService.barbers(); track barber.id) {
-                <option [value]="barber.id">{{ barber.name }} ({{ barber.specialty }})</option>
+              <option [value]="barber.id">{{ barber.name }} ({{ barber.specialty }})</option>
               }
             </select>
             <span class="select-chevron" aria-hidden="true">▾</span>
@@ -82,13 +72,7 @@
         <!-- Fecha del Turno -->
         <div class="form-group">
           <label class="form-label" for="bookingDate">3. Fecha del Turno *</label>
-          <input
-            id="bookingDate"
-            type="date"
-            class="form-input"
-            formControlName="date"
-            [min]="todayDateStr()"
-          />
+          <input id="bookingDate" type="date" class="form-input" formControlName="date" [min]="todayDateStr()" />
         </div>
 
         <!-- Horario Disponible -->
@@ -99,17 +83,11 @@
           </div>
           <div class="time-slots-grid" role="radiogroup" aria-label="Horarios disponibles">
             @for (time of availableTimeSlots; track time) {
-              <button
-                type="button"
-                class="time-slot-chip"
-                [class.selected]="bookingForm.get('time')?.value === time"
-                [class.disabled]="isSlotDisabled(time)"
-                [disabled]="isSlotDisabled(time) || isSubmitting()"
-                (click)="selectTime(time)"
-                [attr.aria-label]="time + (isSlotDisabled(time) ? ' (Pasado)' : '')"
-              >
-                {{ time }}
-              </button>
+            <button type="button" class="time-slot-chip" [class.selected]="bookingForm.get('time')?.value === time"
+              [class.disabled]="isSlotDisabled(time)" [disabled]="isSlotDisabled(time) || isSubmitting()"
+              (click)="selectTime(time)" [attr.aria-label]="time + (isSlotDisabled(time) ? ' (Pasado)' : '')">
+              {{ time }}
+            </button>
             }
           </div>
         </div>
@@ -117,37 +95,22 @@
         <!-- Notas o Preferencias Opcionales -->
         <div class="form-group">
           <label class="form-label" for="bookingNotes">5. Notas o Especificaciones (Opcional)</label>
-          <input
-            id="bookingNotes"
-            type="text"
-            class="form-input"
-            formControlName="notes"
-            placeholder="Ej: Fade medio, barba delineada, cabello rebelde..."
-            maxlength="150"
-          />
+          <input id="bookingNotes" type="text" class="form-input" formControlName="notes"
+            placeholder="Ej: Fade medio, barba delineada, cabello rebelde..." maxlength="150" />
         </div>
       </div>
 
       <!-- Footer Unificado de Acciones (Fijado) -->
       <div class="sheet-footer">
-        <button
-          type="button"
-          class="btn-secondary"
-          (click)="onClose()"
-          [disabled]="isSubmitting()"
-        >
+        <button type="button" class="btn-secondary" (click)="onClose()" [disabled]="isSubmitting()">
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="btn-primary-action"
-          [disabled]="bookingForm.invalid || isSubmitting()"
-        >
+        <button type="submit" class="btn-primary-action" [disabled]="bookingForm.invalid || isSubmitting()">
           @if (isSubmitting()) {
-            <span class="btn-spinner" aria-hidden="true"></span>
-            <span>Confirmando Reserva...</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <span>Confirmando Reserva...</span>
           } @else {
-            <span>Confirmar Cita VIP</span>
+          <span>{{ isVip() ? 'Confirmar Cita VIP' : 'Confirmar Cita' }}</span>
           }
         </button>
       </div>

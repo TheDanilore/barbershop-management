@@ -25,6 +25,10 @@ export class CustomerLoyaltyPage {
     () => this.barberService.currentClient().loyaltyStamps || 0
   );
 
+  readonly isVip = computed<boolean>(
+    () => this.barberService.currentClient().membershipLevel === 'VIP'
+  );
+
   readonly targetStamps = computed(() => {
     const rewards = this.barberService.loyaltyRewards().filter((r) => r.isActive);
     if (!rewards.length) return this.barberService.stampsRequired();

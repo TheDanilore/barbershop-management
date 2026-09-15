@@ -4,6 +4,7 @@ import {
   Component,
   DestroyRef,
   HostListener,
+  OnInit,
   inject,
   signal,
 } from '@angular/core';
@@ -30,7 +31,7 @@ export type AuthMode = 'login' | 'register';
   styleUrl: './login.page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   readonly supabaseService = inject(SupabaseService);
   readonly barberService = inject(BarberService);
   readonly haptics = inject(HapticsService);
@@ -42,11 +43,16 @@ export class LoginPage {
   // Modo activo de autenticación: 'login' o 'register'
   readonly authMode = signal<AuthMode>('login');
 
+  // Estado de comprobación de sesión existente para evitar parpadeos de formulario
+  readonly isCheckingExistingSession = signal<boolean>(true);
+
   // Signals reactivos para estados de interacción en la UI
   readonly isLoading = signal(false);
   readonly isPasswordVisible = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
+  readonly hasShakeError = signal<boolean>(false);
+
   private feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
   private redirectTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -71,7 +77,54 @@ export class LoginPage {
     });
   }
 
-  @HostListener('window:keydown.escape')
+  async ngOnInit(): Promise<void> {
+    try {
+      // Si el usuario ya tiene sesión activa persistida, redirigir de inmediato sin pintar el form
+      await this.supabaseService.ensureSessionReady();
+      if (this.supabaseService.isAuthenticated) {
+        const role = this.supabaseService.currentRole();
+        const isStaff = role === 'barber' || role === 'admin';
+        const targetRoute = isStaff ? '/barber' : '/customer';
+        this.logger.info('LoginPage', `Sesión activa detectada (${role}). Redirigiendo a ${targetRoute}`);
+        this.router.navigate([targetRoute], { replaceUrl: true });
+        return;
+      }
+    } catch (err) {
+      this.logger.warn('LoginPage', 'Error al verificar sesión existente', err);
+    } finally {
+      this.isCheckingExistingSession.set(false);
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.handleEscapeKey();
+      return;
+    }
+
+    // Alt + 1 / Alt + L => Cambiar a Iniciar Sesión
+    if (event.altKey && (event.key === '1' || event.key.toLowerCase() === 'l')) {
+      event.preventDefault();
+      this.setAuthMode('login');
+      return;
+    }
+
+    // Alt + 2 / Alt + R => Cambiar a Registro
+    if (event.altKey && (event.key === '2' || event.key.toLowerCase() === 'r')) {
+      event.preventDefault();
+      this.setAuthMode('register');
+      return;
+    }
+
+    // Ctrl + P / Cmd + P => Alternar visibilidad de contraseña
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') {
+      event.preventDefault();
+      this.togglePasswordVisibility();
+      return;
+    }
+  }
+
   handleEscapeKey(): void {
     if (this.errorMessage() || this.successMessage()) {
       this.errorMessage.set(null);
@@ -98,6 +151,7 @@ export class LoginPage {
     if (this.loginForm.invalid || this.isLoading()) {
       this.loginForm.markAllAsTouched();
       this.haptics.warning();
+      this.triggerShake();
       this.showError('Ingresa un correo y contraseña válidos');
       return;
     }
@@ -116,13 +170,14 @@ export class LoginPage {
 
       if (res.error) {
         this.haptics.warning();
+        this.triggerShake();
         const code = res.error.code ?? '';
         const msg = res.error.message ?? '';
-        let friendlyMessage = 'No se pudo iniciar sesión. Verifica tus datos.';
+        let friendlyMessage = 'No se pudo iniciar sesión. Verifica tus credenciales.';
         if (code === 'invalid_credentials' || msg === 'Invalid login credentials') {
-          friendlyMessage = 'Credenciales inválidas. Verifica tu correo y contraseña.';
+          friendlyMessage = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
         } else if (code === 'email_not_confirmed' || msg.includes('Email not confirmed')) {
-          friendlyMessage = 'Correo no verificado. Confirma tu correo o desactiva "Confirm email" en Supabase.';
+          friendlyMessage = 'Correo no verificado. Revisa tu bandeja de entrada o confirma en Supabase.';
         } else if (code === 'email_provider_disabled' || msg.includes('Email logins are disabled')) {
           friendlyMessage = 'El acceso por correo está deshabilitado en Supabase Auth.';
         } else if (msg) {
@@ -151,6 +206,7 @@ export class LoginPage {
       }
     } catch (err: unknown) {
       this.haptics.warning();
+      this.triggerShake();
       const message = err instanceof Error ? err.message : 'Error de conexión con Supabase';
       this.logger.error('LoginPage', `Excepción en submitLogin: ${message}`, err);
       this.showError(message);
@@ -167,7 +223,8 @@ export class LoginPage {
     if (this.registerForm.invalid || this.isLoading()) {
       this.registerForm.markAllAsTouched();
       this.haptics.warning();
-      this.showError('Por favor completa todos los campos requeridos');
+      this.triggerShake();
+      this.showError('Por favor completa todos los campos requeridos correctamente');
       return;
     }
 
@@ -191,21 +248,23 @@ export class LoginPage {
 
       if (res.error) {
         this.haptics.warning();
+        this.triggerShake();
         this.logger.error('LoginPage', `Error registrando cliente: ${res.error.message}`);
         this.showError(res.error.message);
       } else {
         this.haptics.success();
         this.logger.info('LoginPage', `Cliente registrado exitosamente en Supabase`);
-        this.showSuccess('Cuenta de cliente creada exitosamente.');
+        this.showSuccess('¡Cuenta creada exitosamente! Preparando tu portal...');
         this.barberService.setRole('customer');
 
         if (this.redirectTimeout) clearTimeout(this.redirectTimeout);
         this.redirectTimeout = setTimeout(() => {
           this.router.navigate(['/customer']);
-        }, 700);
+        }, 600);
       }
     } catch (err: unknown) {
       this.haptics.warning();
+      this.triggerShake();
       const message = err instanceof Error ? err.message : 'Error al registrar cliente';
       this.logger.error('LoginPage', `Excepción registrando cliente: ${message}`, err);
       this.showError(message);
@@ -213,6 +272,11 @@ export class LoginPage {
       this.registerForm.enable({ emitEvent: false });
       this.isLoading.set(false);
     }
+  }
+
+  private triggerShake(): void {
+    this.hasShakeError.set(true);
+    setTimeout(() => this.hasShakeError.set(false), 550);
   }
 
   private showError(msg: string): void {

@@ -1,14 +1,7 @@
 @if (isOpen) {
 <div class="nc-backdrop" (click)="onClose()" role="presentation">
-  <div
-    class="nc-dialog-sheet"
-    (click)="$event.stopPropagation()"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="reviewModalTitle"
-    appBottomSheet
-    (dismiss)="onClose()"
-  >
+  <div class="nc-dialog-sheet" (click)="$event.stopPropagation()" role="dialog" aria-modal="true"
+    aria-labelledby="reviewModalTitle" appBottomSheet (dismiss)="onClose()">
     <!-- Drag handle para Bottom Sheet táctil con física de resorte -->
     <div class="sheet-drag-handle-zone" aria-hidden="true" title="Desliza hacia abajo para cerrar o toca para expandir">
       <div class="sheet-drag-handle"></div>
@@ -17,20 +10,15 @@
     <header class="sheet-header">
       <div class="sheet-title-group">
         <div class="sheet-badge-row">
-          <span class="sheet-badge gold">Valoración VIP</span>
+          <span class="sheet-badge" [class.gold]="isVip()">{{ isVip() ? 'Valoración VIP' : 'Valoración del Servicio'
+            }}</span>
           <span class="sheet-shortcut-badge" title="Cerrar con tecla Escape">Esc</span>
         </div>
         <h2 id="reviewModalTitle" class="sheet-title">Calificar Servicio</h2>
         <p class="sheet-desc">Tu opinión nos impulsa a mantener la máxima excelencia en cada corte</p>
       </div>
-      <button
-        type="button"
-        class="sheet-close-btn"
-        (click)="onClose()"
-        aria-label="Cerrar modal"
-        title="Cerrar (Esc)"
-        [disabled]="isSubmitting()"
-      >
+      <button type="button" class="sheet-close-btn" (click)="onClose()" aria-label="Cerrar modal" title="Cerrar (Esc)"
+        [disabled]="isSubmitting()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -39,28 +27,28 @@
     </header>
 
     @if (errorMessage()) {
-      <div class="nc-error-banner" role="alert">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>{{ errorMessage() }}</span>
-      </div>
+    <div class="nc-error-banner" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="error-icon" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
     }
 
     <!-- Banner Contextual del Servicio Calificado -->
     @if (serviceName || barberName) {
-      <div class="service-context-banner">
-        <div class="scb-icon" aria-hidden="true">✂</div>
-        <div class="scb-details">
-          <span class="scb-service">{{ serviceName || 'Servicio BarberTrack' }}</span>
-          <span class="scb-meta">
-            @if (barberName) { <strong>Atendido por: {{ barberName }}</strong> }
-            @if (date) { • {{ date }} }
-          </span>
-        </div>
+    <div class="service-context-banner">
+      <div class="scb-icon" aria-hidden="true">✂</div>
+      <div class="scb-details">
+        <span class="scb-service">{{ serviceName || 'Servicio BarberTrack' }}</span>
+        <span class="scb-meta">
+          @if (barberName) { <strong>Atendido por: {{ barberName }}</strong> }
+          @if (date) { • {{ date }} }
+        </span>
       </div>
+    </div>
     }
 
     <form [formGroup]="reviewForm" (ngSubmit)="submitReview()" class="sheet-form" novalidate>
@@ -70,19 +58,13 @@
           <label class="form-label stars-label">¿Cómo calificarías tu experiencia?</label>
           <div class="stars-picker" role="radiogroup" aria-label="Calificación de 1 a 5 estrellas">
             @for (star of [1, 2, 3, 4, 5]; track star) {
-              <button
-                type="button"
-                class="star-picker-btn"
-                [class.active]="star <= (hoveredStar() ?? reviewForm.get('rating')?.value ?? 5)"
-                [class.hovered]="hoveredStar() !== null && star <= hoveredStar()!"
-                (mouseenter)="setHoverStar(star)"
-                (mouseleave)="setHoverStar(null)"
-                (click)="setRating(star)"
-                [attr.aria-label]="star + ' estrellas'"
-                [disabled]="isSubmitting()"
-              >
-                ★
-              </button>
+            <button type="button" class="star-picker-btn"
+              [class.active]="star <= (hoveredStar() ?? reviewForm.get('rating')?.value ?? 5)"
+              [class.hovered]="hoveredStar() !== null && star <= hoveredStar()!" (mouseenter)="setHoverStar(star)"
+              (mouseleave)="setHoverStar(null)" (click)="setRating(star)" [attr.aria-label]="star + ' estrellas'"
+              [disabled]="isSubmitting()">
+              ★
+            </button>
             }
           </div>
           <span class="rating-feedback-hint">
@@ -96,37 +78,23 @@
             <label for="review-comment" class="form-label">Tu Comentario u Opinión *</label>
             <span class="label-hint">Máx. 500 car.</span>
           </div>
-          <textarea
-            id="review-comment"
-            class="form-input form-textarea"
-            rows="3"
+          <textarea id="review-comment" class="form-input form-textarea" rows="3"
             placeholder="Comparte tu experiencia con el corte, puntualidad y trato recibido..."
-            formControlName="comment"
-            maxlength="500"
-          ></textarea>
+            formControlName="comment" maxlength="500"></textarea>
         </div>
       </div>
 
       <!-- Footer Unificado -->
       <div class="sheet-footer">
-        <button
-          type="button"
-          class="btn-secondary"
-          (click)="onClose()"
-          [disabled]="isSubmitting()"
-        >
+        <button type="button" class="btn-secondary" (click)="onClose()" [disabled]="isSubmitting()">
           Cancelar
         </button>
-        <button
-          type="submit"
-          class="btn-primary-action"
-          [disabled]="reviewForm.invalid || isSubmitting()"
-        >
+        <button type="submit" class="btn-primary-action" [disabled]="reviewForm.invalid || isSubmitting()">
           @if (isSubmitting()) {
-            <span class="btn-spinner" aria-hidden="true"></span>
-            <span>Publicando...</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <span>Publicando...</span>
           } @else {
-            <span>Publicar Valoración</span>
+          <span>Publicar Valoración</span>
           }
         </button>
       </div>

@@ -31,6 +31,12 @@ export class LoyaltyCard {
     return Math.min(100, Math.round((current / total) * 100));
   });
 
+  readonly clientTier = computed<string>(() => {
+    return this.barberService.currentClient().membershipLevel || 'Bronze';
+  });
+
+  readonly isVip = computed<boolean>(() => this.clientTier() === 'VIP');
+
   isRewardSlot(slot: number): boolean {
     const rewards = this.barberService.loyaltyRewards().filter((r) => r.isActive);
     if (!rewards.length) return slot === this.barberService.stampsRequired();

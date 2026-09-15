@@ -37,6 +37,43 @@ export class CustomerHomePage {
     );
   });
 
+  // Nivel de membresía dinámico (Bronze, Silver, Gold, VIP)
+  readonly clientTier = computed<string>(() => {
+    return this.barberService.currentClient().membershipLevel || 'Bronze';
+  });
+
+  readonly isVip = computed<boolean>(() => this.clientTier() === 'VIP');
+
+  // Beneficios contextuales según el nivel real de membresía
+  readonly tierPerks = computed(() => {
+    const tier = this.clientTier();
+    if (tier === 'VIP') {
+      return [
+        { icon: '👑', title: 'Atención VIP Exclusiva', desc: 'Bebida premium ilimitada y sillón de corte preferencial.' },
+        { icon: '🏷️', title: '20% Dto. en Productos', desc: 'Descuento VIP en ceras, pomadas y aceites importados.' },
+        { icon: '⚡', title: 'Reserva Prioritaria Élite', desc: 'Acceso prioritario garantizado en fines de semana y festivos.' },
+      ];
+    } else if (tier === 'Gold') {
+      return [
+        { icon: '☕', title: 'Bebida Premium de Cortesía', desc: 'Café de especialidad, infusión o bebida fría en cada visita.' },
+        { icon: '🏷️', title: '15% Dto. en Productos', desc: 'Descuento Gold en toda la línea de cuidado capilar y barba.' },
+        { icon: '⚡', title: 'Prioridad en Lista de Espera', desc: 'Preferencia en cupos libres por cancelaciones de último minuto.' },
+      ];
+    } else if (tier === 'Silver') {
+      return [
+        { icon: '☕', title: 'Bebida de Cortesía', desc: 'Café espresso artesanal o agua purificada en cada corte.' },
+        { icon: '🏷️', title: '10% Dto. en Productos', desc: 'Descuento Silver en productos seleccionados de peinado.' },
+        { icon: '✨', title: 'Tratamiento Toalla Caliente', desc: 'Vapor y toalla aromatizada de cortesía en servicios de barba.' },
+      ];
+    }
+    // Bronze por defecto
+    return [
+      { icon: '☕', title: 'Bebida de Cortesía', desc: 'Café espresso artesanal, agua o bebida fría en cada corte.' },
+      { icon: '🏷️', title: '10% Dto. en Productos', desc: 'Descuento de bienvenida en pomadas y ceras para el cabello.' },
+      { icon: '⭐', title: 'Club de Sellos Dorados', desc: 'Suma sellos por cada visita y canjea cortes y premios 100% gratis.' },
+    ];
+  });
+
   // Próximo turno en vivo
   readonly nextApt = computed(() => this.barberService.nextClientAppointment());
 

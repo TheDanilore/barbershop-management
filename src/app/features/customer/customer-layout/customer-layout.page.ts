@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { BarberService } from '../../../core/services/barber.service';
@@ -63,6 +64,19 @@ export class CustomerLayoutPage implements OnInit {
     }
   });
 
+  // Nivel de membresía dinámico del cliente (Bronze, Silver, Gold, VIP)
+  readonly clientTier = computed<string>(() => {
+    return this.barberService.currentClient().membershipLevel || 'Bronze';
+  });
+
+  // Flag estricto: ¿Es socio VIP?
+  readonly isVip = computed<boolean>(() => this.clientTier() === 'VIP');
+
+  // Etiqueta formal para el Topbar
+  readonly tierBadgeLabel = computed<string>(() => {
+    return this.isVip() ? 'CLIENTE VIP' : `CLIENTE ${this.clientTier().toUpperCase()}`;
+  });
+
   // Conteo de citas activas para el badge de navegación
   readonly activeAppointmentsCount = computed(() => {
     return this.barberService.clientAppointments().filter(
@@ -85,7 +99,10 @@ export class CustomerLayoutPage implements OnInit {
     this.extractTabFromUrl(this.router.url);
 
     this.router.events
-      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe((event: NavigationEnd) => {
         this.extractTabFromUrl(event.urlAfterRedirects || event.url);
       });

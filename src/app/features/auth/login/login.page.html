@@ -1,29 +1,58 @@
 <main class="auth-viewport" role="main">
-  <!-- Iluminación atmosférica ambiental -->
+  <!-- Iluminación atmosférica ambiental dorada -->
   <div class="ambient-glow" aria-hidden="true"></div>
 
   <!-- Notificaciones y retroalimentación de usuario (Toasts) -->
   @if (errorMessage()) {
-    <div class="toast-feedback error" role="alert" aria-live="assertive">
-      <span class="toast-icon">⚠️</span>
-      <span class="toast-message">{{ errorMessage() }}</span>
-      <button type="button" class="toast-dismiss" (click)="errorMessage.set(null)" aria-label="Cerrar notificación">✕</button>
-    </div>
+  <div class="toast-feedback error" role="alert" aria-live="assertive">
+    <span class="toast-icon">⚠️</span>
+    <span class="toast-message">{{ errorMessage() }}</span>
+    <button type="button" class="toast-dismiss" (click)="errorMessage.set(null)"
+      aria-label="Cerrar notificación">✕</button>
+  </div>
   }
   @if (successMessage()) {
-    <div class="toast-feedback success" role="status" aria-live="polite">
-      <span class="toast-icon">✅</span>
-      <span class="toast-message">{{ successMessage() }}</span>
-      <button type="button" class="toast-dismiss" (click)="successMessage.set(null)" aria-label="Cerrar notificación">✕</button>
-    </div>
+  <div class="toast-feedback success" role="status" aria-live="polite">
+    <span class="toast-icon">✅</span>
+    <span class="toast-message">{{ successMessage() }}</span>
+    <button type="button" class="toast-dismiss" (click)="successMessage.set(null)"
+      aria-label="Cerrar notificación">✕</button>
+  </div>
   }
 
-  <div class="auth-stage-container">
+  <!-- ========================================================================= -->
+  <!-- ESTADO TRANSICIONAL: COMPROBANDO SESIÓN PERSISTENTE EXISTENTE              -->
+  <!-- ========================================================================= -->
+  @if (isCheckingExistingSession()) {
+  <div class="session-checking-card fade-in" aria-live="polite">
+    <div class="checking-emblem-pulse">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+        stroke-linejoin="round" class="checking-scissors" aria-hidden="true">
+        <circle cx="6" cy="6" r="3"></circle>
+        <circle cx="6" cy="18" r="3"></circle>
+        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+      </svg>
+    </div>
+    <h2 class="checking-title">BarberTrack</h2>
+    <p class="checking-sub">Restaurando sesión segura...</p>
+    <div class="checking-bar">
+      <div class="checking-bar-fill"></div>
+    </div>
+  </div>
+  } @else {
+  <!-- ========================================================================= -->
+  <!-- ESCENARIO CENTRAL MONOLÍTICO DE LUJO (DISEÑO ORIGINAL DE ALTA CONVERSIÓN) -->
+  <!-- ========================================================================= -->
+  <div class="auth-stage-container" [class.shake-error]="hasShakeError()">
+
     <!-- Cabecera de identidad de marca -->
     <header class="brand-header">
       <div class="brand-emblem-wrapper">
         <div class="brand-emblem">
-          <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg class="scissors-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="6" cy="6" r="3"></circle>
             <circle cx="6" cy="18" r="3"></circle>
             <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
@@ -38,225 +67,174 @@
 
     <!-- Tarjeta principal de autenticación con efecto glassmorphic -->
     <section class="auth-card" aria-labelledby="auth-heading">
-      
+
       <!-- ================================================================= -->
       <!-- VISTA 1: INICIAR SESIÓN (Por defecto)                             -->
       <!-- ================================================================= -->
       @if (authMode() === 'login') {
-        <div class="auth-form-wrapper fade-in">
-          <header class="card-header">
-            <h2 id="auth-heading" class="card-title">Iniciar Sesión</h2>
-            <p class="card-subtitle">Ingresa tus credenciales para acceder a tu entorno</p>
-          </header>
+      <div class="auth-form-wrapper fade-in">
+        <header class="card-header">
+          <h2 id="auth-heading" class="card-title">Iniciar Sesión</h2>
+          <p class="card-subtitle">Ingresa tus credenciales para acceder a tu entorno</p>
+        </header>
 
-          <form [formGroup]="loginForm" (ngSubmit)="handleLogin()" class="form-fields" novalidate>
-            <!-- Campo de correo electrónico -->
-            <div class="field-group">
-              <label class="field-label" for="login-email">Correo Electrónico</label>
-              <div class="input-wrapper">
-                <input
-                  id="login-email"
-                  type="email"
-                  class="field-input"
-                  placeholder="ejemplo@barbertrack.com"
-                  formControlName="email"
-                  autocomplete="email"
-                  required
-                />
-              </div>
-              @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
-                <span class="field-error" role="alert">Ingresa un correo electrónico válido</span>
-              }
+        <form [formGroup]="loginForm" (ngSubmit)="handleLogin()" class="form-fields" novalidate>
+          <!-- Campo de correo electrónico -->
+          <div class="field-group">
+            <label class="field-label" for="login-email">Correo Electrónico</label>
+            <div class="input-wrapper">
+              <input id="login-email" type="email" class="field-input" placeholder="admin@barbertrack.com"
+                formControlName="email" autocomplete="email" inputmode="email" autocapitalize="none" required />
             </div>
-
-            <!-- Campo de contraseña con botón para alternar visibilidad -->
-            <div class="field-group">
-              <label class="field-label" for="login-password">Contraseña</label>
-              <div class="input-wrapper has-trailing-action">
-                <input
-                  id="login-password"
-                  [type]="isPasswordVisible() ? 'text' : 'password'"
-                  class="field-input"
-                  placeholder="••••••••"
-                  formControlName="password"
-                  autocomplete="current-password"
-                  required
-                />
-                <button
-                  type="button"
-                  class="btn-input-trailing"
-                  (click)="togglePasswordVisibility()"
-                  [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'"
-                >
-                  @if (isPasswordVisible()) {
-                    <!-- Icono ojo tachado (ocultar) -->
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                      <line x1="1" y1="1" x2="23" y2="23"></line>
-                    </svg>
-                  } @else {
-                    <!-- Icono ojo (mostrar) -->
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  }
-                </button>
-              </div>
-              @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
-                <span class="field-error" role="alert">La contraseña debe tener mínimo 6 caracteres</span>
-              }
-            </div>
-
-            <!-- Botón principal de acceso de lujo -->
-            <button
-              type="submit"
-              class="btn-submit-luxury"
-              [disabled]="loginForm.invalid || isLoading()"
-            >
-              @if (isLoading()) {
-                <span class="btn-spinner" aria-hidden="true"></span>
-                <span>Iniciando Sesión...</span>
-              } @else {
-                <span>Ingresar a mi Cuenta</span>
-              }
-            </button>
-          </form>
-
-          <!-- Enlace para conmutar a registro -->
-          <div class="auth-switch-prompt">
-            <span class="prompt-text">¿Eres un cliente nuevo?</span>
-            <button type="button" class="btn-link-action" (click)="setAuthMode('register')">
-              Crear cuenta
-            </button>
+            @if (loginForm.get('email')?.touched && loginForm.get('email')?.invalid) {
+            <span class="field-error" role="alert">Ingresa un correo electrónico válido</span>
+            }
           </div>
+
+          <!-- Campo de contraseña con toggle de visibilidad -->
+          <div class="field-group">
+            <label class="field-label" for="login-password">Contraseña</label>
+            <div class="input-wrapper has-trailing-action">
+              <input id="login-password" [type]="isPasswordVisible() ? 'text' : 'password'" class="field-input"
+                placeholder="••••••••" formControlName="password" autocomplete="current-password" required />
+              <button type="button" class="btn-input-trailing" (click)="togglePasswordVisibility()"
+                [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'">
+                @if (isPasswordVisible()) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                  </path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+                } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                }
+              </button>
+            </div>
+            @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+            <span class="field-error" role="alert">La contraseña debe tener mínimo 6 caracteres</span>
+            }
+          </div>
+
+          <!-- Botón principal de acceso de lujo -->
+          <button type="submit" class="btn-submit-luxury" [disabled]="loginForm.invalid || isLoading()">
+            @if (isLoading()) {
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span>Iniciando Sesión...</span>
+            } @else {
+            <span>Ingresar a mi Cuenta</span>
+            }
+          </button>
+        </form>
+
+        <!-- Enlace para alternar a registro -->
+        <div class="auth-switch-prompt">
+          <span class="prompt-text">¿Eres un cliente nuevo?</span>
+          <button type="button" class="btn-link-action" (click)="setAuthMode('register')">
+            Crear cuenta
+          </button>
         </div>
+      </div>
       }
 
       <!-- ================================================================= -->
       <!-- VISTA 2: REGISTRO DE CLIENTES (Exclusivo Clientes)                -->
       <!-- ================================================================= -->
       @if (authMode() === 'register') {
-        <div class="auth-form-wrapper fade-in">
-          <header class="card-header">
-            <h2 id="auth-heading" class="card-title">Crea tu Cuenta</h2>
-            <p class="card-subtitle">Acumula sellos dorados y gestiona tus reservas de forma directa</p>
-          </header>
+      <div class="auth-form-wrapper fade-in">
+        <header class="card-header">
+          <h2 id="auth-heading" class="card-title">Crea tu Cuenta</h2>
+          <p class="card-subtitle">Acumula sellos dorados y gestiona tus reservas de forma directa</p>
+        </header>
 
-          <form [formGroup]="registerForm" (ngSubmit)="handleRegister()" class="form-fields" novalidate>
-            <!-- Nombre y apellido -->
-            <div class="field-group">
-              <label class="field-label" for="reg-name">Nombre Completo</label>
-              <div class="input-wrapper">
-                <input
-                  id="reg-name"
-                  type="text"
-                  class="field-input"
-                  placeholder="Mateo Silva"
-                  formControlName="fullName"
-                  autocomplete="name"
-                  required
-                />
-              </div>
-              @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid) {
-                <span class="field-error" role="alert">Ingresa tu nombre y apellido</span>
-              }
+        <form [formGroup]="registerForm" (ngSubmit)="handleRegister()" class="form-fields" novalidate>
+          <!-- Nombre y apellido -->
+          <div class="field-group">
+            <label class="field-label" for="reg-name">Nombre Completo</label>
+            <div class="input-wrapper">
+              <input id="reg-name" type="text" class="field-input" placeholder="Mateo Silva" formControlName="fullName"
+                autocomplete="name" required />
             </div>
-
-            <!-- Correo electrónico -->
-            <div class="field-group">
-              <label class="field-label" for="reg-email">Correo Electrónico</label>
-              <div class="input-wrapper">
-                <input
-                  id="reg-email"
-                  type="email"
-                  class="field-input"
-                  placeholder="mateo@cliente.com"
-                  formControlName="email"
-                  autocomplete="email"
-                  required
-                />
-              </div>
-              @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
-                <span class="field-error" role="alert">Ingresa un correo electrónico válido</span>
-              }
-            </div>
-
-            <!-- Contraseña con botón de alternar visibilidad -->
-            <div class="field-group">
-              <label class="field-label" for="reg-password">Contraseña</label>
-              <div class="input-wrapper has-trailing-action">
-                <input
-                  id="reg-password"
-                  [type]="isPasswordVisible() ? 'text' : 'password'"
-                  class="field-input"
-                  placeholder="••••••••"
-                  formControlName="password"
-                  autocomplete="new-password"
-                  required
-                />
-                <button
-                  type="button"
-                  class="btn-input-trailing"
-                  (click)="togglePasswordVisibility()"
-                  [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'"
-                >
-                  @if (isPasswordVisible()) {
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                      <line x1="1" y1="1" x2="23" y2="23"></line>
-                    </svg>
-                  } @else {
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  }
-                </button>
-              </div>
-              @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
-                <span class="field-error" role="alert">Mínimo 6 caracteres</span>
-              }
-            </div>
-
-            <!-- Teléfono (Opcional) -->
-            <div class="field-group">
-              <label class="field-label" for="reg-phone">Teléfono (Opcional)</label>
-              <div class="input-wrapper">
-                <input
-                  id="reg-phone"
-                  type="tel"
-                  class="field-input"
-                  placeholder="+51 987 654 321"
-                  formControlName="phone"
-                  autocomplete="tel"
-                />
-              </div>
-            </div>
-
-            <!-- Botón principal de registro -->
-            <button
-              type="submit"
-              class="btn-submit-luxury"
-              [disabled]="registerForm.invalid || isLoading()"
-            >
-              @if (isLoading()) {
-                <span class="btn-spinner" aria-hidden="true"></span>
-                <span>Creando Cuenta...</span>
-              } @else {
-                <span>Crear Cuenta de Cliente</span>
-              }
-            </button>
-          </form>
-
-          <!-- Enlace para volver a Iniciar Sesión -->
-          <div class="auth-switch-prompt">
-            <span class="prompt-text">¿Ya tienes una cuenta?</span>
-            <button type="button" class="btn-link-action" (click)="setAuthMode('login')">
-              Iniciar Sesión
-            </button>
+            @if (registerForm.get('fullName')?.touched && registerForm.get('fullName')?.invalid) {
+            <span class="field-error" role="alert">Ingresa tu nombre y apellido</span>
+            }
           </div>
+
+          <!-- Correo electrónico -->
+          <div class="field-group">
+            <label class="field-label" for="reg-email">Correo Electrónico</label>
+            <div class="input-wrapper">
+              <input id="reg-email" type="email" class="field-input" placeholder="mateo@cliente.com"
+                formControlName="email" autocomplete="email" inputmode="email" autocapitalize="none" required />
+            </div>
+            @if (registerForm.get('email')?.touched && registerForm.get('email')?.invalid) {
+            <span class="field-error" role="alert">Ingresa un correo electrónico válido</span>
+            }
+          </div>
+
+          <!-- Contraseña con botón de alternar visibilidad -->
+          <div class="field-group">
+            <label class="field-label" for="reg-password">Contraseña</label>
+            <div class="input-wrapper has-trailing-action">
+              <input id="reg-password" [type]="isPasswordVisible() ? 'text' : 'password'" class="field-input"
+                placeholder="••••••••" formControlName="password" autocomplete="new-password" required />
+              <button type="button" class="btn-input-trailing" (click)="togglePasswordVisibility()"
+                [attr.aria-label]="isPasswordVisible() ? 'Ocultar contraseña' : 'Ver contraseña'">
+                @if (isPasswordVisible()) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+                  </path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+                } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                }
+              </button>
+            </div>
+            @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
+            <span class="field-error" role="alert">Mínimo 6 caracteres</span>
+            }
+          </div>
+
+          <!-- Teléfono (Opcional) -->
+          <div class="field-group">
+            <label class="field-label" for="reg-phone">Teléfono (Opcional)</label>
+            <div class="input-wrapper">
+              <input id="reg-phone" type="tel" class="field-input" placeholder="+51 987 654 321" formControlName="phone"
+                autocomplete="tel" />
+            </div>
+          </div>
+
+          <!-- Botón principal de registro -->
+          <button type="submit" class="btn-submit-luxury" [disabled]="registerForm.invalid || isLoading()">
+            @if (isLoading()) {
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <span>Creando Cuenta...</span>
+            } @else {
+            <span>Crear Cuenta de Cliente</span>
+            }
+          </button>
+        </form>
+
+        <!-- Enlace para volver a Iniciar Sesión -->
+        <div class="auth-switch-prompt">
+          <span class="prompt-text">¿Ya tienes una cuenta?</span>
+          <button type="button" class="btn-link-action" (click)="setAuthMode('login')">
+            Iniciar Sesión
+          </button>
         </div>
+      </div>
       }
 
     </section>
@@ -266,4 +244,5 @@
       <p class="footer-note">BarberTrack Pro Enterprise &bull; Plataforma Segura</p>
     </footer>
   </div>
+  }
 </main>
